@@ -306,9 +306,9 @@ var SHOPS=[
 ];
 
 // ─── SCENE ─────────────────────────────────────────────
-var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
@@ -324,7 +324,7 @@ var clock=new THREE.Clock();
 var sunLight=new THREE.DirectionalLight(0xfffae8,1.4);
 sunLight.position.set(80,120,60);
 sunLight.castShadow=true;
-sunLight.shadow.mapSize.set(2048,2048);
+sunLight.shadow.mapSize.set(1024,1024);
 sunLight.shadow.camera.left=sunLight.shadow.camera.bottom=-150;
 sunLight.shadow.camera.right=sunLight.shadow.camera.top=150;
 sunLight.shadow.camera.far=500;
@@ -333,7 +333,7 @@ scene.add(new THREE.AmbientLight(0xffffff,0.85));
 scene.add(new THREE.HemisphereLight(0x87ceeb,0x4a8a20,0.6));
 
 // ─── LOAD STATE ────────────────────────────────────────
-var groundMeshes=[],modelBounds=new THREE.Box3(),modelCenter=new THREE.Vector3(),modelSize=new THREE.Vector3();
+var groundMeshes=[],collisionMeshes=[],modelBounds=new THREE.Box3(),modelCenter=new THREE.Vector3(),modelSize=new THREE.Vector3();
 var firePosCache=[];
 var groundRay=new THREE.Raycaster(),wallRay=new THREE.Raycaster();
 var DOWN=new THREE.Vector3(0,-1,0);
@@ -351,6 +351,9 @@ loader.load(CFG.CITY_MODEL,
     world.position.x=-modelCenter.x;world.position.y=-modelBounds.min.y;world.position.z=-modelCenter.z;
     scene.add(world);world.updateMatrixWorld(true);
     modelBounds.setFromObject(world);modelBounds.getCenter(modelCenter);modelBounds.getSize(modelSize);
+    // Filter to structurally large meshes for wall raycasts (skip tiny props/decals)
+    var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
+    groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
     document.getElementById('loading').style.display='none';
     document.getElementById('spawn').style.display='flex';
@@ -390,7 +393,7 @@ function wallBlocked(ox,oy,oz,dx,dz){
   var len=Math.sqrt(dx*dx+dz*dz);if(len<0.0001)return false;
   wallRay.near=0.05;wallRay.far=WALL_DIST;
   wallRay.set(new THREE.Vector3(ox,oy,oz),new THREE.Vector3(dx/len,0,dz/len));
-  var hits=wallRay.intersectObjects(groundMeshes,false);
+  var hits=wallRay.intersectObjects(collisionMeshes,false);
   for(var i=0;i<hits.length;i++){if(isWallHit(hits[i]))return true;}
   return false;
 }
@@ -464,17 +467,22 @@ var agentCheckIdx=0;
 var AGENT_TICKER_LINES=['visiting the Market','browsing the Black Market','loitering near the Bank','observing the Casino','at the Pharmacy','near the Weapons Store','in the Library','outside Town Hall','wandering the district','watching the fires','patrolling the plaza'];
 
 function loadAgentModels(){
-  AGENT_DEFS.forEach(function(def){
+  // Load one at a time to avoid GPU/network spike that causes 30s lag on entry
+  var queue=AGENT_DEFS.slice();
+  function loadNext(){
+    if(!queue.length)return;
+    var def=queue.shift();
     loader.load(def.model,
       function(gltf){
         agentModels[def.id]=gltf;
-        // If this agent is already spawned as orb, swap it in
         agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag,gltf);});
+        loadNext();
       },
       null,
-      function(){agentModels[def.id]=null;}  // mark as failed; orb stays
+      function(){agentModels[def.id]=null;loadNext();}
     );
-  });
+  }
+  setTimeout(loadNext,2000);
 }
 
 function swapOrbToModel(ag,gltf){
