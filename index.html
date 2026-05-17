@@ -340,6 +340,33 @@
   /* FOOTER SPACE */
   .footer-pad { padding-bottom: 60px; }
 
+  /* REVEAL COUNTDOWN */
+  .reveal-countdown {
+    display: none;
+    border: 1px solid var(--purple);
+    box-shadow: 0 0 30px rgba(157,0,255,0.2), inset 0 0 30px rgba(157,0,255,0.04);
+    padding: 20px;
+    text-align: center;
+    margin: 0 auto;
+    max-width: 500px;
+  }
+  .countdown-digits {
+    font-size: clamp(32px, 8vw, 56px);
+    color: var(--purple);
+    text-shadow: 0 0 10px var(--purple), 0 0 30px var(--purple);
+    letter-spacing: 6px;
+    animation: pulsep 1s ease-in-out infinite;
+  }
+  .redacted-addr {
+    color: var(--purple);
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: 0.5;
+    word-break: break-all;
+    filter: blur(3px);
+    user-select: none;
+  }
+
   /* CA DISPLAY */
   .ca-box {
     border: 1px solid var(--amber);
@@ -535,14 +562,22 @@
       </div>
       <div class="d tiny" id="caStatus" style="margin-top:5px;">// T0K3N 4DDR3SS N0T Y3T R3V34L3D</div>
     </div>
-    <div class="ca-box" style="border-color:var(--purple);box-shadow:0 0 20px rgba(157,0,255,0.08);">
+    <div class="ca-box" id="questCABox" style="border-color:var(--purple);box-shadow:0 0 20px rgba(157,0,255,0.08);">
       <div class="tiny" style="letter-spacing:2px;color:var(--purple);">▓ QU3ST T0K3N C4 ▓</div>
-      <div class="ca-address">
+      <div class="ca-address" id="questCARow">
         <span id="questCAText" style="color:var(--purple);font-size:12px;letter-spacing:1px;word-break:break-all;">TB4</span>
-        <button class="term-btn quest-btn" onclick="copyCA('quest')" style="font-size:10px;">C0PY</button>
+        <button class="term-btn quest-btn" id="questCopyBtn" onclick="copyCA('quest')" style="font-size:10px;">C0PY</button>
       </div>
       <div class="tiny" id="questCAStatus" style="margin-top:5px;color:#4d0080;">// QU3ST T0K3N N0T Y3T R3V34L3D</div>
     </div>
+  </div>
+
+  <!-- REVEAL COUNTDOWN (shown during 5-min window) -->
+  <div class="reveal-countdown" id="revealCountdownBox" style="margin-top:24px;">
+    <div class="tiny" style="color:var(--purple);letter-spacing:3px;margin-bottom:10px;">▓▓▓ QU3ST T0K3N R3V34L1NG 1N ▓▓▓</div>
+    <div class="countdown-digits" id="countdownDigits">05:00</div>
+    <div class="redacted-addr" id="redactedAddr" style="margin-top:12px;">████████████████████████████████████████████</div>
+    <div class="tiny" style="color:#4d0080;margin-top:10px;letter-spacing:1px;">// TH3 V01D PR3P4R3S. TH3 4DDR3SS 4PPR04CH3Z.</div>
   </div>
 </div>
 
@@ -1117,6 +1152,8 @@ function fmtMs(ms) { return ms >= 60000 ? `${Math.ceil(ms/60000)}m` : `${Math.ce
 let tokenSymbol = 'TH3 T0K3N';
 let tokenAddress = 'TBA';
 let questAddress = 'TBA';
+let questRevealAt = null;
+let revealInterval = null;
 
 function copyCA(type) {
   const addr = type === 'quest' ? questAddress : tokenAddress;
@@ -1186,6 +1223,7 @@ async function loadConfig() {
     const cfg = await res.json();
     tokenAddress = cfg.tokenAddress || 'TBA';
     questAddress = cfg.questAddress || 'TBA';
+    questRevealAt = cfg.questRevealAt || null;
   } catch(e) {}
 
   const caEl = document.getElementById('caText');
@@ -1197,8 +1235,20 @@ async function loadConfig() {
       : '// CL1CK C0PY T0 C0PY 4DDR3SS';
   }
 
+  applyQuestAddressUI();
+
+  if (questRevealAt && Date.now() < questRevealAt) {
+    startRevealCountdown();
+  }
+
+  fetchPrice();
+  setInterval(fetchPrice, 30000);
+}
+
+function applyQuestAddressUI() {
   const questCAEl = document.getElementById('questCAText');
   const questCAStatus = document.getElementById('questCAStatus');
+  const questCopyBtn = document.getElementById('questCopyBtn');
   if (questCAEl) questCAEl.textContent = questAddress;
   if (questCAStatus) {
     questCAStatus.textContent = questAddress === 'TBA'
@@ -1206,9 +1256,60 @@ async function loadConfig() {
       : '// QU3ST T0K3N C0NF1GUR3D';
     questCAStatus.style.color = questAddress === 'TBA' ? '#4d0080' : 'var(--purple)';
   }
+  if (questCopyBtn) questCopyBtn.style.display = questAddress === 'TBA' ? 'none' : '';
+}
 
+function startRevealCountdown() {
+  const box = document.getElementById('revealCountdownBox');
+  const questCABox = document.getElementById('questCABox');
+  if (box) box.style.display = 'block';
+  if (questCABox) questCABox.style.display = 'none';
+
+  if (revealInterval) clearInterval(revealInterval);
+  revealInterval = setInterval(tickCountdown, 1000);
+  tickCountdown();
+}
+
+function tickCountdown() {
+  const left = questRevealAt - Date.now();
+  if (left <= 0) {
+    clearInterval(revealInterval);
+    onQuestReveal();
+    return;
+  }
+  const mins = Math.floor(left / 60000);
+  const secs = Math.floor((left % 60000) / 1000);
+  const display = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+  const digits = document.getElementById('countdownDigits');
+  if (digits) digits.textContent = display;
+
+  const priceStatus = document.getElementById('priceStatus');
+  if (priceStatus && questAddress === 'TBA') {
+    priceStatus.textContent = `// QU3ST T0K3N R3V34LS 1N ${display}`;
+  }
+}
+
+async function onQuestReveal() {
+  // Re-fetch to get the now-unlocked quest address
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    questAddress = cfg.questAddress || 'TBA';
+  } catch(e) {}
+
+  const box = document.getElementById('revealCountdownBox');
+  const questCABox = document.getElementById('questCABox');
+  if (box) box.style.display = 'none';
+  if (questCABox) questCABox.style.display = '';
+
+  applyQuestAddressUI();
   fetchPrice();
-  setInterval(fetchPrice, 30000);
+
+  // Dramatic terminal announce
+  addLine(`<span class="p">╔══════════════════════════════════╗</span>`);
+  addLine(`<span class="p">║ QU3ST T0K3N H4S B33N R3V34L3D ║</span>`);
+  addLine(`<span class="a">║ ${esc(questAddress)} ║</span>`);
+  addLine(`<span class="p">╚══════════════════════════════════╝</span>`);
 }
 
 // ── Price tracker ──
