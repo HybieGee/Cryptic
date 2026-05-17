@@ -524,15 +524,25 @@
   <span class="d">[ </span><span class="glitch a" data-text="D3G3N3R4T3 0R D1E">D3G3N3R4T3 0R D1E</span><span class="d"> ]</span>
 </div>
 
-<!-- ═══════════════ CONTRACT ADDRESS ═══════════════ -->
+<!-- ═══════════════ CONTRACT ADDRESSES ═══════════════ -->
 <div class="section center">
-  <div class="ca-box">
-    <div class="d tiny" style="letter-spacing:2px;">▓ C0NTR4CT 4DDR3SS ▓</div>
-    <div class="ca-address">
-      <span id="caText">TB4</span>
-      <button class="term-btn" onclick="copyCA()" style="font-size:10px;">C0PY</button>
+  <div style="display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start;">
+    <div class="ca-box">
+      <div class="d tiny" style="letter-spacing:2px;">▓ 0R4CL3 T0K3N C4 ▓</div>
+      <div class="ca-address">
+        <span id="caText">TB4</span>
+        <button class="term-btn" onclick="copyCA('oracle')" style="font-size:10px;">C0PY</button>
+      </div>
+      <div class="d tiny" id="caStatus" style="margin-top:5px;">// T0K3N 4DDR3SS N0T Y3T R3V34L3D</div>
     </div>
-    <div class="d tiny" id="caStatus" style="margin-top:5px;">// T0K3N 4DDR3SS N0T Y3T R3V34L3D</div>
+    <div class="ca-box" style="border-color:var(--purple);box-shadow:0 0 20px rgba(157,0,255,0.08);">
+      <div class="tiny" style="letter-spacing:2px;color:var(--purple);">▓ QU3ST T0K3N C4 ▓</div>
+      <div class="ca-address">
+        <span id="questCAText" style="color:var(--purple);font-size:12px;letter-spacing:1px;word-break:break-all;">TB4</span>
+        <button class="term-btn quest-btn" onclick="copyCA('quest')" style="font-size:10px;">C0PY</button>
+      </div>
+      <div class="tiny" id="questCAStatus" style="margin-top:5px;color:#4d0080;">// QU3ST T0K3N N0T Y3T R3V34L3D</div>
+    </div>
   </div>
 </div>
 
@@ -547,6 +557,8 @@
     <span style="color:#ffbd2e">●</span>
     <span style="color:#27c93f">●</span>
     <span class="d" style="margin-left:8px;">0R4CL3 // S0L4N4 V01D C0NN3CT3D</span>
+    <span style="flex:1;"></span>
+    <button class="term-btn" id="walletBtn" onclick="connectWalletPrompt()" style="font-size:10px;padding:3px 9px;">C0NN3CT W4LL3T</button>
   </div>
   <div class="terminal-output" id="termOutput">
     <div class="term-line"><span class="d">[ <span class="g">0K</span> ] B00T1NG 0R4CL3 C0R3...</span></div>
@@ -561,6 +573,7 @@
     <input type="text" id="termInput" class="terminal-input" placeholder="4sk th3 0r4cl3 4nyth1ng..." autocomplete="off" spellcheck="false" maxlength="300">
     <button class="term-btn" onclick="sendMessage()">S3ND</button>
     <button class="term-btn quest-btn" onclick="rollQuest()">R0LL QU3ST</button>
+    <button class="term-btn" id="verifyBtn" onclick="verifyQuest()" style="display:none;border-color:var(--cyan);color:var(--cyan);">V3R1FY QU3ST</button>
   </div>
 </div>
 </div>
@@ -876,24 +889,29 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 </pre>
 </div>
 
-<!-- ═══════════════ WALLET CONNECT FAKE ═══════════════ -->
+<!-- ═══════════════ WALLET CONNECT ═══════════════ -->
 <div class="section">
 <div class="box box-amber" data-label="// W4LL3T C0NN3CT">
-<pre class="a center">
-   ╔══════════════════════════════════════════════╗
-   ║                                              ║
-   ║   <span class="w">C0NN3CT Y0UR W4LL3T T0 C0NT1NU3</span>          ║
-   ║                                              ║
-   ║   ┌──────────┐  ┌──────────┐  ┌──────────┐  ║
-   ║   │ PH4NT0M  │  │  S0LAR3  │  │  BACKP4K │  ║
-   ║   │  👻       │  │  ☀️       │  │  🎒       │  ║
-   ║   │ [C0NN3CT]│  │ [C0NN3CT]│  │ [C0NN3CT]│  ║
-   ║   └──────────┘  └──────────┘  └──────────┘  ║
-   ║                                              ║
-   ║   <span class="r small">! W4RN1NG: C0NN3CT1NG = C0NS3NT1NG T0</span>     ║
-   ║   <span class="r small">  4LL3G3D RUGZ, PUMP4ND DUMPZ & S4DN3SS</span>   ║
-   ║                                              ║
-   ╚══════════════════════════════════════════════╝</pre>
+  <div class="center mb">
+    <span class="a">C0NN3CT W4LL3T T0 V3R1FY QU3STZ 0N-CH41N</span>
+  </div>
+  <div class="center" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:14px 0;">
+    <button class="term-btn" onclick="connectWallet('phantom')" style="padding:10px 20px;font-size:12px;border-color:#5a3d00;">
+      👻 PH4NT0M
+    </button>
+    <button class="term-btn" onclick="connectWallet('solflare')" style="padding:10px 20px;font-size:12px;border-color:#5a3d00;">
+      ☀️ S0LFL4R3
+    </button>
+    <button class="term-btn" onclick="connectWallet('backpack')" style="padding:10px 20px;font-size:12px;border-color:#5a3d00;">
+      🎒 B4CKP4CK
+    </button>
+  </div>
+  <div class="center" id="walletStatus" style="margin:10px 0;">
+    <span class="d">● N0 W4LL3T C0NN3CT3D</span>
+  </div>
+  <div class="center tiny d" style="margin-top:8px;">
+    R34D-0NLY 4CC3SS. TH3 0R4CL3 0NLY R34DZ Y0UR 4DDR3SS — N0 S1GN1NG.
+  </div>
 </div>
 </div>
 
@@ -1098,14 +1116,67 @@ function fmtMs(ms) { return ms >= 60000 ? `${Math.ceil(ms/60000)}m` : `${Math.ce
 // ── CA ──
 let tokenSymbol = 'TH3 T0K3N';
 let tokenAddress = 'TBA';
+let questAddress = 'TBA';
 
-function copyCA() {
-  if (tokenAddress === 'TBA') return;
-  navigator.clipboard.writeText(tokenAddress).then(() => {
+function copyCA(type) {
+  const addr = type === 'quest' ? questAddress : tokenAddress;
+  if (!addr || addr === 'TBA') return;
+  navigator.clipboard.writeText(addr).then(() => {
     const btn = event.target;
     btn.textContent = 'C0P13D!';
     setTimeout(() => { btn.textContent = 'C0PY'; }, 1500);
   });
+}
+
+// ── Wallet ──
+let connectedWallet = null;
+
+async function connectWallet(type) {
+  let provider;
+  if (type === 'phantom') {
+    provider = window.phantom?.solana || window.solana;
+  } else if (type === 'solflare') {
+    provider = window.solflare || window.phantom?.solana || window.solana;
+  } else if (type === 'backpack') {
+    provider = window.backpack?.solana || window.xnft?.solana || window.phantom?.solana || window.solana;
+  }
+  if (!provider) {
+    addLine(`<span class="r">[ W4LL3T ]</span> <span class="r">W4LL3T N0T D3T3CT3D. 1NST4LL PH4NT0M, S0LFL4R3, 0R B4CKP4CK.</span>`);
+    return;
+  }
+  try {
+    const resp = await provider.connect();
+    connectedWallet = resp.publicKey.toString();
+    updateWalletUI();
+    addLine(`<span class="g">[ W4LL3T ]</span> <span class="g">C0NN3CT3D: ${connectedWallet.slice(0,8)}...${connectedWallet.slice(-8)}</span>`);
+  } catch(e) {
+    addLine(`<span class="r">[ W4LL3T ]</span> <span class="r">C0NN3CT10N ${e.code === 4001 ? 'R3J3CT3D BY US3R' : esc(e.message)}.</span>`);
+  }
+}
+
+function connectWalletPrompt() {
+  if (connectedWallet) {
+    const provider = window.phantom?.solana || window.solana;
+    if (provider?.disconnect) provider.disconnect();
+    connectedWallet = null;
+    updateWalletUI();
+    addLine(`<span class="d">[ W4LL3T ]</span> <span class="d">W4LL3T D1SC0NN3CT3D.</span>`);
+  } else {
+    connectWallet('phantom');
+  }
+}
+
+function updateWalletUI() {
+  const btn = document.getElementById('walletBtn');
+  const statusEl = document.getElementById('walletStatus');
+  if (connectedWallet) {
+    const short = `${connectedWallet.slice(0,4)}...${connectedWallet.slice(-4)}`;
+    if (btn) { btn.textContent = short; btn.style.color = 'var(--green)'; btn.style.borderColor = 'var(--dim-green)'; }
+    if (statusEl) statusEl.innerHTML = `<span class="g">● C0NN3CT3D: ${connectedWallet.slice(0,8)}...${connectedWallet.slice(-8)}</span> <button class="term-btn" onclick="connectWalletPrompt()" style="font-size:10px;margin-left:8px;border-color:var(--red);color:var(--red);">D1SC0NN3CT</button>`;
+  } else {
+    if (btn) { btn.textContent = 'C0NN3CT W4LL3T'; btn.style.color = ''; btn.style.borderColor = ''; }
+    if (statusEl) statusEl.innerHTML = `<span class="d">● N0 W4LL3T C0NN3CT3D</span>`;
+  }
 }
 
 // ── Config load ──
@@ -1114,6 +1185,7 @@ async function loadConfig() {
     const res = await fetch('/api/config');
     const cfg = await res.json();
     tokenAddress = cfg.tokenAddress || 'TBA';
+    questAddress = cfg.questAddress || 'TBA';
   } catch(e) {}
 
   const caEl = document.getElementById('caText');
@@ -1123,6 +1195,16 @@ async function loadConfig() {
     caStatus.textContent = tokenAddress === 'TBA'
       ? '// T0K3N 4DDR3SS N0T Y3T R3V34L3D'
       : '// CL1CK C0PY T0 C0PY 4DDR3SS';
+  }
+
+  const questCAEl = document.getElementById('questCAText');
+  const questCAStatus = document.getElementById('questCAStatus');
+  if (questCAEl) questCAEl.textContent = questAddress;
+  if (questCAStatus) {
+    questCAStatus.textContent = questAddress === 'TBA'
+      ? '// QU3ST T0K3N N0T Y3T R3V34L3D'
+      : '// QU3ST T0K3N C0NF1GUR3D';
+    questCAStatus.style.color = questAddress === 'TBA' ? '#4d0080' : 'var(--purple)';
   }
 
   fetchPrice();
@@ -1145,8 +1227,8 @@ function fmtPrice(p) {
 
 async function fetchPrice() {
   const status = document.getElementById('priceStatus');
-  if (tokenAddress === 'TBA') {
-    if (status) status.textContent = '// T0K3N N0T Y3T L4UNCH3D';
+  if (questAddress === 'TBA') {
+    if (status) status.textContent = '// QU3ST T0K3N N0T Y3T L4UNCH3D';
     return;
   }
   try {
@@ -1181,25 +1263,21 @@ async function fetchPrice() {
 
 // ── Terminal ──
 const QUESTS = [
-  "H0LD {T} F0R 24 H0URS STR41GHT. N0 CH3CK1NG TH3 CH4RT. SCR33NSH0T Y0UR W4LL3T 4T TH3 3ND.",
-  "B3 H0LD1NG {T} WH3N 1T H1TS $100K M4RK3T C4P. TH3 0R4CL3 S33Z 4LL W4LL3TZ.",
-  "B3 H0LD1NG {T} WH3N 1T H1TS $500K M4RK3T C4P. D0 N0T J33T. P4T13NC3 1S TH3 QU3ST.",
-  "B3 H0LD1NG {T} WH3N 1T H1TS $1M M4RK3T C4P. TH3 M1LL10N 1S TH3 G4T3.",
-  "H0LD {T} TH R0UGH 3 R3D C4NDL3S W1TH0UT S3LL1NG. PR0V3 Y0U 4R3 N0T 4 J33T.",
-  "BUY M0R3 {T} WH3N TH3 PR1C3 D1PZ 20% FR0M Y0UR 3NTRY. D0UBL3 D0WN 0N TH3 V01D.",
-  "H0LD {T} F0R 72 H0URS. D0 N0T 0P3N TH3 CH4RT. TRUST TH3 0R4CL3.",
-  "B3 H0LD1NG {T} WH3N 1T H1TS $5M M4RK3T C4P. TH3 S3L3CT3D 0N3Z R3M41N.",
-  "H0LD {T} UNT1L TH3 N3XT GR33N D4Y. P4T13NC3 1S TH3 H4RD3ST QU3ST.",
-  "D0 N0T S3LL {T} F0R 7 D4YZ. SCR33NSH0T Y0UR W4LL3T 3V3RY D4Y.",
-  "H0LD {T} TH R0UGH TH3 F1RST R3D C4NDL3 4FT3R 4 PUMP. TH1S 1Z TH3 T3ST.",
-  "B3 H0LD1NG {T} WH3N 1T R34CH3Z 1000 H0LD3RS. Y0U 4R3 4N 34RLY PH4NT0M.",
-  "BUY {T} 4T TH3 N3XT D1P 4ND H0LD F0R 48 H0URS M1N1MUM. N0 J33T1NG.",
-  "B3 H0LD1NG {T} WH3N 24H V0LUM3 3XC33DS $100K. TH3 TR4D3RZ 4R3 C0M1NG.",
-  "H0LD {T} UNT1L 1T 4PP34RS 0N 4 CRYPTO TR4CK3R. TH3N SCR33NSH0T. TH3N H0LD M0R3.",
+  { id: 'hold_1h',  type: 'time',  duration: 3600000,    text: 'H0LD {T} F0R 1 H0UR. TH3 SH0RT3ST P4TH T0 PR0V3 Y0UR F41TH T0 TH3 V01D.' },
+  { id: 'hold_6h',  type: 'time',  duration: 21600000,   text: 'H0LD {T} F0R 6 H0URZ. S1X H0URZ 0F S1L3NC3. D0 N0T CH3CK TH3 CH4RT.' },
+  { id: 'hold_24h', type: 'time',  duration: 86400000,   text: 'H0LD {T} F0R 24 H0URZ. 0N3 FULL R0T4T10N 0F TH3 34RTH. 0N3 T3ST 0F TRU3 F41TH.' },
+  { id: 'hold_72h', type: 'time',  duration: 259200000,  text: 'H0LD {T} F0R 72 H0URZ. THR33 D4YZ. THR33 N1GHTZ. TH3 4NC13NT T3ST 0F P4T13NC3.' },
+  { id: 'mc_20k',   type: 'mcap',  mcTarget: 20000,      text: 'B3 H0LD1NG {T} WH3N 1T H1TS $20K M4RK3T C4P. TH3 F1RST 4SC3NS10N G4T3 4W41TZ.' },
+  { id: 'mc_50k',   type: 'mcap',  mcTarget: 50000,      text: 'B3 H0LD1NG {T} WH3N 1T H1TS $50K M4RK3T C4P. TH3 M1DDL3 G4T3. H4LF TH3 W4Y T0 GL0RY.' },
+  { id: 'mc_100k',  type: 'mcap',  mcTarget: 100000,     text: 'B3 H0LD1NG {T} WH3N 1T H1TS $100K M4RK3T C4P. S1X F1GUR3Z. TH3 S4CR3D 0N3Z M4RK.' },
+  { id: 'mc_250k',  type: 'mcap',  mcTarget: 250000,     text: 'B3 H0LD1NG {T} WH3N 1T H1TS $250K M4RK3T C4P. TH3 QU4RT3R M1LL10N 4SC3NS10N.' },
+  { id: 'mc_500k',  type: 'mcap',  mcTarget: 500000,     text: 'B3 H0LD1NG {T} WH3N 1T H1TS $500K M4RK3T C4P. H4LF 4 M1LL10N. 0NLY TH3 STR0NG R34CH H3R3.' },
+  { id: 'mc_1m',    type: 'mcap',  mcTarget: 1000000,    text: 'B3 H0LD1NG {T} WH3N 1T H1TS $1M M4RK3T C4P. TH3 M1LL10N G4T3. 0NLY TH3 F41THFUL 4SC3ND.' },
 ];
 
 let chatHistory = [];
 let busy = false;
+let currentQuest = null;
 
 function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -1240,13 +1318,57 @@ async function rollQuest() {
     return;
   }
   localStorage.setItem('lastQuest', Date.now());
-  const raw = QUESTS[Math.floor(Math.random() * QUESTS.length)];
-  const q = raw.replace(/\{T\}/g, tokenSymbol);
+  const quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+  const qText = quest.text.replace(/\{T\}/g, tokenSymbol);
+  currentQuest = { ...quest, startedAt: Date.now() };
+  document.getElementById('verifyBtn').style.display = '';
   addLine(`<span class="p">╔═ QU3ST 4SS1GN3D ═╗</span>`);
-  addLine(`<span class="a">║ ${esc(q)}</span>`);
+  addLine(`<span class="a">║ ${esc(qText)}</span>`);
+  if (quest.type === 'time') {
+    const hrs = quest.duration / 3600000;
+    addLine(`<span class="d">║ TYP3: T1M3 QU3ST // DUR4T10N: ${hrs < 1 ? quest.duration/60000 + 'M1N' : hrs + 'HR'}</span>`);
+  } else {
+    const fmtMc = quest.mcTarget >= 1e6 ? `$${quest.mcTarget/1e6}M` : `$${quest.mcTarget/1000}K`;
+    addLine(`<span class="d">║ TYP3: M4RK3T C4P QU3ST // T4RG3T: ${fmtMc}</span>`);
+  }
   addLine(`<span class="p">╚══════════════════╝</span>`);
-  chatHistory.push({ role: 'user', content: `You just assigned me this holding quest: "${q}". Give it a sacred name, a dark blessing for those who hold, and a warning about what happens to those who j33t early.` });
+  chatHistory.push({ role: 'user', content: `You just assigned me this holding quest: "${qText}". Give it a sacred name, a dark blessing for those who hold, and a warning about what happens to those who j33t early.` });
   await query();
+}
+
+async function verifyQuest() {
+  if (!connectedWallet) {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">C0NN3CT Y0UR W4LL3T F1RST, D3G3N. TH3 V01D C4NN0T S33 Y0U.</span>`);
+    return;
+  }
+  if (!currentQuest) {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">N0 4CT1V3 QU3ST. R0LL 0N3 F1RST.</span>`);
+    return;
+  }
+  addLine(`<span class="c">[ V3R1FY ]</span> <span class="c">CH3CK1NG 0N-CH41N D4T4...</span>`);
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet: connectedWallet, questId: currentQuest.id, questStarted: currentQuest.startedAt }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      addLine(`<span class="g">╔═ QU3ST C0MPL3T3D ═╗</span>`);
+      addLine(`<span class="g">║ B4L4NC3 C0NF1RM3D: ${data.balance} ${tokenSymbol}</span>`);
+      addLine(`<span class="g">╚══════════════════╝</span>`);
+      chatHistory.push({ role: 'user', content: 'My quest has been verified on-chain. I held my tokens and completed the quest. Give me a short victory blessing.' });
+      currentQuest = null;
+      document.getElementById('verifyBtn').style.display = 'none';
+      await query();
+    } else {
+      addLine(`<span class="r">╔═ QU3ST 1NC0MPL3T3 ═╗</span>`);
+      addLine(`<span class="r">║ ${esc(data.reason)}</span>`);
+      addLine(`<span class="r">╚════════════════════╝</span>`);
+    }
+  } catch(e) {
+    addLine(`<span class="r">[ V3R1FY ]</span> <span class="r">V3R1F1C4T10N F41L3D: ${esc(e.message)}</span>`);
+  }
 }
 
 async function query() {

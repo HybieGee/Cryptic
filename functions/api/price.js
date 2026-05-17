@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-  const addr = context.env.TOKEN_ADDRESS;
+  const addr = context.env.QUEST_ADDRESS;
 
   if (!addr || addr === 'TBA') {
     return new Response(JSON.stringify({ tba: true }), {
