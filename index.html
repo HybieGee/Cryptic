@@ -340,6 +340,62 @@
   /* FOOTER SPACE */
   .footer-pad { padding-bottom: 60px; }
 
+  /* CA DISPLAY */
+  .ca-box {
+    border: 1px solid var(--amber);
+    padding: 14px 24px;
+    display: inline-block;
+    box-shadow: 0 0 20px rgba(255,176,0,0.08);
+    min-width: 320px;
+    max-width: 100%;
+  }
+  .ca-address {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  #caText {
+    color: var(--amber);
+    font-size: 12px;
+    letter-spacing: 1px;
+    word-break: break-all;
+  }
+
+  /* PRICE TRACKER */
+  .price-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .price-cell {
+    border: 1px solid #5a3d00;
+    padding: 14px 10px;
+    text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .price-cell:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px rgba(255,176,0,0.15);
+  }
+  .price-label {
+    color: var(--dim-green);
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+  }
+  .price-value {
+    color: var(--amber);
+    font-size: 15px;
+    text-shadow: 0 0 8px rgba(255,176,0,0.4);
+  }
+  .price-value.up { color: var(--green); text-shadow: 0 0 8px rgba(0,255,65,0.4); }
+  .price-value.down { color: var(--red); text-shadow: 0 0 8px rgba(255,0,51,0.4); }
+
   /* MAIN TITLE */
   .ascii-title {
     display: inline-block;
@@ -466,6 +522,47 @@
 
 <div class="center mb mt">
   <span class="d">[ </span><span class="glitch a" data-text="D3G3N3R4T3 0R D1E">D3G3N3R4T3 0R D1E</span><span class="d"> ]</span>
+</div>
+
+<!-- ═══════════════ CONTRACT ADDRESS ═══════════════ -->
+<div class="section center">
+  <div class="ca-box">
+    <div class="d tiny" style="letter-spacing:2px;">▓ C0NTR4CT 4DDR3SS ▓</div>
+    <div class="ca-address">
+      <span id="caText">TB4</span>
+      <button class="term-btn" onclick="copyCA()" style="font-size:10px;">C0PY</button>
+    </div>
+    <div class="d tiny" id="caStatus" style="margin-top:5px;">// T0K3N 4DDR3SS N0T Y3T R3V34L3D</div>
+  </div>
+</div>
+
+<!-- ═══════════════ AI TERMINAL ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="g pulse">0R4CL3 // 4SK TH3 V01D</span><span class="d"> ▓▓▓</span>
+</div>
+<div class="terminal-container">
+  <div class="terminal-header">
+    <span style="color:#ff5f56">●</span>
+    <span style="color:#ffbd2e">●</span>
+    <span style="color:#27c93f">●</span>
+    <span class="d" style="margin-left:8px;">0R4CL3 // S0L4N4 V01D C0NN3CT3D</span>
+  </div>
+  <div class="terminal-output" id="termOutput">
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] B00T1NG 0R4CL3 C0R3...</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] S0L4N4 M3M3C01N D4T4B4S3 L04D3D</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] QU3ST 3NG1N3 4CT1V3</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] C0NN3CT3D T0 TH3 V01D</span></div>
+    <div class="term-line">&nbsp;</div>
+    <div class="term-line"><span class="a">0R4CL3 &gt;</span> <span class="w">W3LC0M3, D3G3N. 4SK M3 4NYTH1NG 4B0UT TH3 S0L4N4 V01D — 0R H1T <span class="p">[R0LL QU3ST]</span> T0 R3C31V3 Y0UR M1SS10N.</span></div>
+  </div>
+  <div class="terminal-input-row">
+    <span class="g">&gt;</span>
+    <input type="text" id="termInput" class="terminal-input" placeholder="4sk th3 0r4cl3 4nyth1ng..." autocomplete="off" spellcheck="false" maxlength="300">
+    <button class="term-btn" onclick="sendMessage()">S3ND</button>
+    <button class="term-btn quest-btn" onclick="rollQuest()">R0LL QU3ST</button>
+  </div>
+</div>
 </div>
 
 <!-- TICKER -->
@@ -912,33 +1009,38 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 
 <hr class="ascii">
 
-<!-- ═══════════════ AI TERMINAL ═══════════════ -->
+<!-- ═══════════════ PRICE TRACKER ═══════════════ -->
 <div class="section">
 <div class="center mb">
-  <span class="d">▓▓▓ </span><span class="g pulse">0R4CL3 // 4SK TH3 V01D</span><span class="d"> ▓▓▓</span>
+  <span class="d">▓▓▓ </span><span class="a pulse-amber">L1V3 PR1C3 TR4CK3R</span><span class="d"> ▓▓▓</span>
 </div>
-<div class="terminal-container">
-  <div class="terminal-header">
-    <span style="color:#ff5f56">●</span>
-    <span style="color:#ffbd2e">●</span>
-    <span style="color:#27c93f">●</span>
-    <span class="d" style="margin-left:8px;">0R4CL3 // S0L4N4 V01D C0NN3CT3D</span>
+<div class="price-grid">
+  <div class="price-cell">
+    <div class="price-label">PR1C3 USD</div>
+    <div class="price-value" id="pPrice">──────</div>
   </div>
-  <div class="terminal-output" id="termOutput">
-    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] B00T1NG 0R4CL3 C0R3...</span></div>
-    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] S0L4N4 M3M3C01N D4T4B4S3 L04D3D</span></div>
-    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] QU3ST 3NG1N3 4CT1V3</span></div>
-    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] C0NN3CT3D T0 TH3 V01D</span></div>
-    <div class="term-line">&nbsp;</div>
-    <div class="term-line"><span class="a">0R4CL3 &gt;</span> <span class="w">W3LC0M3, D3G3N. 4SK M3 4NYTH1NG 4B0UT TH3 S0L4N4 M3M3C01N V01D — 0R H1T <span class="p">[R0LL QU3ST]</span> T0 R3C31V3 Y0UR M1SS10N.</span></div>
+  <div class="price-cell">
+    <div class="price-label">M4RK3T C4P</div>
+    <div class="price-value" id="pMcap">──────</div>
   </div>
-  <div class="terminal-input-row">
-    <span class="g">&gt;</span>
-    <input type="text" id="termInput" class="terminal-input" placeholder="4sk th3 0r4cl3 4nyth1ng..." autocomplete="off" spellcheck="false" maxlength="300">
-    <button class="term-btn" onclick="sendMessage()">S3ND</button>
-    <button class="term-btn quest-btn" onclick="rollQuest()">R0LL QU3ST</button>
+  <div class="price-cell">
+    <div class="price-label">24H V0LUM3</div>
+    <div class="price-value" id="pVol">──────</div>
+  </div>
+  <div class="price-cell">
+    <div class="price-label">24H CH4NG3</div>
+    <div class="price-value" id="pChange">──────</div>
+  </div>
+  <div class="price-cell">
+    <div class="price-label">L1QU1D1TY</div>
+    <div class="price-value" id="pLiq">──────</div>
+  </div>
+  <div class="price-cell">
+    <div class="price-label">24H TXZ</div>
+    <div class="price-value" id="pTxns">──────</div>
   </div>
 </div>
+<div class="center tiny d mt" id="priceStatus" style="margin-top:8px;">// W41T1NG F0R T0K3N D4T4...</div>
 </div>
 
 <hr class="ascii">
@@ -965,15 +1067,15 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 <script>
 // ── Clock ──
 function updateClock() {
-  const now = new Date();
   const pad = n => String(n).padStart(2,'0');
+  const now = new Date();
   const el = document.getElementById('clock');
   if (el) el.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── Page glitch ──
+// ── Glitch ──
 setInterval(() => {
   if (Math.random() < 0.1) {
     document.body.style.transform = `skewX(${(Math.random()-0.5)*0.5}deg)`;
@@ -981,32 +1083,122 @@ setInterval(() => {
   }
 }, 2000);
 
-// ── Noise flicker ──
+// ── Noise ──
 const noise = document.querySelector('.noise');
 setInterval(() => {
   if (noise) noise.style.opacity = (0.02 + Math.random() * 0.04).toFixed(3);
 }, 120);
 
-// ── AI TERMINAL ──
+// ── Rate limits ──
+const CHAT_CD  = 10 * 1000;
+const QUEST_CD = 5 * 60 * 1000;
+function msLeft(key, cd) { return Math.max(0, cd - (Date.now() - (+localStorage.getItem(key) || 0))); }
+function fmtMs(ms) { return ms >= 60000 ? `${Math.ceil(ms/60000)}m` : `${Math.ceil(ms/1000)}s`; }
+
+// ── CA ──
+let tokenSymbol = 'TH3 T0K3N';
+let tokenAddress = 'TBA';
+
+function copyCA() {
+  if (tokenAddress === 'TBA') return;
+  navigator.clipboard.writeText(tokenAddress).then(() => {
+    const btn = event.target;
+    btn.textContent = 'C0P13D!';
+    setTimeout(() => { btn.textContent = 'C0PY'; }, 1500);
+  });
+}
+
+// ── Config load ──
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    tokenAddress = cfg.tokenAddress || 'TBA';
+  } catch(e) {}
+
+  const caEl = document.getElementById('caText');
+  const caStatus = document.getElementById('caStatus');
+  if (caEl) caEl.textContent = tokenAddress;
+  if (caStatus) {
+    caStatus.textContent = tokenAddress === 'TBA'
+      ? '// T0K3N 4DDR3SS N0T Y3T R3V34L3D'
+      : '// CL1CK C0PY T0 C0PY 4DDR3SS';
+  }
+
+  fetchPrice();
+  setInterval(fetchPrice, 30000);
+}
+
+// ── Price tracker ──
+function fmt$(n) {
+  if (n >= 1e9) return `$${(n/1e9).toFixed(2)}B`;
+  if (n >= 1e6) return `$${(n/1e6).toFixed(2)}M`;
+  if (n >= 1e3) return `$${(n/1e3).toFixed(1)}K`;
+  return `$${n.toFixed(2)}`;
+}
+function fmtPrice(p) {
+  if (!p || p == 0) return '──────';
+  if (p < 0.000001) return `$${p.toExponential(2)}`;
+  if (p < 0.01) return `$${p.toFixed(8)}`;
+  return `$${p.toFixed(4)}`;
+}
+
+async function fetchPrice() {
+  const status = document.getElementById('priceStatus');
+  if (tokenAddress === 'TBA') {
+    if (status) status.textContent = '// T0K3N N0T Y3T L4UNCH3D';
+    return;
+  }
+  try {
+    const res = await fetch('/api/price');
+    const data = await res.json();
+    if (data.tba) { if (status) status.textContent = '// T0K3N N0T Y3T L4UNCH3D'; return; }
+    const pair = data.pairs && data.pairs.find(p => p.chainId === 'solana') || data.pairs?.[0];
+    if (!pair) { if (status) status.textContent = '// N0 TR4D1NG P41R F0UND Y3T'; return; }
+
+    tokenSymbol = pair.baseToken?.symbol || tokenSymbol;
+
+    const change = pair.priceChange?.h24 || 0;
+    const changeClass = change > 0 ? 'up' : change < 0 ? 'down' : '';
+    const changeStr = `${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+    const txns = (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0);
+
+    document.getElementById('pPrice').textContent  = fmtPrice(parseFloat(pair.priceUsd || 0));
+    document.getElementById('pMcap').textContent   = pair.marketCap ? fmt$(pair.marketCap) : '──────';
+    document.getElementById('pVol').textContent    = pair.volume?.h24 ? fmt$(pair.volume.h24) : '──────';
+    document.getElementById('pTxns').textContent   = txns > 0 ? txns.toLocaleString() : '──────';
+    document.getElementById('pLiq').textContent    = pair.liquidity?.usd ? fmt$(pair.liquidity.usd) : '──────';
+
+    const changeEl = document.getElementById('pChange');
+    changeEl.textContent  = changeStr;
+    changeEl.className    = `price-value ${changeClass}`;
+
+    if (status) status.textContent = `// L4ST UPD4T3D: ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    if (status) status.textContent = '// PR1C3 F33D 3RR0R';
+  }
+}
+
+// ── Terminal ──
 const QUESTS = [
-  "SW4P 4NY 4M0UNT 0F S0L F0R $B0NK 0N JUPIT3R. SCR33NSH0T TH3 SL1PP4G3 WH3R3V3R 1T L4NDZ.",
-  "F1ND 4 T0K3N 0N PUMP.FUN L4UNCH3D 1N TH3 L4ST H0UR. D0 N0T BUY 1T. JUST ST4R3 1NT0 1TS S0UL.",
-  "0P3N S0LSCAN.10 4ND F1ND TH3 L4RG3ST TR4NS4CT10N 1N TH3 M0ST R3C3NT BL0CK. C0NT3MPL4T3.",
-  "G0 T0 B1RD3Y3.SO. F1ND T0D4Y'S T0P G41N3R. 4SK Y0URS3LF: WHY TH3M 4ND N0T M3?",
-  "L00K 4T TH3 $W1F CH4RT 0N TH3 1H T1M3FR4M3 F0R 60 S3C0NDZ W1TH0UT BL1NK1NG.",
-  "CH3CK Y0UR W4LL3T 0N S0LSCAN. C0UNT 3V3RY D34D T0K3N Y0U H0LD. M0URN 3ACH 0N3.",
-  "F1ND 4 M3M3C01N N4M3D 4FT3R 4N 4N1M4L. R34D 1TS TW1TT3R B10 4LL0UT L0UD T0 Y0URS3LF.",
-  "G3T 4 SW4P QU0T3 0N JUPIT3R F0R $MYR0. D0 N0T 3X3CUT3. M3D1T4T3 0N TH3 PR1C3 1MP4CT.",
-  "F1ND 4 S0L4N4 T0K3N W1TH L3SS TH4N 500 H0LD3RS 0N D3XSC R33N3R. B3 TH31R W1TN3SS.",
-  "C4LCUL4T3 H0W MUCH $B0NK 0N3 S0L W0ULD BUY R1GHT N0W. D0 N0T SP3ND 1T. JUST KN0W.",
-  "F1ND TH3 C01N W1TH TH3 M0ST CR1NG3 T3L3GR4M D3SCR1PT10N 0N PUMP.FUN. SC R33NSH0T 1T.",
-  "L00K 4T $S4M0'S CH4RT. R3FL3CT 0N P4T13NC3. W41T.",
-  "F1ND 4 RUG P4LL3D S0L4N4 T0K3N 0N R UGCH3CK. R34D 1TS ST0RY. L34RN.",
-  "S3ND 4 S3LF TR4NSF3R 0F 0.000001 S0L T0 Y0UR OWN W4LL3T. W1TN3SS TH3 CH41N 4CKNOWL3DG3 Y0U.",
-  "F1ND TH3 N3W3ST T0K3N 0N PUMP.FUN R1GHT N0W. W4TCH 1TS PUMP 0R 1TS D34TH 1N R34L T1M3.",
+  "H0LD {T} F0R 24 H0URS STR41GHT. N0 CH3CK1NG TH3 CH4RT. SCR33NSH0T Y0UR W4LL3T 4T TH3 3ND.",
+  "B3 H0LD1NG {T} WH3N 1T H1TS $100K M4RK3T C4P. TH3 0R4CL3 S33Z 4LL W4LL3TZ.",
+  "B3 H0LD1NG {T} WH3N 1T H1TS $500K M4RK3T C4P. D0 N0T J33T. P4T13NC3 1S TH3 QU3ST.",
+  "B3 H0LD1NG {T} WH3N 1T H1TS $1M M4RK3T C4P. TH3 M1LL10N 1S TH3 G4T3.",
+  "H0LD {T} TH R0UGH 3 R3D C4NDL3S W1TH0UT S3LL1NG. PR0V3 Y0U 4R3 N0T 4 J33T.",
+  "BUY M0R3 {T} WH3N TH3 PR1C3 D1PZ 20% FR0M Y0UR 3NTRY. D0UBL3 D0WN 0N TH3 V01D.",
+  "H0LD {T} F0R 72 H0URS. D0 N0T 0P3N TH3 CH4RT. TRUST TH3 0R4CL3.",
+  "B3 H0LD1NG {T} WH3N 1T H1TS $5M M4RK3T C4P. TH3 S3L3CT3D 0N3Z R3M41N.",
+  "H0LD {T} UNT1L TH3 N3XT GR33N D4Y. P4T13NC3 1S TH3 H4RD3ST QU3ST.",
+  "D0 N0T S3LL {T} F0R 7 D4YZ. SCR33NSH0T Y0UR W4LL3T 3V3RY D4Y.",
+  "H0LD {T} TH R0UGH TH3 F1RST R3D C4NDL3 4FT3R 4 PUMP. TH1S 1Z TH3 T3ST.",
+  "B3 H0LD1NG {T} WH3N 1T R34CH3Z 1000 H0LD3RS. Y0U 4R3 4N 34RLY PH4NT0M.",
+  "BUY {T} 4T TH3 N3XT D1P 4ND H0LD F0R 48 H0URS M1N1MUM. N0 J33T1NG.",
+  "B3 H0LD1NG {T} WH3N 24H V0LUM3 3XC33DS $100K. TH3 TR4D3RZ 4R3 C0M1NG.",
+  "H0LD {T} UNT1L 1T 4PP34RS 0N 4 CRYPTO TR4CK3R. TH3N SCR33NSH0T. TH3N H0LD M0R3.",
 ];
 
-let history = [];
+let chatHistory = [];
 let busy = false;
 
 function esc(s) {
@@ -1025,21 +1217,35 @@ function addLine(html) {
 
 async function sendMessage() {
   if (busy) return;
+  const wait = msLeft('lastChat', CHAT_CD);
+  if (wait > 0) {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">W41T ${fmtMs(wait)} B3F0R3 N3XT M3SS4G3.</span>`);
+    return;
+  }
   const inp = document.getElementById('termInput');
   const msg = inp.value.trim();
   if (!msg) return;
   inp.value = '';
+  localStorage.setItem('lastChat', Date.now());
   addLine(`<span class="g">&gt;</span> <span class="w">${esc(msg)}</span>`);
-  history.push({ role: 'user', content: msg });
+  chatHistory.push({ role: 'user', content: msg });
   await query();
 }
 
 async function rollQuest() {
   if (busy) return;
-  const q = QUESTS[Math.floor(Math.random() * QUESTS.length)];
-  addLine(`<span class="p">╔ QU3ST 4SS1GN3D ╗</span>`);
+  const wait = msLeft('lastQuest', QUEST_CD);
+  if (wait > 0) {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">QU3ST C00LD0WN: ${fmtMs(wait)} R3M41N1NG. TH3 V01D D3M4NDZ P4T13NC3.</span>`);
+    return;
+  }
+  localStorage.setItem('lastQuest', Date.now());
+  const raw = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+  const q = raw.replace(/\{T\}/g, tokenSymbol);
+  addLine(`<span class="p">╔═ QU3ST 4SS1GN3D ═╗</span>`);
   addLine(`<span class="a">║ ${esc(q)}</span>`);
-  history.push({ role: 'user', content: `You just assigned me this quest: "${q}". Give me cryptic wisdom, a warning, and a dark blessing for this mission.` });
+  addLine(`<span class="p">╚══════════════════╝</span>`);
+  chatHistory.push({ role: 'user', content: `You just assigned me this holding quest: "${q}". Give it a sacred name, a dark blessing for those who hold, and a warning about what happens to those who j33t early.` });
   await query();
 }
 
@@ -1050,14 +1256,14 @@ async function query() {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: history }),
+      body: JSON.stringify({ messages: chatHistory }),
     });
     const data = await res.json();
     if (data.error || !data.content) {
       thinking.innerHTML = `<span class="r">3RR0R &gt;</span> <span class="r">TH3 V01D 1S S1L3NT. ${esc(String(data.error || 'unkn0wn'))}</span>`;
     } else {
       const reply = data.content[0].text;
-      history.push({ role: 'assistant', content: reply });
+      chatHistory.push({ role: 'assistant', content: reply });
       thinking.innerHTML = `<span class="a">0R4CL3 &gt;</span> <span class="w">${esc(reply)}</span>`;
     }
   } catch(e) {
@@ -1070,6 +1276,8 @@ async function query() {
 document.getElementById('termInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendMessage();
 });
+
+loadConfig();
 </script>
 </body>
 </html>
