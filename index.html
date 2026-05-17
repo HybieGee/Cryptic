@@ -339,6 +339,99 @@
 
   /* FOOTER SPACE */
   .footer-pad { padding-bottom: 60px; }
+
+  /* MAIN TITLE */
+  .main-title-d3g3n {
+    font-size: clamp(56px, 12vw, 110px);
+    letter-spacing: 0.18em;
+    color: var(--green);
+    text-shadow: 0 0 15px var(--green), 0 0 35px var(--green), 0 0 70px var(--green);
+    line-height: 1;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .main-title-terminal {
+    font-size: clamp(32px, 7vw, 68px);
+    letter-spacing: 0.12em;
+    color: var(--purple);
+    text-shadow: 0 0 15px var(--purple), 0 0 35px var(--purple), 0 0 70px var(--purple);
+    line-height: 1.3;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  /* AI TERMINAL */
+  .terminal-container {
+    border: 1px solid var(--green);
+    box-shadow: 0 0 25px rgba(0,255,65,0.15), inset 0 0 25px rgba(0,255,65,0.03);
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .terminal-header {
+    background: rgba(0,255,65,0.07);
+    border-bottom: 1px solid var(--dim-green);
+    padding: 8px 14px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .terminal-output {
+    height: 380px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.65;
+    background: rgba(0,6,0,0.6);
+    scroll-behavior: smooth;
+  }
+  .terminal-output::-webkit-scrollbar { width: 4px; }
+  .terminal-output::-webkit-scrollbar-track { background: #000; }
+  .terminal-output::-webkit-scrollbar-thumb { background: var(--dim-green); }
+  .term-line { margin: 3px 0; word-break: break-word; }
+  .terminal-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--dim-green);
+    background: rgba(0,6,0,0.4);
+  }
+  .terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    caret-color: var(--green);
+  }
+  .terminal-input::placeholder { color: var(--dark-green); }
+  .term-btn {
+    background: transparent;
+    border: 1px solid var(--dim-green);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 5px 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .term-btn:hover {
+    border-color: var(--green);
+    background: rgba(0,255,65,0.1);
+    box-shadow: 0 0 8px rgba(0,255,65,0.3);
+  }
+  .quest-btn { border-color: #4d0080; color: var(--purple); }
+  .quest-btn:hover {
+    border-color: var(--purple);
+    background: rgba(157,0,255,0.1);
+    box-shadow: 0 0 8px rgba(157,0,255,0.3);
+  }
+  @keyframes thinking {
+    0%,100% { opacity: 1; } 50% { opacity: 0.2; }
+  }
+  .term-thinking { animation: thinking 0.6s step-end infinite; color: var(--dim-green); }
 </style>
 </head>
 <body>
@@ -359,25 +452,10 @@
 01001101 01000101 01001101 01000101 00100000 01000011 01001111 01001001 01001110 01011010
 </div>
 
-<!-- ═══════════════ HEADER ASCII ═══════════════ -->
+<!-- ═══════════════ HEADER ═══════════════ -->
 <div class="section center">
-<pre class="pulse" style="display:inline-block;">
- ██████╗  ██████╗  ██████╗ ██████╗ ███╗  ██╗
- ██╔══██╗╚════██╗ ██╔════╝╚════██╗████╗ ██║
- ██║  ██║ █████╔╝ ██║  ███╗ ████╔╝ ██╔██╗██║
- ██║  ██║╚════██╗ ██║   ██║╚════██╗██║╚████║
- ██████╔╝██████╔╝ ╚██████╔╝██████╔╝██║ ╚███║
- ╚═════╝ ╚═════╝   ╚═════╝ ╚═════╝ ╚═╝  ╚══╝
-</pre>
-<br>
-<pre class="pulse-purple" style="display:inline-block;">
-████████╗██████╗ ██████╗ ███╗   ███╗ ██╗ ███╗  ██╗ ██╗  ██╗ ██╗
-╚══██╔══╝╚════██╗██╔══██╗████╗ ████║ ██║ ████╗ ██║ ██║  ██║ ██║
-   ██║    █████╔╝██████╔╝██╔████╔██║ ██║ ██╔██╗██║ ███████║ ██║
-   ██║   ╚════██╗██╔══██╗██║╚██╔╝██║ ██║ ██║╚████║ ╚════██║ ██║
-   ██║   ██████╔╝██║  ██║██║ ╚═╝ ██║ ██║ ██║ ╚███║      ██║ ███████╗
-   ╚═╝   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝ ╚═╝ ╚═╝  ╚══╝      ╚═╝ ╚══════╝
-</pre>
+  <div class="main-title-d3g3n pulse">D3G3N</div>
+  <div class="main-title-terminal pulse-purple">.T3RM1N4L</div>
 </div>
 
 <div class="center mb mt">
@@ -828,6 +906,37 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 
 <hr class="ascii">
 
+<!-- ═══════════════ AI TERMINAL ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="g pulse">0R4CL3 T3RM1N4L // 4SK TH3 V01D</span><span class="d"> ▓▓▓</span>
+</div>
+<div class="terminal-container">
+  <div class="terminal-header">
+    <span style="color:#ff5f56">●</span>
+    <span style="color:#ffbd2e">●</span>
+    <span style="color:#27c93f">●</span>
+    <span class="d" style="margin-left:8px;">D3G3N.T3RM1N4L // 0R4CL3 M0D3 // S0L4N4 V01D C0NN3CT3D</span>
+  </div>
+  <div class="terminal-output" id="termOutput">
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] B00T1NG 0R4CL3 C0R3...</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] S0L4N4 M3M3C01N D4T4B4S3 L04D3D</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] QU3ST 3NG1N3 4CT1V3</span></div>
+    <div class="term-line"><span class="d">[ <span class="g">0K</span> ] C0NN3CT3D T0 TH3 V01D</span></div>
+    <div class="term-line">&nbsp;</div>
+    <div class="term-line"><span class="a">0R4CL3 &gt;</span> <span class="w">W3LC0M3, D3G3N. 4SK M3 4NYTH1NG 4B0UT TH3 S0L4N4 M3M3C01N V01D — 0R H1T <span class="p">[R0LL QU3ST]</span> T0 R3C31V3 Y0UR M1SS10N.</span></div>
+  </div>
+  <div class="terminal-input-row">
+    <span class="g">&gt;</span>
+    <input type="text" id="termInput" class="terminal-input" placeholder="4sk th3 0r4cl3 4nyth1ng..." autocomplete="off" spellcheck="false" maxlength="300">
+    <button class="term-btn" onclick="sendMessage()">S3ND</button>
+    <button class="term-btn quest-btn" onclick="rollQuest()">R0LL QU3ST</button>
+  </div>
+</div>
+</div>
+
+<hr class="ascii">
+
 <!-- ═══════════════ FOOTER ═══════════════ -->
 <div class="section center tiny">
 <pre class="d">
@@ -848,19 +957,17 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 </div><!-- /container -->
 
 <script>
-// Clock
+// ── Clock ──
 function updateClock() {
   const now = new Date();
-  const h = String(now.getHours()).padStart(2,'0');
-  const m = String(now.getMinutes()).padStart(2,'0');
-  const s = String(now.getSeconds()).padStart(2,'0');
+  const pad = n => String(n).padStart(2,'0');
   const el = document.getElementById('clock');
-  if (el) el.textContent = `${h}:${m}:${s}`;
+  if (el) el.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
 }
 setInterval(updateClock, 1000);
 updateClock();
 
-// Random glitch effect on page
+// ── Page glitch ──
 setInterval(() => {
   if (Math.random() < 0.1) {
     document.body.style.transform = `skewX(${(Math.random()-0.5)*0.5}deg)`;
@@ -868,11 +975,95 @@ setInterval(() => {
   }
 }, 2000);
 
-// Random pixel noise flicker
+// ── Noise flicker ──
 const noise = document.querySelector('.noise');
 setInterval(() => {
   if (noise) noise.style.opacity = (0.02 + Math.random() * 0.04).toFixed(3);
 }, 120);
+
+// ── AI TERMINAL ──
+const QUESTS = [
+  "SW4P 4NY 4M0UNT 0F S0L F0R $B0NK 0N JUPIT3R. SCR33NSH0T TH3 SL1PP4G3 WH3R3V3R 1T L4NDZ.",
+  "F1ND 4 T0K3N 0N PUMP.FUN L4UNCH3D 1N TH3 L4ST H0UR. D0 N0T BUY 1T. JUST ST4R3 1NT0 1TS S0UL.",
+  "0P3N S0LSCAN.10 4ND F1ND TH3 L4RG3ST TR4NS4CT10N 1N TH3 M0ST R3C3NT BL0CK. C0NT3MPL4T3.",
+  "G0 T0 B1RD3Y3.SO. F1ND T0D4Y'S T0P G41N3R. 4SK Y0URS3LF: WHY TH3M 4ND N0T M3?",
+  "L00K 4T TH3 $W1F CH4RT 0N TH3 1H T1M3FR4M3 F0R 60 S3C0NDZ W1TH0UT BL1NK1NG.",
+  "CH3CK Y0UR W4LL3T 0N S0LSCAN. C0UNT 3V3RY D34D T0K3N Y0U H0LD. M0URN 3ACH 0N3.",
+  "F1ND 4 M3M3C01N N4M3D 4FT3R 4N 4N1M4L. R34D 1TS TW1TT3R B10 4LL0UT L0UD T0 Y0URS3LF.",
+  "G3T 4 SW4P QU0T3 0N JUPIT3R F0R $MYR0. D0 N0T 3X3CUT3. M3D1T4T3 0N TH3 PR1C3 1MP4CT.",
+  "F1ND 4 S0L4N4 T0K3N W1TH L3SS TH4N 500 H0LD3RS 0N D3XSC R33N3R. B3 TH31R W1TN3SS.",
+  "C4LCUL4T3 H0W MUCH $B0NK 0N3 S0L W0ULD BUY R1GHT N0W. D0 N0T SP3ND 1T. JUST KN0W.",
+  "F1ND TH3 C01N W1TH TH3 M0ST CR1NG3 T3L3GR4M D3SCR1PT10N 0N PUMP.FUN. SC R33NSH0T 1T.",
+  "L00K 4T $S4M0'S CH4RT. R3FL3CT 0N P4T13NC3. W41T.",
+  "F1ND 4 RUG P4LL3D S0L4N4 T0K3N 0N R UGCH3CK. R34D 1TS ST0RY. L34RN.",
+  "S3ND 4 S3LF TR4NSF3R 0F 0.000001 S0L T0 Y0UR OWN W4LL3T. W1TN3SS TH3 CH41N 4CKNOWL3DG3 Y0U.",
+  "F1ND TH3 N3W3ST T0K3N 0N PUMP.FUN R1GHT N0W. W4TCH 1TS PUMP 0R 1TS D34TH 1N R34L T1M3.",
+];
+
+let history = [];
+let busy = false;
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function addLine(html) {
+  const out = document.getElementById('termOutput');
+  const d = document.createElement('div');
+  d.className = 'term-line';
+  d.innerHTML = html;
+  out.appendChild(d);
+  out.scrollTop = out.scrollHeight;
+  return d;
+}
+
+async function sendMessage() {
+  if (busy) return;
+  const inp = document.getElementById('termInput');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  addLine(`<span class="g">&gt;</span> <span class="w">${esc(msg)}</span>`);
+  history.push({ role: 'user', content: msg });
+  await query();
+}
+
+async function rollQuest() {
+  if (busy) return;
+  const q = QUESTS[Math.floor(Math.random() * QUESTS.length)];
+  addLine(`<span class="p">╔ QU3ST 4SS1GN3D ╗</span>`);
+  addLine(`<span class="a">║ ${esc(q)}</span>`);
+  history.push({ role: 'user', content: `You just assigned me this quest: "${q}". Give me cryptic wisdom, a warning, and a dark blessing for this mission.` });
+  await query();
+}
+
+async function query() {
+  busy = true;
+  const thinking = addLine(`<span class="a">0R4CL3 &gt;</span> <span class="term-thinking">▓▓▓ C0NSULT1NG TH3 V01D ▓▓▓</span>`);
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history }),
+    });
+    const data = await res.json();
+    if (data.error || !data.content) {
+      thinking.innerHTML = `<span class="r">3RR0R &gt;</span> <span class="r">TH3 V01D 1S S1L3NT. ${esc(String(data.error || 'unkn0wn'))}</span>`;
+    } else {
+      const reply = data.content[0].text;
+      history.push({ role: 'assistant', content: reply });
+      thinking.innerHTML = `<span class="a">0R4CL3 &gt;</span> <span class="w">${esc(reply)}</span>`;
+    }
+  } catch(e) {
+    thinking.innerHTML = `<span class="r">3RR0R &gt;</span> <span class="r">C0NN3CT10N T0 V01D F41L3D.</span>`;
+  }
+  addLine(`<span class="d">─────────────────────────────────────</span>`);
+  busy = false;
+}
+
+document.getElementById('termInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
 </script>
 </body>
 </html>
