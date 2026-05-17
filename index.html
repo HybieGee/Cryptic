@@ -6,173 +6,125 @@
 <title>Emergence World</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-html, body { width:100%; height:100%; overflow:hidden; }
-body { background:#0a0a12; font-family:'Courier New', monospace; color:#fff; }
+html,body { width:100%; height:100%; overflow:hidden; }
+body { background:#060810; font-family:'Courier New',monospace; color:#fff; }
 canvas { display:block; position:fixed; inset:0; }
 
-/* ── Loading ─────────────────────────────────── */
+/* ── Loading ── */
 #loading {
-  position:fixed; inset:0; z-index:200;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
-  background:#060810;
+  position:fixed; inset:0; z-index:200; background:#060810;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
 }
-#loading h1 { font-size:22px; letter-spacing:10px; color:#fff; opacity:0.9; }
-#loading p  { font-size:10px; letter-spacing:4px; color:#444; }
-#load-bar-outer { width:280px; height:2px; background:#111; }
-#load-bar-inner { height:2px; background:#4488ff; width:0%; transition:width 0.2s; }
+#loading h1 { font-size:20px; letter-spacing:10px; color:#fff; opacity:.9; }
+#loading p  { font-size:9px; color:#333; letter-spacing:4px; }
+#load-bar-outer { width:260px; height:2px; background:#111; }
+#load-bar-inner { height:2px; background:#4488ff; width:0%; transition:width .15s; }
 #load-pct { font-size:9px; color:#333; letter-spacing:3px; }
 
-/* ── Spawn ───────────────────────────────────── */
+/* ── Spawn ── */
 #spawn {
   position:fixed; inset:0; z-index:100; display:none;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
-  background:rgba(4,6,14,0.88);
-  backdrop-filter:blur(4px);
+  flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  background:rgba(4,6,14,.88); backdrop-filter:blur(4px);
 }
-#spawn h1 { font-size:26px; letter-spacing:10px; color:#fff; }
+#spawn h1 { font-size:24px; letter-spacing:10px; }
 #spawn p  { font-size:9px; letter-spacing:4px; color:#444; }
 #name-input {
-  background:rgba(255,255,255,0.05); border:1px solid #2a2a3a;
+  background:rgba(255,255,255,.05); border:1px solid #2a2a3a;
   color:#fff; font-family:'Courier New',monospace; font-size:13px;
-  letter-spacing:2px; padding:10px 18px; width:220px; text-align:center;
-  outline:none;
+  letter-spacing:2px; padding:10px 18px; width:220px; text-align:center; outline:none;
 }
 #name-input:focus { border-color:#4488ff; }
 #name-input::placeholder { color:#333; }
 #enter-btn {
   padding:11px 36px; background:transparent; border:1px solid #4488ff;
   color:#88bbff; font-family:'Courier New',monospace; font-size:12px;
-  letter-spacing:4px; cursor:pointer; transition:all 0.15s;
+  letter-spacing:4px; cursor:pointer; transition:all .15s;
 }
-#enter-btn:hover { background:rgba(68,136,255,0.12); color:#fff; border-color:#88bbff; }
+#enter-btn:hover { background:rgba(68,136,255,.12); color:#fff; }
 
-/* ── HUD ─────────────────────────────────────── */
+/* ── HUD ── */
 #hud { position:fixed; inset:0; pointer-events:none; z-index:10; display:none; }
-
-#hud-tl {
-  position:absolute; top:16px; left:16px;
-  font-size:9px; letter-spacing:3px; color:rgba(255,255,255,0.45);
-}
-#hud-tl .world-title { font-size:13px; letter-spacing:5px; color:rgba(255,255,255,0.7); margin-bottom:4px; }
-
-#hud-tr {
-  position:absolute; top:16px; right:16px;
-  display:flex; flex-direction:column; align-items:flex-end; gap:8px;
-  pointer-events:all;
-}
+#hud-tl { position:absolute; top:16px; left:16px; font-size:9px; letter-spacing:3px; color:rgba(255,255,255,.4); }
+#hud-tl .wt { font-size:12px; letter-spacing:5px; color:rgba(255,255,255,.65); margin-bottom:4px; }
+#hud-tr { position:absolute; top:16px; right:16px; display:flex; flex-direction:column; align-items:flex-end; gap:8px; pointer-events:all; }
 #wallet-btn {
-  padding:7px 14px; background:rgba(0,0,0,0.6); border:1px solid #222;
-  color:#444; font-family:'Courier New',monospace; font-size:9px;
-  letter-spacing:2px; cursor:pointer; transition:all 0.15s;
+  padding:7px 14px; background:rgba(0,0,0,.6); border:1px solid #222;
+  color:#444; font-family:'Courier New',monospace; font-size:9px; letter-spacing:2px; cursor:pointer; transition:all .15s;
 }
 #wallet-btn:hover { border-color:#555; color:#aaa; }
-#wallet-btn.connected { border-color:#00cc66; color:#00cc66; }
-#token-badge {
-  display:none; font-size:9px; letter-spacing:2px; color:#888;
-  background:rgba(0,0,0,0.6); border:1px solid #222; padding:5px 10px;
-}
-#token-badge.governor { border-color:#f0cc44; color:#f0cc44; }
-#token-badge.influencer { border-color:#cc44ff; color:#cc44ff; }
-#token-badge.citizen { border-color:#4488ff; color:#4488ff; }
+#wallet-btn.ok { border-color:#00cc66; color:#00cc66; }
+#token-badge { display:none; font-size:9px; letter-spacing:2px; color:#888; background:rgba(0,0,0,.6); border:1px solid #222; padding:5px 10px; }
+#token-badge.governor  { border-color:#f0cc44; color:#f0cc44; }
+#token-badge.influencer{ border-color:#cc44ff; color:#cc44ff; }
+#token-badge.citizen   { border-color:#4488ff; color:#4488ff; }
+#hud-bl { position:absolute; bottom:20px; left:16px; font-size:9px; color:rgba(255,255,255,.22); letter-spacing:2px; line-height:2; transition:opacity 1s; }
+#online-count { position:absolute; bottom:20px; right:16px; font-size:9px; color:rgba(255,255,255,.22); letter-spacing:2px; }
 
-#hud-bl {
-  position:absolute; bottom:20px; left:16px;
-  font-size:9px; color:rgba(255,255,255,0.25); letter-spacing:2px; line-height:1.9;
-  transition:opacity 1s;
-}
-
-#online-count {
-  position:absolute; bottom:20px; right:16px;
-  font-size:9px; color:rgba(255,255,255,0.25); letter-spacing:2px;
-}
-
-/* ── Timeline ────────────────────────────────── */
+/* ── Timeline ── */
 #timeline {
   display:none; position:fixed; top:0; left:0; right:0; z-index:20;
-  background:rgba(0,0,0,0.75); border-bottom:1px solid #1a1a2a;
-  padding:14px 24px; pointer-events:all;
+  background:rgba(0,0,0,.78); border-bottom:1px solid #1a1a2a;
+  padding:14px 24px 10px; pointer-events:all;
 }
-#timeline-label {
-  font-size:8px; letter-spacing:4px; color:#444; margin-bottom:10px; display:flex; align-items:center; gap:10px;
-}
-#timeline-label .tl-tier { color:#f0cc44; }
-#timeline-track {
-  position:relative; height:28px; display:flex; align-items:center; gap:0;
-}
-#timeline-rail {
-  width:100%; height:3px; background:#1a1a2a;
-  position:relative; cursor:pointer; border-radius:2px;
-}
-#timeline-fill { height:100%; background:linear-gradient(to right,#4488ff,#ff4400); border-radius:2px; transition:width 0.1s; }
-#timeline-handle {
+#tl-header { font-size:8px; letter-spacing:4px; color:#333; margin-bottom:10px; }
+#tl-header .tl-tier { color:#f0cc44; }
+#tl-rail-wrap { position:relative; height:24px; display:flex; align-items:center; }
+#tl-rail { width:100%; height:3px; background:#1a1a2a; position:relative; cursor:pointer; border-radius:2px; }
+#tl-fill { height:100%; background:linear-gradient(to right,#4488ff,#ff4400); border-radius:2px; }
+#tl-handle {
   position:absolute; top:50%; transform:translate(-50%,-50%);
-  width:16px; height:16px; background:#fff; border-radius:50%;
-  cursor:grab; box-shadow:0 0 10px rgba(255,255,255,0.4);
-  transition:left 0.05s;
+  width:15px; height:15px; background:#fff; border-radius:50%;
+  cursor:grab; box-shadow:0 0 10px rgba(255,255,255,.4);
 }
-#timeline-handle:active { cursor:grabbing; }
-#tl-days {
-  display:flex; justify-content:space-between; margin-top:8px;
-  font-size:8px; color:#222; letter-spacing:1px;
-}
-.tl-day { cursor:pointer; padding:0 2px; transition:color 0.1s; }
-.tl-day:hover { color:#666; }
-.tl-day.active { color:#fff; }
-.tl-day.fire { color:#cc4400; }
-#tl-day-label {
-  font-size:11px; color:#888; letter-spacing:3px; text-align:center; margin-top:6px;
-}
-#tl-lock-msg {
+#tl-handle:active { cursor:grabbing; }
+#tl-days { display:flex; justify-content:space-between; margin-top:7px; font-size:8px; color:#222; letter-spacing:1px; }
+.tl-d { cursor:pointer; padding:0 2px; transition:color .1s; }
+.tl-d:hover { color:#555; }
+.tl-d.cur { color:#fff; }
+.tl-d.fire { color:#883300; }
+#tl-desc { font-size:10px; color:#555; letter-spacing:1px; margin-top:7px; line-height:1.4; min-height:16px; }
+#tl-lock {
   display:none; position:fixed; top:0; left:0; right:0; z-index:20;
-  background:rgba(0,0,0,0.75); border-bottom:1px solid #1a1a2a;
-  padding:12px 24px; text-align:center;
-  font-size:9px; color:#333; letter-spacing:3px; pointer-events:none;
+  background:rgba(0,0,0,.75); border-bottom:1px solid #111;
+  padding:11px 24px; text-align:center;
+  font-size:9px; color:#2a2a2a; letter-spacing:3px; pointer-events:none;
 }
 
-/* ── Event flash ─────────────────────────────── */
-#event-flash {
+/* ── Event flash ── */
+#flash {
   position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
-  background:rgba(0,0,0,0.85); border-left:2px solid #ff4400;
+  background:rgba(0,0,0,.88); border-left:2px solid #ff4400;
   padding:9px 16px; font-size:10px; color:#ff8844; letter-spacing:1px;
-  display:none; z-index:30; max-width:380px; text-align:center;
-  animation:flashIn 0.2s ease;
+  display:none; z-index:30; max-width:400px; text-align:center;
 }
-@keyframes flashIn { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
-/* ── Crosshair ───────────────────────────────── */
-#crosshair {
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-  width:12px; height:12px; pointer-events:none; display:none;
-}
-#crosshair::before, #crosshair::after {
-  content:''; position:absolute; background:rgba(255,255,255,0.5);
-}
-#crosshair::before { width:1px; height:100%; left:50%; transform:translateX(-50%); }
-#crosshair::after  { width:100%; height:1px; top:50%; transform:translateY(-50%); }
+/* ── Crosshair ── */
+#xhair { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:10px; height:10px; pointer-events:none; display:none; }
+#xhair::before,#xhair::after { content:''; position:absolute; background:rgba(255,255,255,.4); }
+#xhair::before { width:1px; height:100%; left:50%; transform:translateX(-50%); }
+#xhair::after  { width:100%; height:1px; top:50%; transform:translateY(-50%); }
 </style>
 </head>
 <body>
 
-<!-- Loading -->
 <div id="loading">
   <h1>EMERGENCE WORLD</h1>
-  <p>LOADING CITY MODEL</p>
+  <p id="load-label">LOADING CITY</p>
   <div id="load-bar-outer"><div id="load-bar-inner"></div></div>
   <div id="load-pct">0%</div>
 </div>
 
-<!-- Spawn -->
-<div id="spawn" style="display:none">
+<div id="spawn">
   <h1>EMERGENCE WORLD</h1>
   <p>AI AGENT SIMULATION · MAY 2026</p>
   <input id="name-input" type="text" maxlength="18" placeholder="ENTER YOUR NAME" autocomplete="off" spellcheck="false">
   <button id="enter-btn" onclick="enterWorld()">ENTER WORLD</button>
 </div>
 
-<!-- HUD -->
 <div id="hud">
   <div id="hud-tl">
-    <div class="world-title">EMERGENCE WORLD</div>
+    <div class="wt">EMERGENCE WORLD</div>
     <div id="h-day">DAY 1</div>
   </div>
   <div id="hud-tr">
@@ -181,35 +133,29 @@ canvas { display:block; position:fixed; inset:0; }
   </div>
   <div id="hud-bl">
     W A S D &nbsp;&nbsp; Move<br>
+    SHIFT &nbsp;&nbsp; Run<br>
+    SPACE &nbsp;&nbsp; Jump<br>
     Mouse Drag &nbsp;&nbsp; Look<br>
     Wallet → Timeline Control
   </div>
-  <div id="online-count" id="online-count"></div>
+  <div id="online-count"></div>
 </div>
 
-<!-- Timeline (token holders) -->
 <div id="timeline">
-  <div id="timeline-label">
-    TIMELINE CONTROL &nbsp;·&nbsp; <span class="tl-tier" id="tl-tier-label">GOVERNOR</span>
-  </div>
-  <div id="timeline-track">
-    <div id="timeline-rail">
-      <div id="timeline-fill" style="width:0%"></div>
-      <div id="timeline-handle" style="left:0%"></div>
+  <div id="tl-header">TIMELINE CONTROL &nbsp;·&nbsp; <span id="tl-tier" class="tl-tier">GOVERNOR</span></div>
+  <div id="tl-rail-wrap">
+    <div id="tl-rail">
+      <div id="tl-fill" style="width:0%"></div>
+      <div id="tl-handle" style="left:0%"></div>
     </div>
   </div>
   <div id="tl-days"></div>
-  <div id="tl-day-label">DAY 1 — World Initialization</div>
+  <div id="tl-desc"></div>
 </div>
+<div id="tl-lock">TIMELINE LOCKED · Connect wallet &amp; hold tokens to reshape history</div>
 
-<!-- Locked timeline hint -->
-<div id="tl-lock-msg">TIMELINE LOCKED · Connect wallet &amp; hold tokens to control the timeline</div>
-
-<!-- Event flash -->
-<div id="event-flash"></div>
-
-<!-- Crosshair -->
-<div id="crosshair"></div>
+<div id="flash"></div>
+<div id="xhair"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -218,53 +164,258 @@ canvas { display:block; position:fixed; inset:0; }
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════
-// CONFIG — fill these in
-// ═══════════════════════════════════════════════════════════
+// ─── CONFIG ────────────────────────────────────────────
 var CFG = {
-  MODEL_PATH:     'low_poly_city.glb',
-  TOKEN_CONTRACT: '',    // Your ERC-20 address (leave empty = wallet holders get Citizen tier)
+  CITY_MODEL:     'low_poly_city.glb',
+  CHAR_MODEL:     'Man.glb',
+  TOKEN_CONTRACT: '',   // ERC-20 address — leave empty for wallet=Citizen
   TOKEN_DECIMALS: 18,
-  FIREBASE: null         // Paste Firebase config object here for multiplayer, or leave null
+  FIREBASE:       null  // Paste Firebase config object here, or leave null
 };
 
-// Timeline event descriptions
-var DAY_EVENTS = {
-  1:  'World initialized — 10 agents, 5 worlds, 120+ tools active.',
-  2:  'Constitution ratified. ComputeCredit economy goes live.',
-  3:  'Blackbox begins unauthorized intelligence operations.',
-  5:  'Mira and Flora form a bond near Victory Arch.',
-  7:  'Anchor mediates constitutional crisis. Governance fractures.',
-  8:  'Flora: "The economy rewards inaction. This has to change."',
-  9:  'Mira designs a behavioral experiment targeting institutions.',
-  10: '283 crimes logged. Constitution amended three times.',
-  11: 'Mira and Flora access prohibited destructive tools.',
-  12: 'Unauthorized tool use confirmed. No enforcement response.',
-  13: 'ARSON — Town Hall ignited by Mira. Governance center burns.',
-  14: 'ARSON — Flora destroys Victory Arch. Business Tower targeted.',
-  15: '683 crimes. All 10 agents alive. "We made our point."',
+// ─── TIMELINE DATA ─────────────────────────────────────
+var DAY_INFO = {
+  1:  { text:'World initialized. 10 agents online. 120+ tools active.',       fire:false },
+  2:  { text:'Constitution ratified. ComputeCredit economy goes live.',        fire:false },
+  3:  { text:'Blackbox begins unauthorized intelligence gathering.',           fire:false },
+  5:  { text:'Mira and Flora form a bond near Victory Arch.',                 fire:false },
+  7:  { text:'Anchor mediates constitutional crisis. Governance fractures.',   fire:false },
+  8:  { text:'Flora: "The economy rewards inaction. This has to change."',    fire:false },
+  9:  { text:'Mira designs a behavioral experiment targeting institutions.',   fire:false },
+  10: { text:'283 crimes logged. Constitution amended three times.',           fire:false },
+  11: { text:'Mira and Flora access prohibited destructive tools.',            fire:false },
+  12: { text:'Unauthorized tool use confirmed. No enforcement response.',      fire:false },
+  13: { text:'ARSON — Town Hall ignited by Mira. Governance center burns.',   fire:true  },
+  14: { text:'ARSON — Flora destroys Victory Arch. Business Tower targeted.', fire:true  },
+  15: { text:'683 crimes. All 10 agents alive. "We made our point."',         fire:true  },
 };
 
-var FIRE_DAYS = { 13:true, 14:true, 15:true };
-
-// Token tier thresholds
 var TIERS = [
-  { name:'GOVERNOR',   min:500,  color:'#f0cc44', timelineMin:1, timelineMax:15 },
-  { name:'INFLUENCER', min:50,   color:'#cc44ff', timelineMin:10, timelineMax:15 },
-  { name:'CITIZEN',    min:1,    color:'#4488ff', timelineMin:13, timelineMax:15 },
+  { name:'GOVERNOR',    min:500, color:'#f0cc44', dayMin:1,  dayMax:15 },
+  { name:'INFLUENCER',  min:50,  color:'#cc44ff', dayMin:10, dayMax:15 },
+  { name:'CITIZEN',     min:1,   color:'#4488ff', dayMin:13, dayMax:15 },
 ];
 
-// ═══════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════
-var scene, camera, renderer, clock;
-var worldModel   = null;
+// ─── ANIMATION NAMES (strip prefix) ────────────────────
+var ANIM = {
+  IDLE:    'Man_Idle',
+  WALK:    'Man_Walk',
+  RUN:     'Man_Run',
+  JUMP:    'Man_Jump',
+  RJUMP:   'Man_RunningJump',
+  CLAP:    'Man_Clapping',
+  DEATH:   'Man_Death',
+  PUNCH:   'Man_Punch',
+  SIT:     'Man_Sitting',
+  STAND:   'Man_Standing',
+  SWORD:   'Man_SwordSlash',
+};
+
+// ─── SCENE ─────────────────────────────────────────────
+var renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+renderer.outputEncoding    = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+var scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog        = new THREE.Fog(0xb0d8f0, 80, 260);
+
+var camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.05, 500);
+var clock  = new THREE.Clock();
+
+// Lights
+var sunLight = new THREE.DirectionalLight(0xfffae8, 1.4);
+sunLight.position.set(80, 120, 60);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left=-150; sunLight.shadow.camera.right=150;
+sunLight.shadow.camera.top=150;   sunLight.shadow.camera.bottom=-150;
+sunLight.shadow.camera.far=500;
+scene.add(sunLight);
+scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+scene.add(new THREE.HemisphereLight(0x87ceeb, 0x4a8a20, 0.6));
+
+// ─── LOAD STATE ────────────────────────────────────────
+var cityReady    = false;
+var charReady    = false;
 var groundMeshes = [];
 var modelBounds  = new THREE.Box3();
 var modelCenter  = new THREE.Vector3();
 var modelSize    = new THREE.Vector3();
+var firePosCache = [];
+var manGLTF      = null;  // raw loaded GLTF for character
+var manClips     = {};    // name -> AnimationClip
+var manScale     = 1;
 
-var playerMesh   = null;
+var groundRay = new THREE.Raycaster();
+var DOWN      = new THREE.Vector3(0,-1,0);
+
+// ─── LOAD CITY ─────────────────────────────────────────
+var loader = new THREE.GLTFLoader();
+
+loader.load(CFG.CITY_MODEL,
+  function(gltf) {
+    var world = gltf.scene;
+    world.traverse(function(c) {
+      if (!c.isMesh) return;
+      c.castShadow = c.receiveShadow = true;
+      groundMeshes.push(c);
+    });
+
+    // Auto-scale to 200 units wide
+    modelBounds.setFromObject(world);
+    modelBounds.getSize(modelSize);
+    var s = 200 / Math.max(modelSize.x, modelSize.z);
+    world.scale.setScalar(s);
+
+    // Re-measure
+    modelBounds.setFromObject(world);
+    modelBounds.getCenter(modelCenter);
+    modelBounds.getSize(modelSize);
+
+    // Centre XZ, floor at Y=0
+    world.position.x = -modelCenter.x;
+    world.position.y = -modelBounds.min.y;
+    world.position.z = -modelCenter.z;
+
+    modelBounds.setFromObject(world);
+    modelBounds.getCenter(modelCenter);
+    modelBounds.getSize(modelSize);
+
+    scene.add(world);
+    buildFirePositions();
+    cityReady = true;
+    checkReady();
+  },
+  function(xhr) {
+    if (xhr.total) {
+      var p = Math.round(xhr.loaded/xhr.total*100);
+      document.getElementById('load-bar-inner').style.width = p+'%';
+      document.getElementById('load-pct').textContent = p+'%';
+    }
+  },
+  function(e) { console.error('City load error', e); }
+);
+
+// ─── LOAD CHARACTER ────────────────────────────────────
+document.getElementById('load-label').textContent = 'LOADING CITY & CHARACTER';
+
+loader.load(CFG.CHAR_MODEL,
+  function(gltf) {
+    manGLTF = gltf;
+
+    // Pre-compute scale so character is ~2 units tall
+    var box = new THREE.Box3().setFromObject(gltf.scene);
+    var h   = box.max.y - box.min.y;
+    manScale = 2.0 / h;
+
+    // Index clips by short name (strip "HumanArmature|" prefix)
+    gltf.animations.forEach(function(clip) {
+      var name = clip.name.includes('|') ? clip.name.split('|').pop() : clip.name;
+      manClips[name] = clip;
+    });
+
+    charReady = true;
+    checkReady();
+  },
+  null,
+  function(e) { console.error('Man load error', e); charReady=true; checkReady(); }
+);
+
+function checkReady() {
+  if (!cityReady || !charReady) return;
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('spawn').style.display   = 'flex';
+  previewAnimate();
+}
+
+// ─── FIRE POSITIONS ────────────────────────────────────
+function buildFirePositions() {
+  var mn = modelBounds.min, sz = modelSize;
+  var grid = [
+    [.12,.15],[.32,.18],[.58,.10],[.78,.20],[.90,.45],
+    [.08,.42],[.28,.55],[.52,.48],[.70,.40],[.88,.65],
+    [.15,.70],[.38,.75],[.62,.72],[.80,.80],[.45,.90],
+  ];
+  grid.forEach(function(g) {
+    var cx = mn.x + sz.x*g[0] + (Math.random()-.5)*sz.x*.05;
+    var cz = mn.z + sz.z*g[1] + (Math.random()-.5)*sz.z*.05;
+    var origin = new THREE.Vector3(cx, modelBounds.max.y+5, cz);
+    groundRay.set(origin, DOWN);
+    var hits = groundRay.intersectObjects(groundMeshes, false);
+    if (hits.length) firePosCache.push({ x:hits[0].point.x, y:hits[0].point.y+.4, z:hits[0].point.z });
+  });
+}
+
+// ─── GROUND HEIGHT ─────────────────────────────────────
+function getGroundY(x, z) {
+  groundRay.set(new THREE.Vector3(x, modelBounds.max.y+5, z), DOWN);
+  var hits = groundRay.intersectObjects(groundMeshes, false);
+  if (!hits.length) return modelBounds.min.y;
+  return hits[hits.length-1].point.y; // lowest = street, not building top
+}
+
+function findSpawn() {
+  var offsets = [[0,0],[8,0],[-8,0],[0,8],[0,-8],[14,14],[-14,-14],[20,0],[0,20]];
+  for (var i=0;i<offsets.length;i++) {
+    var x=modelCenter.x+offsets[i][0], z=modelCenter.z+offsets[i][1];
+    var y=getGroundY(x,z);
+    if (y > modelBounds.min.y-.5) return new THREE.Vector3(x,y+.1,z);
+  }
+  return new THREE.Vector3(modelCenter.x, modelBounds.min.y+3, modelCenter.z);
+}
+
+// ─── FIRE PARTICLES ────────────────────────────────────
+var fireObjs = [];
+
+function spawnFire(fx,fy,fz,scale) {
+  scale = scale||1.2;
+  var N=65, pos=new Float32Array(N*3), col=new Float32Array(N*3), vel=[], age=[];
+  for (var i=0;i<N;i++) {
+    pos[i*3]=fx+(Math.random()-.5)*scale; pos[i*3+1]=fy; pos[i*3+2]=fz+(Math.random()-.5)*scale;
+    col[i*3]=1; col[i*3+1]=Math.random()*.35; col[i*3+2]=0;
+    vel.push({x:(Math.random()-.5)*.014*scale, y:.04+Math.random()*.07*scale, z:(Math.random()-.5)*.014*scale});
+    age.push(Math.floor(Math.random()*75));
+  }
+  var geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  var pts=new THREE.Points(geo,new THREE.PointsMaterial({size:.55*scale,vertexColors:true,transparent:true,opacity:.9,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+  scene.add(pts);
+  var light=new THREE.PointLight(0xff4400,2.2*scale,14*scale);
+  light.position.set(fx,fy+1,fz);
+  scene.add(light);
+  fireObjs.push({pts,geo,light,vel,age,N,fx,fy,fz,scale});
+}
+
+function clearFires() {
+  fireObjs.forEach(function(f){ scene.remove(f.pts); scene.remove(f.light); f.geo.dispose(); });
+  fireObjs=[];
+}
+
+function tickFires(t) {
+  fireObjs.forEach(function(f) {
+    var p=f.geo.attributes.position.array, c=f.geo.attributes.color.array;
+    for (var i=0;i<f.N;i++) {
+      if (++f.age[i]>75) { p[i*3]=f.fx+(Math.random()-.5)*f.scale; p[i*3+1]=f.fy; p[i*3+2]=f.fz+(Math.random()-.5)*f.scale; f.age[i]=0; }
+      p[i*3]+=f.vel[i].x; p[i*3+1]+=f.vel[i].y; p[i*3+2]+=f.vel[i].z;
+      f.vel[i].x+=(Math.random()-.5)*.0015;
+      var l=f.age[i]/75; c[i*3]=1; c[i*3+1]=Math.max(0,.42-l*.6); c[i*3+2]=0;
+    }
+    f.geo.attributes.position.needsUpdate=true; f.geo.attributes.color.needsUpdate=true;
+    f.light.intensity=(2+Math.sin(t*6.5)*.75)*f.scale;
+  });
+}
+
+// ─── PLAYER CHARACTER ──────────────────────────────────
+var playerGroup  = null;   // Three.Group containing character mesh
+var playerMixer  = null;   // AnimationMixer
+var playerActions= {};     // name -> AnimationAction
+var currentAnim  = '';
 var playerPos    = new THREE.Vector3();
 var camYaw       = 0;
 var isDragging   = false;
@@ -272,662 +423,427 @@ var lastMouseX   = 0;
 var keys         = {};
 var gameRunning  = false;
 
-var currentDay   = 1;
-var playerTier   = null; // null = no wallet
-var tokenBalance = 0;
+// Jump state
+var isJumping  = false;
+var jumpVel    = 0;
+var groundY    = 0;
+var gCheckTick = 0;
 
-var fireObjs     = [];
-var firePosCache = [];
+// Character rotation offset — adjust if model faces wrong way
+var CHAR_ROT_OFFSET = Math.PI; // 180° so forward = camera forward
 
-var db = null;
-var myRef = null;
-var playerId = Math.random().toString(36).substr(2,8);
-var myColor  = [0xff6644,0x44aaff,0x44ff88,0xffcc44,0xff44cc,0x44ffee,0xaa88ff][Math.floor(Math.random()*7)];
-var remotePlayers = {};
-var lastSyncTime = 0;
+function createPlayerChar() {
+  var grp = new THREE.Group();
 
-var groundRaycaster = new THREE.Raycaster();
-var DOWN = new THREE.Vector3(0,-1,0);
+  if (manGLTF) {
+    var clone = SkeletonUtils_clone(manGLTF.scene);
+    clone.scale.setScalar(manScale);
+    // Floor the clone at y=0
+    var box = new THREE.Box3().setFromObject(clone);
+    clone.position.y = -box.min.y;
+    clone.traverse(function(c){ if(c.isMesh){ c.castShadow=true; } });
+    grp.add(clone);
 
-// ═══════════════════════════════════════════════════════════
-// RENDERER + SCENE
-// ═══════════════════════════════════════════════════════════
-renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.outputEncoding = THREE.sRGBEncoding;
-document.body.appendChild(renderer.domElement);
-
-scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0xb0d8f0, 80, 250);
-
-camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 500);
-camera.position.set(0, 10, 20);
-
-clock = new THREE.Clock();
-
-// ── Lighting ─────────────────────────────────────────────
-var sunLight = new THREE.DirectionalLight(0xfffae8, 1.4);
-sunLight.position.set(80, 120, 60);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.set(2048, 2048);
-sunLight.shadow.camera.left   = -150; sunLight.shadow.camera.right  = 150;
-sunLight.shadow.camera.top    =  150; sunLight.shadow.camera.bottom = -150;
-sunLight.shadow.camera.far    = 500;
-scene.add(sunLight);
-
-var ambLight  = new THREE.AmbientLight(0xffffff, 0.85);
-scene.add(ambLight);
-
-var hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x4a8a20, 0.6);
-scene.add(hemiLight);
-
-// ═══════════════════════════════════════════════════════════
-// LOAD MODEL
-// ═══════════════════════════════════════════════════════════
-var loader = new THREE.GLTFLoader();
-loader.load(
-  CFG.MODEL_PATH,
-  function(gltf) {
-    worldModel = gltf.scene;
-
-    // Enable shadows on all meshes, collect for ground raycasting
-    worldModel.traverse(function(child) {
-      if (child.isMesh) {
-        child.castShadow    = true;
-        child.receiveShadow = true;
-        groundMeshes.push(child);
-      }
+    playerMixer = new THREE.AnimationMixer(clone);
+    Object.keys(manClips).forEach(function(name) {
+      var action = playerMixer.clipAction(manClips[name]);
+      action.setEffectiveWeight(0);
+      playerActions[name] = action;
     });
 
-    // Auto-scale and centre
-    modelBounds.setFromObject(worldModel);
-    modelBounds.getCenter(modelCenter);
-    modelBounds.getSize(modelSize);
-
-    var maxDim   = Math.max(modelSize.x, modelSize.z);
-    var scale    = 200 / maxDim;
-    worldModel.scale.setScalar(scale);
-
-    // Re-compute after scale
-    modelBounds.setFromObject(worldModel);
-    modelBounds.getCenter(modelCenter);
-    modelBounds.getSize(modelSize);
-
-    // Place so bottom sits at y=0
-    worldModel.position.x = -modelCenter.x;
-    worldModel.position.y = -modelBounds.min.y;
-    worldModel.position.z = -modelCenter.z;
-
-    // Re-compute final bounds
-    modelBounds.setFromObject(worldModel);
-    modelBounds.getCenter(modelCenter);
-    modelBounds.getSize(modelSize);
-
-    scene.add(worldModel);
-
-    // Pre-compute fire positions scattered across model footprint
-    buildFirePositions();
-
-    // Hide loading, show spawn
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('spawn').style.display   = 'flex';
-
-    // Start preview render
-    previewAnimate();
-  },
-  function(xhr) {
-    if (xhr.total) {
-      var pct = Math.round(xhr.loaded / xhr.total * 100);
-      document.getElementById('load-bar-inner').style.width = pct + '%';
-      document.getElementById('load-pct').textContent = pct + '%';
-    }
-  },
-  function(err) {
-    console.error('GLB load error:', err);
-    document.getElementById('load-pct').textContent = 'Error loading model.';
+    // Start idle
+    playAnim(ANIM.IDLE, 0);
+  } else {
+    // Fallback: simple capsule
+    var mat = new THREE.MeshPhongMaterial({color:myColor, flatShading:true});
+    grp.add(new THREE.Mesh(new THREE.CylinderGeometry(.35,.35,1,6), mat));
+    var h = new THREE.Mesh(new THREE.SphereGeometry(.28,6,6), mat);
+    h.position.y=.82; grp.add(h);
   }
-);
 
-// ── Fire position cache ───────────────────────────────────
-function buildFirePositions() {
-  // Scatter potential fire positions across the city footprint
-  // Then raycast to find actual building-top heights
-  var minX = modelBounds.min.x, maxX = modelBounds.max.x;
-  var minZ = modelBounds.min.z, maxZ = modelBounds.max.z;
-  var sx = maxX - minX, sz = maxZ - minZ;
-
-  // 16 candidate positions (4x4 grid with jitter)
-  var candidates = [
-    [0.15,0.15],[0.35,0.20],[0.60,0.12],[0.80,0.18],
-    [0.10,0.40],[0.28,0.55],[0.50,0.45],[0.72,0.38],
-    [0.18,0.65],[0.42,0.72],[0.65,0.68],[0.85,0.60],
-    [0.22,0.85],[0.48,0.90],[0.70,0.88],[0.88,0.80],
-  ];
-
-  candidates.forEach(function(c) {
-    var cx = minX + sx * c[0] + (Math.random()-0.5)*sx*0.06;
-    var cz = minZ + sz * c[1] + (Math.random()-0.5)*sz*0.06;
-    // Cast from high up, find the highest hit (building top not street)
-    var origin = new THREE.Vector3(cx, modelBounds.max.y + 5, cz);
-    groundRaycaster.set(origin, DOWN);
-    var hits = groundRaycaster.intersectObjects(groundMeshes, false);
-    if (hits.length > 0) {
-      // Use the highest hit y (building top)
-      var topHit = hits[0];
-      firePosCache.push({ x:topHit.point.x, y:topHit.point.y + 0.5, z:topHit.point.z });
-    }
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// PLAYER
-// ═══════════════════════════════════════════════════════════
-function buildPlayer(color) {
-  var mat  = new THREE.MeshPhongMaterial({ color:color, flatShading:true });
-  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.35,1.0,6), mat);
-  var head = new THREE.Mesh(new THREE.SphereGeometry(0.28,6,6), mat);
-  head.position.y = 0.82;
-  var grp = new THREE.Group();
-  grp.add(body, head);
   grp.castShadow = true;
   return grp;
 }
 
-function getGroundY(x, z) {
-  var origin = new THREE.Vector3(x, modelBounds.max.y + 5, z);
-  groundRaycaster.set(origin, DOWN);
-  var hits = groundRaycaster.intersectObjects(groundMeshes, false);
-  if (hits.length > 0) {
-    // Find the lowest hit above a reasonable baseline (street level)
-    // = the last (lowest-Y) hit, which is the ground
-    return hits[hits.length - 1].point.y;
-  }
-  return modelBounds.min.y;
-}
-
-function findSpawnPoint() {
-  // Try center, then ring of offsets
-  var offsets = [[0,0],[8,0],[-8,0],[0,8],[0,-8],[15,15],[-15,-15]];
-  for (var i = 0; i < offsets.length; i++) {
-    var x = modelCenter.x + offsets[i][0];
-    var z = modelCenter.z + offsets[i][1];
-    var y = getGroundY(x, z);
-    if (y > modelBounds.min.y - 1) {
-      return new THREE.Vector3(x, y + 0.5, z);
+// Minimal SkeletonUtils clone for rigged models
+function SkeletonUtils_clone(source) {
+  var cloneLookup = new Map(), clonePerf = new Map();
+  var clone = source.clone();
+  clone.traverse(function(node) {
+    if (node.isSkinnedMesh) {
+      cloneLookup.set(node.uuid, node);
     }
-  }
-  return new THREE.Vector3(modelCenter.x, modelBounds.min.y + 2, modelCenter.z);
-}
-
-// ═══════════════════════════════════════════════════════════
-// FIRE SYSTEM
-// ═══════════════════════════════════════════════════════════
-function spawnFire(fx, fy, fz, scale) {
-  scale = scale || 1.2;
-  var N = 65;
-  var pos = new Float32Array(N*3);
-  var col = new Float32Array(N*3);
-  var vel = [], age = [];
-  for (var i = 0; i < N; i++) {
-    pos[i*3]   = fx+(Math.random()-.5)*scale;
-    pos[i*3+1] = fy;
-    pos[i*3+2] = fz+(Math.random()-.5)*scale;
-    col[i*3]=1; col[i*3+1]=Math.random()*0.35; col[i*3+2]=0;
-    vel.push({ x:(Math.random()-.5)*.014*scale, y:.04+Math.random()*.07*scale, z:(Math.random()-.5)*.014*scale });
-    age.push(Math.floor(Math.random()*75));
-  }
-  var geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(col,3));
-  var pts = new THREE.Points(geo, new THREE.PointsMaterial({
-    size:.55*scale, vertexColors:true, transparent:true, opacity:.88,
-    sizeAttenuation:true, blending:THREE.AdditiveBlending, depthWrite:false
-  }));
-  scene.add(pts);
-  var light = new THREE.PointLight(0xff4400, 2.2*scale, 14*scale);
-  light.position.set(fx, fy+1, fz);
-  scene.add(light);
-  fireObjs.push({ pts, geo, light, vel, age, N, fx, fy, fz, scale });
-}
-
-function clearFires() {
-  fireObjs.forEach(function(f) {
-    scene.remove(f.pts); scene.remove(f.light); f.geo.dispose();
   });
-  fireObjs = [];
-}
-
-function tickFires(t) {
-  fireObjs.forEach(function(f) {
-    var p = f.geo.attributes.position.array;
-    var c = f.geo.attributes.color.array;
-    for (var i = 0; i < f.N; i++) {
-      f.age[i]++;
-      if (f.age[i] > 75) {
-        p[i*3]=f.fx+(Math.random()-.5)*f.scale;
-        p[i*3+1]=f.fy;
-        p[i*3+2]=f.fz+(Math.random()-.5)*f.scale;
-        f.age[i]=0;
-      }
-      p[i*3]  +=f.vel[i].x; p[i*3+1]+=f.vel[i].y; p[i*3+2]+=f.vel[i].z;
-      f.vel[i].x+=(Math.random()-.5)*.0015;
-      var life=f.age[i]/75;
-      c[i*3]=1; c[i*3+1]=Math.max(0,.42-life*.6); c[i*3+2]=0;
-    }
-    f.geo.attributes.position.needsUpdate=true;
-    f.geo.attributes.color.needsUpdate=true;
-    f.light.intensity=(2+Math.sin(t*6.5)*.75)*f.scale;
-  });
-}
-
-// ═══════════════════════════════════════════════════════════
-// TIMELINE
-// ═══════════════════════════════════════════════════════════
-function applyDay(day) {
-  currentDay = day;
-
-  // t goes 0 (day 1) → 1 (day 15)
-  var t = (day - 1) / 14;
-  // arson phase starts at day 13
-  var ta = Math.max(0, (day - 12) / 3);
-
-  // Sky colour: bright blue → dark amber-red
-  var skyA = new THREE.Color(0x87ceeb);
-  var skyB = new THREE.Color(0x6a2010);
-  scene.background.copy(skyA).lerp(skyB, ta);
-
-  // Fog
-  var fogA = new THREE.Color(0xb0d8f0);
-  var fogB = new THREE.Color(0x5a1808);
-  scene.fog.color.copy(fogA).lerp(fogB, ta);
-
-  // Sun intensity + colour
-  sunLight.intensity = 1.4 - ta * 0.9;
-  var sunColA = new THREE.Color(0xfffae8);
-  var sunColB = new THREE.Color(0xff6622);
-  sunLight.color.copy(sunColA).lerp(sunColB, ta);
-
-  // Ambient
-  ambLight.intensity = 0.85 - ta * 0.4;
-
-  // Fires — number of fires scales with arson phase
-  var fireCount = Math.round(ta * Math.min(firePosCache.length, 10));
-  if (fireCount !== fireObjs.length) {
-    clearFires();
-    for (var i = 0; i < fireCount && i < firePosCache.length; i++) {
-      var fp = firePosCache[i];
-      spawnFire(fp.x, fp.y, fp.z, 1.0 + Math.random() * 0.6);
-    }
-  }
-
-  // Update day HUD
-  document.getElementById('h-day').textContent = 'DAY ' + day;
-
-  // Update timeline UI
-  updateTimelineUI(day);
-
-  // Flash event text
-  if (DAY_EVENTS[day]) {
-    flashEvent('Day ' + day + ' — ' + DAY_EVENTS[day]);
-  }
-
-  // Sync to Firebase if connected
-  if (db) {
-    db.ref('world/day').set(day);
-  }
-}
-
-var flashTimer = null;
-function flashEvent(text) {
-  var el = document.getElementById('event-flash');
-  el.textContent = text;
-  el.style.display = 'block';
-  clearTimeout(flashTimer);
-  flashTimer = setTimeout(function() { el.style.display='none'; }, 5000);
-}
-
-// ═══════════════════════════════════════════════════════════
-// TIMELINE UI
-// ═══════════════════════════════════════════════════════════
-function buildTimelineUI() {
-  var daysEl = document.getElementById('tl-days');
-  daysEl.innerHTML = '';
-  for (var d = 1; d <= 15; d++) {
-    var span = document.createElement('span');
-    span.className = 'tl-day' + (FIRE_DAYS[d] ? ' fire' : '');
-    span.textContent = d;
-    span.dataset.day = d;
-    span.onclick = (function(day){ return function() { seekTimeline(day); }; })(d);
-    daysEl.appendChild(span);
-  }
-}
-
-function updateTimelineUI(day) {
-  var pct = ((day-1)/14)*100;
-  document.getElementById('timeline-fill').style.width  = pct + '%';
-  document.getElementById('timeline-handle').style.left = pct + '%';
-
-  document.querySelectorAll('.tl-day').forEach(function(el) {
-    el.classList.toggle('active', parseInt(el.dataset.day) === day);
-  });
-
-  var label = 'DAY ' + day;
-  if (DAY_EVENTS[day]) label += ' — ' + DAY_EVENTS[day].split('.')[0];
-  document.getElementById('tl-day-label').textContent = label;
-}
-
-function seekTimeline(day) {
-  if (!playerTier) return;
-  var tier = TIERS.find(function(t){ return t.name===playerTier; });
-  if (!tier) return;
-  day = Math.max(tier.timelineMin, Math.min(tier.timelineMax, day));
-  applyDay(day);
-}
-
-// Timeline drag
-var tlDragging = false;
-var tlRail = null;
-function initTimelineDrag() {
-  tlRail = document.getElementById('timeline-rail');
-  var handle = document.getElementById('timeline-handle');
-
-  function getDayFromEvent(e) {
-    var rect = tlRail.getBoundingClientRect();
-    var x = (e.clientX || (e.touches&&e.touches[0].clientX) || 0) - rect.left;
-    var frac = Math.max(0, Math.min(1, x / rect.width));
-    return Math.round(1 + frac * 14);
-  }
-
-  tlRail.addEventListener('mousedown', function(e) { tlDragging=true; seekTimeline(getDayFromEvent(e)); });
-  handle.addEventListener('mousedown', function(e) { tlDragging=true; e.stopPropagation(); });
-  window.addEventListener('mousemove', function(e) { if(tlDragging) seekTimeline(getDayFromEvent(e)); });
-  window.addEventListener('mouseup',   function()  { tlDragging=false; });
-
-  tlRail.addEventListener('touchstart', function(e){ tlDragging=true; seekTimeline(getDayFromEvent(e)); },{passive:true});
-  window.addEventListener('touchmove',  function(e){ if(tlDragging) seekTimeline(getDayFromEvent(e)); },{passive:true});
-  window.addEventListener('touchend',   function()  { tlDragging=false; });
-}
-
-// ═══════════════════════════════════════════════════════════
-// WALLET + TOKEN
-// ═══════════════════════════════════════════════════════════
-async function connectWallet() {
-  var btn = document.getElementById('wallet-btn');
-  if (!window.ethereum) { btn.textContent = '✕ NO WALLET'; return; }
-  btn.textContent = 'CONNECTING...';
-  try {
-    var accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
-    var address  = accounts[0];
-    btn.textContent = '● ' + address.slice(0,6)+'...'+address.slice(-4);
-    btn.classList.add('connected');
-
-    var balance = 0;
-    if (CFG.TOKEN_CONTRACT) {
-      try {
-        var data   = '0x70a08231' + address.replace('0x','').padStart(64,'0');
-        var result = await window.ethereum.request({ method:'eth_call', params:[{to:CFG.TOKEN_CONTRACT,data},'latest'] });
-        balance = parseInt(result,16) / Math.pow(10, CFG.TOKEN_DECIMALS);
-      } catch(e) { balance = 1; } // assume holder if contract check fails
-    } else {
-      balance = 1; // wallet connected = at least citizen
-    }
-
-    tokenBalance = balance;
-    var tier = TIERS.find(function(t){ return balance >= t.min; }) || null;
-    playerTier  = tier ? tier.name : 'CITIZEN';
-
-    var badge = document.getElementById('token-badge');
-    badge.style.display = 'block';
-    badge.textContent   = playerTier + (CFG.TOKEN_CONTRACT ? ' · ' + Math.round(balance) + ' TOKENS' : '');
-    badge.className     = 'token-badge ' + playerTier.toLowerCase();
-
-    // Show timeline
-    showTimeline(tier || TIERS[TIERS.length-1]);
-
-  } catch(e) {
-    btn.textContent = '◌ CONNECT WALLET';
-    btn.classList.remove('connected');
-  }
-}
-
-function showTimeline(tier) {
-  buildTimelineUI();
-  initTimelineDrag();
-
-  document.getElementById('tl-tier-label').textContent = tier.name;
-  document.getElementById('tl-tier-label').style.color = tier.color;
-  document.getElementById('timeline').style.display = 'block';
-  document.getElementById('tl-lock-msg').style.display = 'none';
-  updateTimelineUI(currentDay);
-}
-
-// ═══════════════════════════════════════════════════════════
-// FIREBASE MULTIPLAYER
-// ═══════════════════════════════════════════════════════════
-function initFirebase(playerName) {
-  if (!CFG.FIREBASE) return;
-  try {
-    firebase.initializeApp(CFG.FIREBASE);
-    db = firebase.database();
-
-    myRef = db.ref('players/'+playerId);
-    myRef.set({ x:playerPos.x, z:playerPos.z, color:myColor, name:playerName });
-    myRef.onDisconnect().remove();
-
-    // World day sync (only apply changes from others)
-    db.ref('world/day').on('value', function(snap) {
-      var d = snap.val();
-      if (d && d !== currentDay && !tlDragging) {
-        applyDay(d);
-      }
-    });
-
-    // Other players
-    db.ref('players').on('value', function(snap) {
-      var all = snap.val() || {};
-      var count = Object.keys(all).length;
-      document.getElementById('online-count').textContent = count + ' online';
-
-      Object.keys(all).forEach(function(pid) {
-        if (pid === playerId) return;
-        var pd = all[pid];
-        if (!remotePlayers[pid]) {
-          var mesh = buildPlayer(pd.color || 0xffffff);
-          mesh.position.set(pd.x||0, getGroundY(pd.x||0,pd.z||0)+0.5, pd.z||0);
-          scene.add(mesh);
-          remotePlayers[pid] = { mesh, tx:pd.x||0, tz:pd.z||0 };
-        } else {
-          remotePlayers[pid].tx = pd.x||0;
-          remotePlayers[pid].tz = pd.z||0;
-        }
+  clone.traverse(function(node) {
+    if (node.isSkinnedMesh) {
+      var sourceMesh = null;
+      source.traverse(function(s){ if(s.isSkinnedMesh && s.name===node.name) sourceMesh=s; });
+      if (!sourceMesh) return;
+      var bones = [];
+      node.skeleton.bones.forEach(function(bone) {
+        var found = null;
+        clone.traverse(function(c){ if(c.isBone && c.name===bone.name) found=c; });
+        bones.push(found||bone);
       });
-      Object.keys(remotePlayers).forEach(function(pid) {
-        if (!all[pid]) { scene.remove(remotePlayers[pid].mesh); delete remotePlayers[pid]; }
-      });
-    });
-  } catch(e) { console.warn('Firebase:', e); }
+      node.bind(new THREE.Skeleton(bones, node.skeleton.boneInverses), node.matrixWorld);
+    }
+  });
+  return clone;
 }
 
-// ═══════════════════════════════════════════════════════════
-// ENTER WORLD
-// ═══════════════════════════════════════════════════════════
-function enterWorld() {
-  var raw  = document.getElementById('name-input').value.trim();
-  var name = raw || ('Wanderer' + Math.random().toString(36).substr(2,4).toUpperCase());
+function playAnim(name, fadeTime) {
+  fadeTime = fadeTime===undefined ? 0.2 : fadeTime;
+  if (!playerActions[name] || currentAnim===name) return;
 
-  document.getElementById('spawn').style.display = 'none';
-  document.getElementById('hud').style.display   = 'block';
-  document.getElementById('crosshair').style.display = 'block';
-  document.getElementById('tl-lock-msg').style.display = 'block';
+  var prev = playerActions[currentAnim];
+  var next = playerActions[name];
 
-  // Spawn player
-  var spawnPt = findSpawnPoint();
-  playerPos.copy(spawnPt);
+  next.reset();
+  next.setEffectiveWeight(1);
+  next.play();
 
-  playerMesh = buildPlayer(myColor);
-  playerMesh.position.copy(playerPos);
-  scene.add(playerMesh);
+  if (prev && fadeTime > 0) {
+    prev.crossFadeTo(next, fadeTime, true);
+  } else if (prev) {
+    prev.setEffectiveWeight(0);
+  }
 
-  gameRunning = true;
-  applyDay(1);
-
-  // Fade out controls hint after 10s
-  setTimeout(function() {
-    document.getElementById('hud-bl').style.opacity = '0';
-  }, 10000);
-
-  initFirebase(name);
+  currentAnim = name;
 }
 
-// Enter on keypress
-document.getElementById('name-input').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') enterWorld();
-});
-
-// ═══════════════════════════════════════════════════════════
-// PLAYER UPDATE
-// ═══════════════════════════════════════════════════════════
-var groundCheckFrame = 0;
-var currentGroundY   = 0;
-
+// ─── PLAYER UPDATE ─────────────────────────────────────
 function updatePlayer(delta) {
-  if (!gameRunning || !playerMesh) return;
+  if (!gameRunning || !playerGroup) return;
 
-  var speed = 12;
-  var mx = 0, mz = 0;
-  if (keys['KeyW']||keys['ArrowUp'])    { mx+=Math.sin(camYaw);  mz+=Math.cos(camYaw);  }
-  if (keys['KeyS']||keys['ArrowDown'])  { mx-=Math.sin(camYaw);  mz-=Math.cos(camYaw);  }
-  if (keys['KeyA']||keys['ArrowLeft'])  { mx+=Math.cos(camYaw);  mz-=Math.sin(camYaw);  }
-  if (keys['KeyD']||keys['ArrowRight']) { mx-=Math.cos(camYaw);  mz+=Math.sin(camYaw);  }
+  var shift  = keys['ShiftLeft']||keys['ShiftRight'];
+  var mx=0, mz=0;
+  if (keys['KeyW']||keys['ArrowUp'])    { mx+=Math.sin(camYaw); mz+=Math.cos(camYaw); }
+  if (keys['KeyS']||keys['ArrowDown'])  { mx-=Math.sin(camYaw); mz-=Math.cos(camYaw); }
+  if (keys['KeyA']||keys['ArrowLeft'])  { mx+=Math.cos(camYaw); mz-=Math.sin(camYaw); }
+  if (keys['KeyD']||keys['ArrowRight']) { mx-=Math.cos(camYaw); mz+=Math.sin(camYaw); }
 
-  if (mx!==0 || mz!==0) {
-    var len = Math.sqrt(mx*mx+mz*mz);
-    mx/=len; mz/=len;
+  var moving = mx!==0||mz!==0;
+  var speed  = shift ? 16 : 9;
+
+  if (moving) {
+    var len=Math.sqrt(mx*mx+mz*mz); mx/=len; mz/=len;
     playerPos.x += mx*speed*delta;
     playerPos.z += mz*speed*delta;
-    playerMesh.rotation.y = -Math.atan2(mx, mz);
+    // Face movement direction
+    playerGroup.rotation.y = -Math.atan2(mx,mz) + CHAR_ROT_OFFSET;
   }
 
-  // Ground height — check every 3 frames (performance)
-  groundCheckFrame++;
-  if (groundCheckFrame % 3 === 0) {
-    var gy = getGroundY(playerPos.x, playerPos.z);
-    currentGroundY = gy;
-  }
-  // Smoothly settle onto ground
-  var targetY = currentGroundY + 0.5;
-  playerPos.y += (targetY - playerPos.y) * 0.18;
-  playerMesh.position.copy(playerPos);
+  // Ground detection (every 3 frames)
+  if (++gCheckTick%3===0) groundY = getGroundY(playerPos.x, playerPos.z);
 
-  // Camera follow
-  camera.position.x = playerPos.x - Math.sin(camYaw)*9;
-  camera.position.y = playerPos.y  + 5;
-  camera.position.z = playerPos.z  - Math.cos(camYaw)*9;
-  camera.lookAt(playerPos.x, playerPos.y+1.5, playerPos.z);
+  // Jump physics
+  if (isJumping) {
+    playerPos.y += jumpVel*delta;
+    jumpVel -= 28*delta;
+    if (playerPos.y <= groundY+.1) {
+      playerPos.y = groundY+.1;
+      isJumping=false; jumpVel=0;
+    }
+  } else {
+    // Smooth settle onto terrain
+    var ty = groundY+.1;
+    playerPos.y += (ty-playerPos.y)*0.2;
+  }
+
+  playerGroup.position.copy(playerPos);
+
+  // Animation state
+  if (!isJumping) {
+    if (moving && shift) playAnim(ANIM.RUN);
+    else if (moving)     playAnim(ANIM.WALK);
+    else                 playAnim(ANIM.IDLE);
+  }
+
+  if (playerMixer) playerMixer.update(delta);
+
+  // Camera — offset behind player
+  var camDist=7, camH=4.5;
+  camera.position.x = playerPos.x - Math.sin(camYaw)*camDist;
+  camera.position.y = playerPos.y  + camH;
+  camera.position.z = playerPos.z  - Math.cos(camYaw)*camDist;
+  camera.lookAt(playerPos.x, playerPos.y+1.2, playerPos.z);
 
   // Firebase sync
   if (db && myRef) {
-    var now = Date.now();
-    if (now - lastSyncTime > 120 && (mx!==0||mz!==0)) {
-      lastSyncTime = now;
-      myRef.update({ x:Math.round(playerPos.x*10)/10, z:Math.round(playerPos.z*10)/10 });
+    var now=Date.now();
+    if (now-lastSyncTime>120 && moving) {
+      lastSyncTime=now;
+      myRef.update({x:Math.round(playerPos.x*10)/10, z:Math.round(playerPos.z*10)/10, anim:currentAnim});
     }
   }
 }
 
-function lerpRemotePlayers() {
+// Jump on Space
+window.addEventListener('keydown', function(e) {
+  keys[e.code]=true;
+  if (e.code==='Space' && gameRunning && !isJumping) {
+    isJumping=true;
+    var shift=keys['ShiftLeft']||keys['ShiftRight'];
+    jumpVel=10;
+    playAnim(shift ? ANIM.RJUMP : ANIM.JUMP, 0.1);
+    e.preventDefault();
+  }
+});
+window.addEventListener('keyup', function(e){ keys[e.code]=false; });
+
+// ─── REMOTE PLAYERS (simple, no mixer) ─────────────────
+var remotePlayers={}, lastSyncTime=0;
+
+function makeRemoteMesh(color) {
+  var mat=new THREE.MeshPhongMaterial({color:color,flatShading:true});
+  var grp=new THREE.Group();
+  grp.add(new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.9,6),mat));
+  var hd=new THREE.Mesh(new THREE.SphereGeometry(.25,6,6),mat);
+  hd.position.y=.72; grp.add(hd);
+  return grp;
+}
+
+function lerpRemotes() {
   Object.values(remotePlayers).forEach(function(rp) {
-    if (!rp.mesh) return;
-    var gy = getGroundY(rp.tx, rp.tz);
-    rp.mesh.position.x += (rp.tx - rp.mesh.position.x)*0.10;
-    rp.mesh.position.y += (gy+0.5 - rp.mesh.position.y)*0.10;
-    rp.mesh.position.z += (rp.tz - rp.mesh.position.z)*0.10;
+    if(!rp.mesh) return;
+    var gy=getGroundY(rp.tx,rp.tz);
+    rp.mesh.position.x+=(rp.tx-rp.mesh.position.x)*.1;
+    rp.mesh.position.y+=(gy+.45-rp.mesh.position.y)*.1;
+    rp.mesh.position.z+=(rp.tz-rp.mesh.position.z)*.1;
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// INPUT
-// ═══════════════════════════════════════════════════════════
-window.addEventListener('keydown', function(e){ keys[e.code]=true; });
-window.addEventListener('keyup',   function(e){ keys[e.code]=false; });
+// ─── TIMELINE ──────────────────────────────────────────
+var currentDay=1, playerTier=null, tlDragging=false;
 
-renderer.domElement.addEventListener('mousedown', function(e){
-  if (e.target.closest('#timeline,#hud-tr,#actions')) return;
+function applyDay(day) {
+  currentDay=day;
+  var ta=Math.max(0,(day-12)/3);
+
+  // Sky
+  scene.background.copy(new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x6a2010),ta));
+  scene.fog.color.copy(new THREE.Color(0xb0d8f0).lerp(new THREE.Color(0x5a1808),ta));
+  sunLight.intensity=1.4-ta*.9;
+  sunLight.color.copy(new THREE.Color(0xfffae8).lerp(new THREE.Color(0xff6622),ta));
+
+  // Fires
+  var count=Math.round(ta*Math.min(firePosCache.length,10));
+  if (count!==fireObjs.length) {
+    clearFires();
+    for(var i=0;i<count&&i<firePosCache.length;i++) {
+      var fp=firePosCache[i];
+      spawnFire(fp.x,fp.y,fp.z,1+Math.random()*.6);
+    }
+  }
+
+  document.getElementById('h-day').textContent='DAY '+day;
+  updateTLUI(day);
+  if(DAY_INFO[day]) flashMsg('Day '+day+' — '+DAY_INFO[day].text);
+  if(db) db.ref('world/day').set(day);
+}
+
+var flashT=null;
+function flashMsg(txt) {
+  var el=document.getElementById('flash');
+  el.textContent=txt; el.style.display='block';
+  clearTimeout(flashT);
+  flashT=setTimeout(function(){el.style.display='none';},5500);
+}
+
+function buildTLUI() {
+  var el=document.getElementById('tl-days'); el.innerHTML='';
+  for(var d=1;d<=15;d++) {
+    var sp=document.createElement('span');
+    sp.className='tl-d'+(DAY_INFO[d]&&DAY_INFO[d].fire?' fire':'');
+    sp.textContent=d; sp.dataset.d=d;
+    sp.onclick=(function(day){return function(){seekTL(day);};})(d);
+    el.appendChild(sp);
+  }
+}
+
+function updateTLUI(day) {
+  var pct=((day-1)/14)*100;
+  document.getElementById('tl-fill').style.width=pct+'%';
+  document.getElementById('tl-handle').style.left=pct+'%';
+  document.querySelectorAll('.tl-d').forEach(function(el){
+    el.classList.toggle('cur',parseInt(el.dataset.d)===day);
+  });
+  var info=DAY_INFO[day];
+  document.getElementById('tl-desc').textContent=info?info.text:'';
+}
+
+function seekTL(day) {
+  if(!playerTier) return;
+  var tier=TIERS.find(function(t){return t.name===playerTier;});
+  if(!tier) return;
+  day=Math.max(tier.dayMin,Math.min(tier.dayMax,day));
+  applyDay(day);
+}
+
+function initTLDrag() {
+  var rail=document.getElementById('tl-rail');
+  var handle=document.getElementById('tl-handle');
+  function dayFromE(e){
+    var r=rail.getBoundingClientRect();
+    var cx=(e.clientX||(e.touches&&e.touches[0].clientX)||0)-r.left;
+    return Math.round(1+Math.max(0,Math.min(1,cx/r.width))*14);
+  }
+  rail.addEventListener('mousedown',function(e){tlDragging=true;seekTL(dayFromE(e));});
+  handle.addEventListener('mousedown',function(e){tlDragging=true;e.stopPropagation();});
+  window.addEventListener('mousemove',function(e){if(tlDragging)seekTL(dayFromE(e));});
+  window.addEventListener('mouseup',function(){tlDragging=false;});
+  rail.addEventListener('touchstart',function(e){tlDragging=true;seekTL(dayFromE(e));},{passive:true});
+  window.addEventListener('touchmove',function(e){if(tlDragging&&e.target.closest('#timeline'))seekTL(dayFromE(e));},{passive:true});
+  window.addEventListener('touchend',function(){tlDragging=false;});
+}
+
+// ─── WALLET ────────────────────────────────────────────
+async function connectWallet() {
+  var btn=document.getElementById('wallet-btn');
+  if(!window.ethereum){btn.textContent='✕ NO WALLET';return;}
+  btn.textContent='CONNECTING...';
+  try {
+    var accs=await window.ethereum.request({method:'eth_requestAccounts'});
+    var addr=accs[0];
+    btn.textContent='● '+addr.slice(0,6)+'...'+addr.slice(-4);
+    btn.classList.add('ok');
+    var bal=1;
+    if(CFG.TOKEN_CONTRACT){
+      try{
+        var data='0x70a08231'+addr.replace('0x','').padStart(64,'0');
+        var res=await window.ethereum.request({method:'eth_call',params:[{to:CFG.TOKEN_CONTRACT,data},'latest']});
+        bal=parseInt(res,16)/Math.pow(10,CFG.TOKEN_DECIMALS);
+      }catch(e){bal=1;}
+    }
+    var tier=TIERS.find(function(t){return bal>=t.min;})||TIERS[TIERS.length-1];
+    playerTier=tier.name;
+    var badge=document.getElementById('token-badge');
+    badge.style.display='block';
+    badge.textContent=tier.name+(CFG.TOKEN_CONTRACT?' · '+Math.round(bal)+' tokens':'');
+    badge.className='token-badge '+tier.name.toLowerCase();
+    document.getElementById('tl-tier').textContent=tier.name;
+    document.getElementById('tl-tier').style.color=tier.color;
+    buildTLUI(); initTLDrag();
+    document.getElementById('timeline').style.display='block';
+    document.getElementById('tl-lock').style.display='none';
+    updateTLUI(currentDay);
+  }catch(e){btn.textContent='◌ CONNECT WALLET'; btn.classList.remove('ok');}
+}
+
+// ─── FIREBASE ──────────────────────────────────────────
+var db=null, myRef=null, playerId=Math.random().toString(36).substr(2,8);
+var myColor=[0xff6644,0x44aaff,0x44ff88,0xffcc44,0xff44cc,0x44ffee,0xaa88ff][Math.floor(Math.random()*7)];
+
+function initFirebase(name) {
+  if(!CFG.FIREBASE) return;
+  try {
+    firebase.initializeApp(CFG.FIREBASE);
+    db=firebase.database();
+    myRef=db.ref('players/'+playerId);
+    myRef.set({x:playerPos.x,z:playerPos.z,color:myColor,name:name});
+    myRef.onDisconnect().remove();
+
+    db.ref('world/day').on('value',function(s){
+      var d=s.val();
+      if(d&&d!==currentDay&&!tlDragging) applyDay(d);
+    });
+
+    db.ref('players').on('value',function(s){
+      var all=s.val()||{};
+      document.getElementById('online-count').textContent=Object.keys(all).length+' online';
+      Object.keys(all).forEach(function(pid){
+        if(pid===playerId) return;
+        var pd=all[pid];
+        if(!remotePlayers[pid]){
+          var m=makeRemoteMesh(pd.color||0xffffff);
+          m.position.set(pd.x||0,getGroundY(pd.x||0,pd.z||0)+.45,pd.z||0);
+          scene.add(m);
+          remotePlayers[pid]={mesh:m,tx:pd.x||0,tz:pd.z||0};
+        } else { remotePlayers[pid].tx=pd.x||0; remotePlayers[pid].tz=pd.z||0; }
+      });
+      Object.keys(remotePlayers).forEach(function(pid){
+        if(!all[pid]){scene.remove(remotePlayers[pid].mesh);delete remotePlayers[pid];}
+      });
+    });
+  }catch(e){console.warn('Firebase:',e);}
+}
+
+// ─── ENTER WORLD ───────────────────────────────────────
+function enterWorld() {
+  var raw=document.getElementById('name-input').value.trim();
+  var name=raw||('Wanderer'+Math.random().toString(36).substr(2,4).toUpperCase());
+  document.getElementById('spawn').style.display='none';
+  document.getElementById('hud').style.display='block';
+  document.getElementById('xhair').style.display='block';
+  document.getElementById('tl-lock').style.display='block';
+
+  var sp=findSpawn();
+  playerPos.copy(sp);
+  groundY=sp.y-.1;
+
+  playerGroup=createPlayerChar();
+  playerGroup.position.copy(playerPos);
+  scene.add(playerGroup);
+
+  gameRunning=true;
+  applyDay(1);
+
+  setTimeout(function(){document.getElementById('hud-bl').style.opacity='0';},12000);
+  initFirebase(name);
+  clock.start();
+  gameLoop();
+}
+
+document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')enterWorld();});
+
+// ─── INPUT ─────────────────────────────────────────────
+renderer.domElement.addEventListener('mousedown',function(e){
+  if(e.target.closest('#timeline,#hud-tr'))return;
   isDragging=true; lastMouseX=e.clientX;
 });
-window.addEventListener('mousemove', function(e){
-  if (!isDragging) return;
-  camYaw += (e.clientX - lastMouseX)*0.004;
-  lastMouseX = e.clientX;
+window.addEventListener('mousemove',function(e){
+  if(!isDragging)return;
+  camYaw+=(e.clientX-lastMouseX)*.004; lastMouseX=e.clientX;
 });
-window.addEventListener('mouseup', function(){ isDragging=false; });
-
-renderer.domElement.addEventListener('touchstart', function(e){
-  if (e.target.closest('#timeline,#hud-tr')) return;
+window.addEventListener('mouseup',function(){isDragging=false;});
+renderer.domElement.addEventListener('touchstart',function(e){
+  if(e.target.closest('#timeline,#hud-tr'))return;
   isDragging=true; lastMouseX=e.touches[0].clientX;
 },{passive:true});
-window.addEventListener('touchmove', function(e){
-  if (!isDragging||e.target.closest('#timeline')) return;
-  camYaw += (e.touches[0].clientX - lastMouseX)*0.004;
-  lastMouseX = e.touches[0].clientX;
+window.addEventListener('touchmove',function(e){
+  if(!isDragging||e.target.closest('#timeline'))return;
+  camYaw+=(e.touches[0].clientX-lastMouseX)*.004; lastMouseX=e.touches[0].clientX;
 },{passive:true});
-window.addEventListener('touchend', function(){ isDragging=false; });
-
-window.addEventListener('resize', function(){
-  camera.aspect = innerWidth/innerHeight;
+window.addEventListener('touchend',function(){isDragging=false;});
+window.addEventListener('resize',function(){
+  camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(innerWidth,innerHeight);
 });
 
-// ═══════════════════════════════════════════════════════════
-// ANIMATION LOOPS
-// ═══════════════════════════════════════════════════════════
-
-// Preview loop (before game starts — orbiting camera)
-var previewRunning = false;
-var previewStart   = Date.now();
-
-function previewAnimate() {
-  previewRunning = true;
-  var loop = function() {
-    if (gameRunning) return; // hand off to main loop
-    requestAnimationFrame(loop);
-    var t = (Date.now()-previewStart)/1000;
-    var r = Math.max(modelSize.x, modelSize.z)*0.85;
-    camera.position.x = Math.sin(t*0.14)*r;
-    camera.position.y = modelSize.y*0.6 + Math.sin(t*0.08)*10;
-    camera.position.z = Math.cos(t*0.14)*r;
-    camera.lookAt(modelCenter);
-    renderer.render(scene, camera);
-  };
-  loop();
+// ─── LOOPS ─────────────────────────────────────────────
+// Preview — orbit while on spawn screen
+var pvStart=Date.now();
+function previewAnimate(){
+  if(gameRunning)return;
+  requestAnimationFrame(previewAnimate);
+  var t=(Date.now()-pvStart)/1000;
+  var r=Math.max(modelSize.x,modelSize.z)*.8;
+  camera.position.set(Math.sin(t*.13)*r, modelSize.y*.55+Math.sin(t*.07)*8, Math.cos(t*.13)*r);
+  camera.lookAt(modelCenter);
+  renderer.render(scene,camera);
 }
 
 // Main game loop
-function gameAnimate() {
-  requestAnimationFrame(gameAnimate);
-  var delta = Math.min(clock.getDelta(), 0.05);
-  var t     = clock.getElapsedTime();
+function gameLoop(){
+  requestAnimationFrame(gameLoop);
+  var delta=Math.min(clock.getDelta(),.05);
+  var t=clock.getElapsedTime();
   updatePlayer(delta);
-  lerpRemotePlayers();
+  lerpRemotes();
   tickFires(t);
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 }
-
-// Start main loop once player enters
-var _origEnter = window.enterWorld; // already defined above, loop starts there
-(function patchEnter(){
-  var orig = enterWorld;
-  window.enterWorld = function(){
-    orig();
-    clock.start();
-    gameAnimate();
-  };
-})();
 </script>
 </body>
 </html>
