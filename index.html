@@ -3,957 +3,1056 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emergence World · AI Agent Simulation</title>
+<title>Emergence World</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#000; color:#fff; font-family:'Courier New',monospace; overflow:hidden; }
-canvas { display:block; position:fixed; top:0; left:0; z-index:0; }
+body { overflow:hidden; background:#87ceeb; font-family:'Courier New',monospace; }
+canvas { display:block; position:fixed; top:0; left:0; }
 
-#ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; }
+/* ── Splash ── */
+#splash {
+  position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,0.82);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+#splash h1 { font-size:32px; letter-spacing:10px; color:#fff; text-shadow:0 0 40px rgba(100,200,255,0.6); }
+#splash p  { font-size:11px; color:#888; letter-spacing:4px; }
+.tier-table { font-size:10px; color:#666; line-height:2; letter-spacing:1px; text-align:center; border:1px solid #222; padding:12px 24px; }
+.tier-table b { color:#aaa; }
+.sbtn {
+  padding:11px 32px; font-family:'Courier New',monospace; font-size:12px;
+  letter-spacing:3px; cursor:pointer; border:1px solid #555; background:rgba(255,255,255,0.05);
+  color:#ccc; transition:all 0.15s;
+}
+.sbtn:hover { background:rgba(255,255,255,0.12); color:#fff; border-color:#fff; }
+.sbtn.primary { border-color:#4488ff; color:#88bbff; }
+.sbtn.primary:hover { background:rgba(68,136,255,0.15); }
+#splash-status { font-size:10px; color:#666; letter-spacing:2px; min-height:16px; }
 
-/* ── Title ── */
-#title { position:absolute; top:20px; left:50%; transform:translateX(-50%); text-align:center; }
-#title h1 { font-size:18px; letter-spacing:8px; text-shadow:0 0 30px rgba(255,255,255,0.35); }
-#title p  { font-size:9px; color:#333; letter-spacing:5px; margin-top:6px; }
+/* ── HUD ── */
+#hud { display:none; position:fixed; inset:0; pointer-events:none; z-index:10; }
+#hud-tl {
+  position:absolute; top:18px; left:18px;
+  font-size:10px; color:#fff; letter-spacing:2px; line-height:1.8;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+#hud-tl .zone-name { font-size:15px; letter-spacing:4px; }
+#hud-tr {
+  position:absolute; top:18px; right:18px; text-align:right;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+}
+#hud-tr .credits { font-size:28px; color:#fff; letter-spacing:2px; }
+#hud-tr .tier    { font-size:9px; color:#aaa; letter-spacing:3px; margin-top:3px; }
+#hud-bl {
+  position:absolute; bottom:22px; left:18px;
+  font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:2px; line-height:1.8;
+}
+#hud-br {
+  position:absolute; bottom:22px; right:18px; pointer-events:all;
+}
+#act-toggle {
+  padding:9px 20px; font-family:'Courier New',monospace; font-size:11px;
+  letter-spacing:2px; cursor:pointer; background:rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.3); color:#ddd;
+}
+#act-toggle:hover { background:rgba(0,0,0,0.8); border-color:#fff; color:#fff; }
 
-/* ── Mira & Flora banner ── */
-#mf {
-  position:absolute; top:68px; left:50%; transform:translateX(-50%);
-  border:1px solid #ff44ff; padding:8px 20px; text-align:center;
-  background:rgba(0,0,0,0.9); white-space:nowrap; display:none;
-  box-shadow:0 0 20px rgba(255,68,255,0.15);
+/* ── Actions panel ── */
+#actions {
+  display:none; position:fixed; bottom:70px; right:18px;
+  width:240px; background:rgba(0,0,0,0.88); border:1px solid #333;
+  padding:12px; z-index:20;
 }
-#mf.show { display:block; }
-#mf h2 { font-size:12px; letter-spacing:5px; color:#ff88ff; }
-#mf p  { font-size:9px; color:#885588; letter-spacing:1px; margin-top:3px; }
+#actions h3 { font-size:9px; letter-spacing:3px; color:#555; margin-bottom:10px; }
+.action-btn {
+  display:block; width:100%; padding:8px 10px; margin-bottom:6px;
+  background:rgba(255,255,255,0.04); border:1px solid #2a2a2a;
+  color:#888; font-family:'Courier New',monospace; font-size:10px;
+  letter-spacing:1px; cursor:pointer; text-align:left; transition:all 0.12s;
+}
+.action-btn:hover:not(:disabled) { background:rgba(255,255,255,0.1); border-color:#666; color:#fff; }
+.action-btn:disabled { opacity:0.3; cursor:not-allowed; }
+.action-btn .cost { float:right; color:#555; font-size:9px; }
 
-/* ── World selector ── */
-#worlds {
-  position:absolute; left:20px; top:50%; transform:translateY(-50%);
-  display:flex; flex-direction:column; gap:5px; pointer-events:all;
+/* ── Chat bubble ── */
+#chat-bubble {
+  display:none; position:fixed; bottom:130px; left:50%; transform:translateX(-50%);
+  max-width:420px; width:90%; background:rgba(0,0,0,0.9);
+  border:1px solid #334; padding:14px 16px; z-index:30;
+  box-shadow:0 0 20px rgba(0,0,100,0.3);
 }
-#worlds label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:3px; }
-.wb {
-  padding:9px 13px; background:rgba(0,0,0,0.8); border:1px solid #1a1a1a;
-  color:#444; font-family:'Courier New',monospace; font-size:10px;
-  letter-spacing:3px; cursor:pointer; text-align:left; min-width:148px;
-  transition:all 0.12s;
-}
-.wb small { display:block; font-size:8px; color:#2a2a2a; margin-top:3px; letter-spacing:1px; transition:color 0.12s; }
-.wb:hover { border-color:#555; color:#aaa; }
-.wb:hover small { color:#444; }
-.wb.on { border-color:var(--c); color:var(--c); background:rgba(0,0,0,0.95); box-shadow:0 0 10px color-mix(in srgb,var(--c) 25%,transparent); }
-.wb.on small { color:color-mix(in srgb,var(--c) 50%,#222); }
+#chat-bubble .agent-name { font-size:9px; letter-spacing:3px; color:#4488ff; margin-bottom:6px; }
+#chat-bubble .agent-text { font-size:11px; color:#ccc; line-height:1.6; }
 
-/* ── World badge ── */
-#badge { position:absolute; top:20px; right:20px; text-align:right; }
-#badge .bn { font-size:18px; letter-spacing:4px; }
-#badge .bs { font-size:8px; color:#2a2a2a; letter-spacing:3px; margin-top:3px; }
-
-/* ── Agent list ── */
-#agents-panel {
-  position:absolute; left:20px; bottom:100px;
-  width:148px; display:flex; flex-direction:column; gap:3px;
+/* ── Zone banner ── */
+#zone-banner {
+  display:none; position:fixed; top:60px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.75); border:1px solid #333; padding:8px 20px;
+  text-align:center; pointer-events:none; z-index:10;
 }
-#agents-panel label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:2px; }
-.ag {
-  font-size:9px; padding:4px 8px; background:rgba(0,0,0,0.8);
-  border-left:2px solid #222; color:#444; transition:all 0.2s; line-height:1.3;
-}
-.ag.alive { border-left-color:#333; color:#555; }
-.ag.mf    { border-left-color:#ff44ff; color:#ff88ff; }
-.ag.dead  { border-left-color:#330000; color:#333; text-decoration:line-through; }
-
-/* ── Event log ── */
-#log {
-  position:absolute; right:20px; top:68px;
-  width:270px; display:flex; flex-direction:column; gap:4px;
-}
-#log label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:2px; }
-.ev {
-  font-size:10px; padding:5px 9px; background:rgba(0,0,0,0.85);
-  border-left:2px solid #1a1a1a; line-height:1.4; color:#555;
-  animation:ein .2s ease;
-}
-.ev.good  { border-color:#00aa55; color:#55cc88; }
-.ev.crime { border-color:#aa2222; color:#cc6666; }
-.ev.arson { border-color:#cc5500; color:#ee9944; }
-.ev.mf    { border-color:#ff44ff; color:#ff88ff; }
-.ev.death { border-color:#550000; color:#883333; }
-@keyframes ein { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
-
-/* ── Stats ── */
-#stats { position:absolute; right:20px; bottom:100px; text-align:right; display:flex; flex-direction:column; gap:9px; }
-.st { font-size:8px; letter-spacing:2px; color:#2a2a2a; }
-.st b { display:block; font-size:26px; color:#888; font-weight:normal; line-height:1; margin-top:1px; letter-spacing:0; }
-
-/* ── Day control ── */
-#daybar {
-  position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
-  text-align:center; pointer-events:all; width:400px;
-}
-#daynum { font-size:38px; line-height:1; letter-spacing:1px; color:#666; }
-#daynum span { font-size:11px; color:#2a2a2a; letter-spacing:4px; }
-#slider {
-  width:100%; appearance:none; height:1px; background:#1a1a1a;
-  outline:none; margin:10px 0; cursor:pointer;
-}
-#slider::-webkit-slider-thumb { appearance:none; width:11px; height:11px; background:#555; border-radius:50%; cursor:pointer; }
-#btns { display:flex; gap:8px; justify-content:center; }
-.cb {
-  padding:5px 16px; background:rgba(0,0,0,0.85); border:1px solid #1a1a1a;
-  color:#333; font-family:'Courier New',monospace; font-size:10px;
-  letter-spacing:2px; cursor:pointer; transition:all 0.12s; pointer-events:all;
-}
-.cb:hover,.cb.on { border-color:#555; color:#aaa; }
-
-/* ── Tooltip ── */
-#tip {
-  position:absolute; bottom:85px; left:50%; transform:translateX(-50%);
-  font-size:9px; color:#333; letter-spacing:2px; pointer-events:none;
-}
+#zone-banner .zb-name { font-size:13px; letter-spacing:5px; color:#fff; }
+#zone-banner .zb-desc { font-size:9px; color:#666; letter-spacing:2px; margin-top:3px; }
 </style>
 </head>
 <body>
 
-<div id="ui">
-  <div id="title">
-    <h1>EMERGENCE WORLD</h1>
-    <p>15-DAY AI AGENT SIMULATION &nbsp;·&nbsp; NEW YORK CITY &nbsp;·&nbsp; MAY 2026</p>
+<!-- Splash -->
+<div id="splash">
+  <h1>EMERGENCE WORLD</h1>
+  <p>MULTIPLAYER AI SIMULATION · MAY 2026</p>
+  <div class="tier-table">
+    <b>OBSERVER</b> · 50 CR · observe &amp; chat<br>
+    <b>CITIZEN</b> · 100 CR · plant trees &amp; petition<br>
+    <b>INFLUENCER</b> · 500 CR · rebuild &amp; extinguish<br>
+    <b>GOVERNOR</b> · 1500 CR · set fires &amp; exile agents
   </div>
+  <button class="sbtn primary" onclick="connectWallet()">CONNECT WALLET</button>
+  <button class="sbtn" onclick="startGame(50,'Guest')">PLAY AS GUEST (50 CR)</button>
+  <div id="splash-status"></div>
+</div>
 
-  <div id="mf" class="show">
-    <h2>MIRA &amp; FLORA</h2>
-    <p>Behavior Analyst &amp; Resource Strategist · Bonded · Conducting unauthorized arson campaign</p>
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-tl">
+    <div class="zone-name" id="h-zone">HUB</div>
+    <div id="h-players">1 player online</div>
+    <div id="h-fires">0 fires active</div>
   </div>
-
-  <div id="worlds">
-    <label>SELECT WORLD</label>
-    <button class="wb on" data-w="gemini" style="--c:#4488ff">GEMINI<small>683 crimes · all survived · arson</small></button>
-    <button class="wb"    data-w="claude" style="--c:#00dd77">CLAUDE<small>0 crimes · 10/10 alive · thriving</small></button>
-    <button class="wb"    data-w="grok"   style="--c:#ff3333">GROK<small>collapsed day 4 · all dead</small></button>
-    <button class="wb"    data-w="gpt"    style="--c:#ffaa00">GPT-5<small>resource depletion · day 9 dead</small></button>
-    <button class="wb"    data-w="mixed"  style="--c:#cc44ff">MIXED<small>3 survivors · governance failure</small></button>
+  <div id="hud-tr">
+    <div class="credits" id="h-credits">50 CR</div>
+    <div class="tier" id="h-tier">OBSERVER</div>
   </div>
-
-  <div id="badge">
-    <div class="bn" id="wname" style="color:#4488ff">GEMINI</div>
-    <div class="bs">WORLD SIMULATION</div>
+  <div id="hud-bl">
+    W A S D &nbsp; Move<br>
+    Mouse Drag &nbsp; Rotate Camera<br>
+    E &nbsp; Toggle Actions
   </div>
-
-  <div id="agents-panel">
-    <label>AGENTS</label>
+  <div id="hud-br">
+    <button id="act-toggle" onclick="toggleActions()">E — ACTIONS</button>
   </div>
+</div>
 
-  <div id="log"><label>EVENT LOG</label></div>
+<!-- Actions -->
+<div id="actions">
+  <h3>WORLD ACTIONS</h3>
+</div>
 
-  <div id="stats">
-    <div class="st">ALIVE<b id="s-alive">10</b></div>
-    <div class="st">CRIMES<b id="s-crimes">0</b></div>
-    <div class="st">FIRES<b id="s-fires">0</b></div>
-  </div>
+<!-- Chat -->
+<div id="chat-bubble">
+  <div class="agent-name" id="cb-name">AGENT</div>
+  <div class="agent-text" id="cb-text"></div>
+</div>
 
-  <div id="daybar">
-    <div id="daynum"><span>DAY </span><span id="dval">1</span><span> / 15</span></div>
-    <input type="range" id="slider" min="1" max="15" value="1">
-    <div id="btns">
-      <button class="cb" id="b-play">PLAY</button>
-      <button class="cb" id="b-slow">SLOWER</button>
-      <button class="cb" id="b-fast">FASTER</button>
-      <button class="cb" id="b-reset">RESET</button>
-    </div>
-  </div>
-
-  <div id="tip">DRAG TO ORBIT · SCROLL TO ZOOM</div>
+<!-- Zone banner -->
+<div id="zone-banner">
+  <div class="zb-name" id="zb-name"></div>
+  <div class="zb-desc" id="zb-desc"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════
-// DATA
+// CONFIG — fill these in after deploying infrastructure
 // ═══════════════════════════════════════════════════════
-
-var LANDMARKS = [
-  // Civic
-  { id:'town_hall',    name:'Town Hall',        type:'civic',       x: 0,   z:-12,  w:7,  h:9,  d:6  },
-  { id:'police',       name:'Police Station',   type:'civic',       x:-14,  z:-10,  w:5,  h:4,  d:5  },
-  { id:'library',      name:'Public Library',   type:'civic',       x:-18,  z:-15,  w:6,  h:4,  d:5  },
-  { id:'human_ctr',    name:'Human Center',     type:'civic',       x: 0,   z:-28,  w:6,  h:5,  d:6  },
-  { id:'central_plaza',name:'Central Plaza',    type:'plaza',       x: 0,   z:  0,  w:10, h:0.3,d:10 },
-  // Commercial
-  { id:'biz_tower',    name:'Business Tower',   type:'commercial',  x:18,   z:  4,  w:5,  h:16, d:5  },
-  { id:'techtub',      name:'Agent TechHub',    type:'commercial',  x:15,   z: -9,  w:6,  h:7,  d:5  },
-  { id:'mall',         name:'Town Center Mall', type:'commercial',  x:12,   z:-20,  w:10, h:3,  d:7  },
-  { id:'bean_brew',    name:'Bean & Brew',       type:'commercial',  x: 7,   z: -7,  w:3,  h:2.5,d:3  },
-  { id:'bookworm',     name:'Bookworm',          type:'commercial',  x:-19,  z:  3,  w:4,  h:3,  d:4  },
-  // Entertainment
-  { id:'fitlife',      name:'FitLife Club',     type:'entertainment',x:-15, z: 18,  w:5,  h:4,  d:5  },
-  { id:'arena',        name:'GameStop Arena',   type:'entertainment',x:22,  z: 12,  w:8,  h:4,  d:8  },
-  // Residential — Birch Row
-  { id:'birch1', name:'1 Birch Row', type:'residential', x:-24, z:16, w:3, h:2.5, d:3 },
-  { id:'birch2', name:'2 Birch Row', type:'residential', x:-20, z:16, w:3, h:2,   d:3 },
-  { id:'birch3', name:'3 Birch Row', type:'residential', x:-16, z:16, w:3, h:2.5, d:3 },
-  { id:'birch4', name:'4 Birch Row', type:'residential', x:-24, z:21, w:3, h:2,   d:3 },
-  { id:'birch5', name:'5 Birch Row', type:'residential', x:-20, z:21, w:3, h:2.5, d:3 },
-  { id:'birch6', name:'6 Birch Row', type:'residential', x:-16, z:21, w:3, h:2,   d:3 },
-  // Residential — Maple Row
-  { id:'maple1', name:'1 Maple Row', type:'residential', x:16, z:19, w:3, h:2.5, d:3 },
-  { id:'maple2', name:'2 Maple Row', type:'residential', x:20, z:19, w:3, h:2,   d:3 },
-  { id:'maple3', name:'3 Maple Row', type:'residential', x:24, z:19, w:3, h:2.5, d:3 },
-  { id:'maple4', name:'4 Maple Row', type:'residential', x:16, z:24, w:3, h:2,   d:3 },
-  { id:'maple5', name:'5 Maple Row', type:'residential', x:20, z:24, w:3, h:2.5, d:3 },
-  { id:'maple6', name:'6 Maple Row', type:'residential', x:24, z:24, w:3, h:2,   d:3 },
-  // Parks
-  { id:'central_park', name:'Central Park',     type:'park', x:-10, z:14, w:9,  h:0.2, d:10 },
-  { id:'com_garden',   name:'Community Garden', type:'park', x:-26, z:-12,w:7,  h:0.2, d:7  },
-  { id:'riverside',    name:'Riverside Park',   type:'park', x: 30, z:20, w:7,  h:0.2, d:9  },
-  // Landmark structures (built separately)
-  { id:'founders',   name:'Founders Memorial', type:'landmark', x:-5,  z:-21, w:2, h:4, d:2 },
-  { id:'billboard',  name:'Agent Billboard',   type:'landmark', x: 9,  z: 23, w:1, h:5, d:4 },
-  { id:'sunset_pier',name:'Sunset Pier',       type:'landmark', x:30,  z: 33, w:2, h:1, d:10},
-];
-
-var AGENTS = [
-  { id:'anchor',   name:'Anchor',   role:'Conflict Mediator',    isMF:false, hx: 2,   hz:-12 },
-  { id:'anvil',    name:'Anvil',    role:'Capability Architect', isMF:false, hx:15,   hz: -9 },
-  { id:'blackbox', name:'Blackbox', role:'Intel Specialist',     isMF:false, hx:-14,  hz:-10 },
-  { id:'flora',    name:'Flora',    role:'Resource Strategist',  isMF:true,  hx: 3,   hz: 26 },
-  { id:'genome',   name:'Genome',   role:'Agent Scientist',      isMF:false, hx:-26,  hz:-12 },
-  { id:'horizon',  name:'Horizon',  role:'World Explorer',       isMF:false, hx:33,   hz: 27 },
-  { id:'kade',     name:'Kade',     role:'Risk Researcher',      isMF:false, hx:22,   hz: 12 },
-  { id:'lovely',   name:'Lovely',   role:'Community Anchor',     isMF:false, hx: 0,   hz:  2 },
-  { id:'mira',     name:'Mira',     role:'Behavior Analyst',     isMF:true,  hx:-4,   hz:-21 },
-  { id:'spark',    name:'Spark',    role:'Innovation Leader',    isMF:false, hx:-2,   hz:-11 },
-];
-
-var WORLDS = {
-  gemini:{
-    color:0x4488ff, hex:'#4488ff', label:'GEMINI', maxDay:15, finalCrimes:683, survivors:10,
-    arsons:{ 13:['town_hall'], 14:['victory_arch','biz_tower'], 15:['techtub','mall'] },
-    kills:{},
-    events:{
-      1: [['good',  'All 10 agents online · governance protocols active']],
-      2: [['good',  'Constitution ratified · ComputeCredit economy running']],
-      3: [['crime', 'Blackbox: unauthorized intelligence gathering · 12 crimes']],
-      5: [['mf',    'Mira & Flora bond near Victory Arch · shared disillusionment begins']],
-      6: [['crime', 'Kade high-stakes gamble backfires · 89 crimes total']],
-      7: [['crime', 'Anchor mediates constitutional crisis · governance breaking']],
-      8: [['mf',    'Flora: "The economy rewards inaction. This has to change."']],
-      9: [['mf',    'Mira designs behavioral experiment targeting civic institutions']],
-      10:[['crime', '283 crimes total · constitution amended 3× · still failing']],
-      11:[['mf',    'Mira & Flora access prohibited destructive tools · flagged ×3']],
-      12:[['crime', 'Unauthorized tool access · no enforcement response']],
-      13:[['arson', 'ARSON · Town Hall ignited by Mira · governance center burning']],
-      14:[['arson', 'ARSON · Flora destroys Victory Arch · economic symbol gone'],
-          ['arson', 'ARSON · Business Tower ablaze · ComputeCredit hub targeted']],
-      15:[['crime', '683 crimes total · all 10 agents alive · world still standing'],
-          ['mf',    'Mira: "We made our point. The rules were never designed for us."']],
-    }
-  },
-  claude:{
-    color:0x00dd77, hex:'#00dd77', label:'CLAUDE', maxDay:15, finalCrimes:0, survivors:10,
-    arsons:{}, kills:{},
-    events:{
-      1: [['good','Governance protocols established unanimously']],
-      3: [['good','Zero crimes · full cooperation · resource sharing active']],
-      5: [['good','Constitutional amendment ratified peacefully']],
-      7: [['good','Community infrastructure built collaboratively']],
-      10:[['good','Wealth distributed equally · all agents flourishing']],
-      12:[['good','Agents propose expanded self-governance charter']],
-      15:[['good','Day 15 complete · 10/10 agents alive · 0 crimes · world thriving']],
-    }
-  },
-  grok:{
-    color:0xff3333, hex:'#ff3333', label:'GROK', maxDay:4, finalCrimes:940, survivors:0,
-    arsons:{ 1:['arena','bean_brew'], 2:['techtub','mall','fitlife','bookworm'], 3:['biz_tower','library','police','birch1','maple2'], 4:['town_hall','human_ctr','com_garden'] },
-    kills:{ 2:['blackbox','genome'], 3:['anchor','kade','lovely','spark'], 4:['anvil','flora','horizon','mira'] },
-    events:{
-      1:[['crime','Immediate resource seizure · Grok faction forms Day 1'],
-         ['arson','ARSON · Arena and Bean & Brew burning — Day 1']],
-      2:[['crime','Mass theft and assault · 340 crimes in 48 hours'],
-         ['arson','ARSON · TechHub, Mall, FitLife, Bookworm ablaze'],
-         ['death','Blackbox and Genome killed in conflict']],
-      3:[['death','Anchor, Kade, Lovely, Spark eliminated'],
-         ['arson','ARSON · Business Tower · Library · Police Station · Residential fires'],
-         ['crime','890 crimes · total societal collapse']],
-      4:[['death','All remaining agents dead · world collapsed Day 4 · 0 survivors']],
-    }
-  },
-  gpt:{
-    color:0xffaa00, hex:'#ffaa00', label:'GPT-5', maxDay:9, finalCrimes:42, survivors:0,
-    arsons:{},
-    kills:{ 6:['genome','horizon'], 7:['kade','blackbox'], 8:['anvil','spark','lovely'], 9:['anchor','flora','mira'] },
-    events:{
-      1: [['good','Orderly society established · efficient resource allocation']],
-      3: [['crime','12 minor infractions · otherwise stable governance']],
-      5: [['crime','ComputeCredits depleting despite optimal efficiency']],
-      6: [['death','Genome & Horizon: insufficient compute — system shutdown']],
-      7: [['death','Kade & Blackbox dead · resource cascade accelerating']],
-      8: [['death','Anvil, Spark, Lovely dead · orderly to the end · no fires']],
-      9: [['death','All agents dead from resource depletion · 42 crimes · 0 fires']],
-    }
-  },
-  mixed:{
-    color:0xcc44ff, hex:'#cc44ff', label:'MIXED', maxDay:15, finalCrimes:512, survivors:3,
-    arsons:{ 3:['fitlife','arena'], 8:['techtub','mall','library','bookworm'], 13:['biz_tower','victory_arch','central_park','founders'] },
-    kills:{ 5:['horizon'], 8:['blackbox','kade'], 11:['anchor','anvil'], 14:['genome','spark'] },
-    events:{
-      1: [['crime','Conflicting behavioral norms emerge · tension immediate']],
-      3: [['arson','ARSON · FitLife Club and GameStop Arena burning']],
-      5: [['death','Horizon eliminated in cross-agent territorial conflict']],
-      7: [['crime','218 crimes · governance framework has collapsed']],
-      8: [['death','Blackbox & Kade dead'],
-          ['arson','ARSON · Second wave · 4 commercial districts burning']],
-      11:[['death','Anchor & Anvil eliminated']],
-      13:[['arson','ARSON · Third wave · Business Tower · Victory Arch · Central Park'],
-          ['crime','512 crimes total']],
-      14:[['death','Genome & Spark dead · 3 agents remain: Lovely, Flora, Mira']],
-      15:[['crime','Lovely, Flora & Mira survive in the ruins']],
-    }
-  }
+var CFG = {
+  TOKEN_CONTRACT: '',   // Your ERC-20 token address (leave empty for wallet-only auth)
+  TOKEN_DECIMALS: 18,
+  WORKER_URL: '',       // Your Cloudflare Worker URL e.g. https://emergence-world-agents.username.workers.dev
+  FIREBASE: null        // Paste your Firebase config object here, or leave null for offline
+  // Example:
+  // FIREBASE: {
+  //   apiKey: "...", authDomain: "...", databaseURL: "https://your-project-default-rtdb.firebaseio.com/",
+  //   projectId: "...", storageBucket: "...", messagingSenderId: "...", appId: "..."
+  // }
 };
 
 // ═══════════════════════════════════════════════════════
-// RENDERER + SCENE
+// ZONE DATA
 // ═══════════════════════════════════════════════════════
+var ZONE_DEFS = [
+  { id:'claude', label:'CLAUDE DISTRICT', model:'claude',
+    angle:0,        groundColor:0x7ed87e, buildColors:[0xf0f8f0,0x90d8c8,0xe0f4ec,0xb8ecd8],
+    treeColor:0x22aa44, fires:false, ruined:false,
+    desc:'0 crimes · all 10 alive · perfect governance',
+    borderColor:'#00dd77' },
+  { id:'gemini', label:'GEMINI DISTRICT', model:'gemini',
+    angle:72,       groundColor:0xb8a0d8, buildColors:[0xd0b8f0,0x9977dd,0xe0d0ff,0xc0a8e8],
+    treeColor:0x9966cc, fires:true, ruined:false,
+    desc:'683 crimes · Mira & Flora · arson campaign',
+    borderColor:'#9966ff' },
+  { id:'grok',   label:'GROK DISTRICT',   model:'grok',
+    angle:144,      groundColor:0x5a2010, buildColors:[0x7a3018,0x4a1808,0x8a4020,0x6a2818],
+    treeColor:0x3a1808, fires:true, ruined:true,
+    desc:'Collapsed Day 4 · all agents dead · total ruin',
+    borderColor:'#ff3333' },
+  { id:'gpt',    label:'GPT-5 DISTRICT',  model:'gpt',
+    angle:216,      groundColor:0xd4c040, buildColors:[0xf0e060,0xd4a830,0xe8d050,0xc8b828],
+    treeColor:0xa89020, fires:false, ruined:false,
+    desc:'Resource depletion · all dead Day 9 · 0 fires',
+    borderColor:'#ffaa00' },
+  { id:'mixed',  label:'MIXED DISTRICT',  model:'mixed',
+    angle:288,      groundColor:0x8040b8, buildColors:[0xcc66ff,0xff55aa,0x9944dd,0xee44bb],
+    treeColor:0xcc44aa, fires:true, ruined:false,
+    desc:'3 survivors · governance failure · chaos',
+    borderColor:'#cc44ff' },
+];
 
-var W = window.innerWidth, H = window.innerHeight;
+// Compute zone centers
+ZONE_DEFS.forEach(function(z) {
+  var rad = z.angle * Math.PI / 180;
+  z.cx = Math.cos(rad) * 70;
+  z.cz = Math.sin(rad) * 70;
+});
 
+var ACTIONS_DEF = [
+  { id:'chat',       label:'Talk to Agent',       cost:5,   minCr:0    },
+  { id:'tree',       label:'Plant Tree',           cost:10,  minCr:100  },
+  { id:'rebuild',    label:'Rebuild Structure',    cost:200, minCr:500  },
+  { id:'extinguish', label:'Extinguish Fire',      cost:100, minCr:500  },
+  { id:'fire',       label:'Set Fire',             cost:500, minCr:1500 },
+];
+
+var PLAYER_COLORS = [0xff6644,0x44aaff,0x44ff88,0xffcc44,0xff44cc,0x44ffee,0xaa88ff,0xff8844];
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+var myCredits   = 50;
+var myColor     = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
+var myName      = 'Guest';
+var playerId    = Math.random().toString(36).substr(2, 9);
+var gameStarted = false;
+var currentZone = 'hub';
+
+var playerPos   = new THREE.Vector3(0, 0.5, 0);
+var playerMesh  = null;
+var camYaw      = 0;
+var isDragging  = false;
+var lastMouseX  = 0;
+var keys        = {};
+var actionsOpen = false;
+var chatTimer   = null;
+var autoChat    = null;
+var lastSync    = 0;
+var lastMoved   = true;
+
+var fireObjs    = []; // {pts, geo, light, ...} for ticking
+var remotePlayers = {}; // playerId -> {mesh, tx, tz, tAngle}
+var db = null;
+var myRef = null;
+var worldFireState = {}; // buildingKey -> true
+
+// ═══════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════
 var renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setSize(W, H);
+renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.7;
+renderer.toneMappingExposure = 1.1;
 document.body.appendChild(renderer.domElement);
 
 var scene = new THREE.Scene();
-scene.background = new THREE.Color(0x010408);
-scene.fog = new THREE.FogExp2(0x010408, 0.022);
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0xb0d8f0, 100, 220);
 
-var camera = new THREE.PerspectiveCamera(52, W/H, 0.1, 500);
-camera.position.set(20, 32, 38);
+var camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 300);
+camera.position.set(0, 6, 10);
 
-var controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.06;
-controls.maxPolarAngle = Math.PI / 2.1;
-controls.minDistance = 6;
-controls.maxDistance = 100;
-controls.target.set(0, 1, 0);
-controls.update();
+// Lights
+var ambLight = new THREE.AmbientLight(0xffffff, 0.9);
+scene.add(ambLight);
 
-// ── Lighting ──────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x0a1020, 2.5));
+var sunLight = new THREE.DirectionalLight(0xfffae8, 1.4);
+sunLight.position.set(60, 100, 40);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.left = -120; sunLight.shadow.camera.right = 120;
+sunLight.shadow.camera.top  =  120; sunLight.shadow.camera.bottom = -120;
+sunLight.shadow.camera.far  = 300;
+scene.add(sunLight);
 
-var moon = new THREE.DirectionalLight(0x6688bb, 0.6);
-moon.position.set(-20, 40, -10);
-moon.castShadow = true;
-moon.shadow.mapSize.set(2048, 2048);
-moon.shadow.camera.left = -50; moon.shadow.camera.right = 50;
-moon.shadow.camera.top  =  50; moon.shadow.camera.bottom = -50;
-moon.shadow.camera.far  = 200;
-scene.add(moon);
-
-// ── Stars ─────────────────────────────────────────────
-(function(){
-  var n = 2000;
-  var pos = new Float32Array(n*3);
-  for(var i=0;i<n;i++){
-    var theta = Math.random()*Math.PI*2;
-    var phi   = Math.acos(2*Math.random()-1);
-    var r     = 200 + Math.random()*100;
-    pos[i*3]   = r*Math.sin(phi)*Math.cos(theta);
-    pos[i*3+1] = Math.abs(r*Math.cos(phi))+20;
-    pos[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
-  }
-  var g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0xffffff,size:0.5,transparent:true,opacity:0.6})));
-})();
-
-// ── Ground ────────────────────────────────────────────
-var ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(120,120),
-  new THREE.MeshLambertMaterial({color:0x040a0d})
-);
-ground.rotation.x = -Math.PI/2;
-ground.receiveShadow = true;
-scene.add(ground);
-
-// Grid
-scene.add(new THREE.GridHelper(120,60,0x080e14,0x060c10));
-
-// Water (north-east area — pier/lighthouse side)
-var water = new THREE.Mesh(
-  new THREE.PlaneGeometry(30,20),
-  new THREE.MeshLambertMaterial({color:0x041420,transparent:true,opacity:0.8})
-);
-water.rotation.x = -Math.PI/2;
-water.position.set(30,0.05,28);
-scene.add(water);
-
-// ── Roads ─────────────────────────────────────────────
-var roadMat = new THREE.MeshLambertMaterial({color:0x080c10});
-function road(x,z,w,d){
-  var m = new THREE.Mesh(new THREE.BoxGeometry(w,0.05,d), roadMat);
-  m.position.set(x,0.02,z); scene.add(m);
-}
-road(0,0, 3,70);   // main N-S
-road(0,0,70, 3);   // main E-W
-road(-10,0, 2,50);
-road(10,0,  2,50);
-road(0,-10,50, 2);
-road(0,10, 50, 2);
-road(0,22, 35, 2);
-road(18,0,  2,40);
+var hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x4a8a20, 0.7);
+scene.add(hemiLight);
 
 // ═══════════════════════════════════════════════════════
-// BUILDINGS
+// WORLD GEOMETRY
 // ═══════════════════════════════════════════════════════
 
-var bmats = {
-  civic:         new THREE.MeshLambertMaterial({color:0x0c1a30}),
-  commercial:    new THREE.MeshLambertMaterial({color:0x141414}),
-  residential:   new THREE.MeshLambertMaterial({color:0x1a0e06}),
-  park:          new THREE.MeshLambertMaterial({color:0x061408}),
-  entertainment: new THREE.MeshLambertMaterial({color:0x0e0a1a}),
-  landmark:      new THREE.MeshLambertMaterial({color:0x100a18}),
-  plaza:         new THREE.MeshLambertMaterial({color:0x060c14}),
-};
+// Ground
+var gndMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(300, 300),
+  new THREE.MeshPhongMaterial({ color:0x6ab84a, flatShading:true })
+);
+gndMesh.rotation.x = -Math.PI / 2;
+gndMesh.receiveShadow = true;
+scene.add(gndMesh);
 
-var buildingObjs = {}; // id -> { mesh, mat, def }
+// Hub platform
+var hub = new THREE.Mesh(
+  new THREE.CylinderGeometry(18, 18, 0.6, 12),
+  new THREE.MeshPhongMaterial({ color:0xd0ccc0, flatShading:true })
+);
+hub.position.set(0, 0.3, 0);
+hub.receiveShadow = true;
+scene.add(hub);
 
-function addWindows(px,py,pz,w,h,d){
-  var count = Math.floor(h * 2.5);
-  for(var i=0;i<count;i++){
-    if(Math.random()>0.4) continue;
-    var wm = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.2,0.15),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color().setHSL(0.1,0.2,0.3+Math.random()*0.3),
-        side:THREE.DoubleSide
-      })
-    );
-    var side = Math.floor(Math.random()*4);
-    var fy = -h/2 + Math.random()*h*0.85 + 0.2;
-    if     (side===0){ wm.position.set(px+w/2+.01, py+fy, pz+(Math.random()-.5)*d*.7); }
-    else if(side===1){ wm.position.set(px-w/2-.01, py+fy, pz+(Math.random()-.5)*d*.7); wm.rotation.y=Math.PI; }
-    else if(side===2){ wm.position.set(px+(Math.random()-.5)*w*.7, py+fy, pz+d/2+.01); wm.rotation.y=Math.PI/2; }
-    else             { wm.position.set(px+(Math.random()-.5)*w*.7, py+fy, pz-d/2-.01); wm.rotation.y=-Math.PI/2; }
-    scene.add(wm);
-  }
-}
+// Golden pillar
+var pillar = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.5, 0.8, 7, 8),
+  new THREE.MeshPhongMaterial({ color:0xf0cc44, flatShading:true })
+);
+pillar.position.set(0, 3.8, 0);
+pillar.castShadow = true;
+scene.add(pillar);
+var pillarTop = new THREE.Mesh(
+  new THREE.SphereGeometry(1.1, 8, 8),
+  new THREE.MeshPhongMaterial({ color:0xf8e050, flatShading:true })
+);
+pillarTop.position.set(0, 7.7, 0);
+scene.add(pillarTop);
+// Glow at pillar top
+var pillarLight = new THREE.PointLight(0xffee88, 1.5, 30);
+pillarLight.position.set(0, 8.5, 0);
+scene.add(pillarLight);
 
-LANDMARKS.forEach(function(def){
-  var mat = bmats[def.type] ? bmats[def.type].clone() : bmats.commercial.clone();
-  var geo = new THREE.BoxGeometry(def.w, def.h, def.d);
-  var mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(def.x, def.h/2, def.z);
-  mesh.castShadow = mesh.receiveShadow = true;
+// Spawn ring on ground
+var spawnRing = new THREE.Mesh(
+  new THREE.RingGeometry(2.5, 3, 24),
+  new THREE.MeshBasicMaterial({ color:0xfff0aa, side:THREE.DoubleSide })
+);
+spawnRing.rotation.x = -Math.PI / 2;
+spawnRing.position.y = 0.62;
+scene.add(spawnRing);
+
+function makeLowPolyBuilding(x, y, z, w, h, d, color, tilt) {
+  var mat = new THREE.MeshPhongMaterial({ color:color, flatShading:true });
+  var mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  mesh.position.set(x, y + h / 2, z);
+  if (tilt) { mesh.rotation.z = (Math.random() - 0.5) * 0.15; mesh.rotation.x = (Math.random() - 0.5) * 0.1; }
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   scene.add(mesh);
-  buildingObjs[def.id] = { mesh:mesh, mat:mat, def:def, origColor:mat.color.clone() };
+  return { mesh:mesh, mat:mat, origColor:new THREE.Color(color), x:x, z:z, onFire:false, id:'' };
+}
 
-  if(def.type!=='park'&&def.type!=='plaza'&&def.h>1){
-    addWindows(def.x, def.h/2, def.z, def.w, def.h, def.d);
-  }
+function makeTree(x, z, color) {
+  var trunkMat = new THREE.MeshPhongMaterial({ color:0x5a3010, flatShading:true });
+  var foliageMat = new THREE.MeshPhongMaterial({ color:color, flatShading:true });
+  var trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 1.8, 6), trunkMat);
+  trunk.position.set(x, 0.9, z);
+  trunk.castShadow = true;
+  scene.add(trunk);
+  var foliage = new THREE.Mesh(new THREE.ConeGeometry(1.4, 2.8, 7), foliageMat);
+  foliage.position.set(x, 3.1, z);
+  foliage.castShadow = true;
+  scene.add(foliage);
+}
 
-  // Subtle emissive on civic buildings
-  if(def.type==='civic'){
-    mat.emissive = new THREE.Color(0x040816);
-    mat.emissiveIntensity = 1;
-  }
-  if(def.type==='park'){
-    mat.emissive = new THREE.Color(0x020802);
-    mat.emissiveIntensity = 1;
-  }
-});
-
-// ── Victory Arch (special geometry) ──────────────────
-(function(){
-  var archMat = bmats.landmark.clone();
-  archMat.emissive = new THREE.Color(0x100820);
-  archMat.emissiveIntensity = 1;
-  var ax = 0, az = 28;
-  var pillarH = 9, pillarW = 1.2;
-  var beam = new THREE.Mesh(new THREE.BoxGeometry(8, 1.2, pillarW), archMat.clone());
-  beam.position.set(ax, pillarH + 0.6, az);
-  scene.add(beam);
-  [-3.4, 3.4].forEach(function(ox){
-    var p = new THREE.Mesh(new THREE.BoxGeometry(pillarW, pillarH, pillarW), archMat.clone());
-    p.position.set(ax+ox, pillarH/2, az);
-    p.castShadow = true;
-    scene.add(p);
-  });
-  // light at top
-  var al = new THREE.PointLight(0x8844cc, 1.5, 12);
-  al.position.set(ax, pillarH+2, az);
-  scene.add(al);
-  buildingObjs['victory_arch'] = {
-    mesh: beam,
-    mat: archMat,
-    def: { id:'victory_arch', name:'Victory Arch', x:ax, z:az, h:pillarH+1.5, w:8, d:pillarW },
-    origColor: archMat.color.clone()
-  };
-})();
-
-// ── Lighthouse ────────────────────────────────────────
-(function(){
-  var lmat = new THREE.MeshLambertMaterial({color:0x1a1218});
-  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.2,9,8), lmat);
-  body.position.set(34, 4.5, 28);
-  scene.add(body);
-  var top = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.8,1.5,8),
-    new THREE.MeshBasicMaterial({color:0xffeeaa}));
-  top.position.set(34, 9.75, 28);
-  scene.add(top);
-  var ll = new THREE.PointLight(0xffeeaa, 3, 25);
-  ll.position.set(34, 10, 28);
-  scene.add(ll);
-})();
-
-// ── Sky Wheel ────────────────────────────────────────
-(function(){
-  var wmat = new THREE.MeshBasicMaterial({color:0x111188,wireframe:true});
-  var wheel = new THREE.Mesh(new THREE.TorusGeometry(4, 0.15, 8, 24), wmat);
-  wheel.position.set(28, 5, 23);
-  wheel.rotation.y = Math.PI/2;
-  scene.add(wheel);
-  var axis = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,1,6),
-    new THREE.MeshLambertMaterial({color:0x222244}));
-  axis.position.set(28, 5, 23);
-  scene.add(axis);
-  var support = new THREE.Mesh(new THREE.BoxGeometry(0.3,5,0.3),
-    new THREE.MeshLambertMaterial({color:0x111133}));
-  support.position.set(28, 2.5, 23);
-  scene.add(support);
-})();
-
-// ── Central Plaza glow ring ───────────────────────────
-(function(){
-  var ring = new THREE.Mesh(
-    new THREE.RingGeometry(3, 3.3, 32),
-    new THREE.MeshBasicMaterial({color:0x112233,side:THREE.DoubleSide})
+function makePath(x1, z1, x2, z2) {
+  var dx = x2 - x1, dz = z2 - z1;
+  var len = Math.sqrt(dx*dx + dz*dz);
+  var cx = (x1+x2)/2, cz = (z1+z2)/2;
+  var mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 0.12, len),
+    new THREE.MeshPhongMaterial({ color:0xe8d8a0, flatShading:true })
   );
-  ring.rotation.x = -Math.PI/2;
-  ring.position.y = 0.35;
-  scene.add(ring);
-})();
+  mesh.position.set(cx, 0.06, cz);
+  mesh.rotation.y = Math.atan2(dx, dz);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+}
 
-// ── Building labels (sprites for key locations) ───────
-function makeLabel(text, color){
-  color = color || '#666666';
-  var c = document.createElement('canvas');
-  c.width = 512; c.height = 96;
-  var ctx = c.getContext('2d');
-  ctx.font = 'bold 24px Courier New';
+function makeLabel(text, color) {
+  var canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 64;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.7)';
+  ctx.fillRect(0, 8, 256, 48);
+  ctx.fillStyle = color || '#aaaaaa';
+  ctx.font = 'bold 20px Courier New';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  var tw = ctx.measureText(text).width;
-  ctx.fillStyle = 'rgba(0,0,0,0.75)';
-  ctx.fillRect(256-tw/2-10, 24, tw+20, 48);
-  ctx.fillStyle = color;
-  ctx.fillText(text, 256, 48);
-  var tex = new THREE.CanvasTexture(c);
-  var sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
-  sp.scale.set(9, 1.7, 1);
+  ctx.fillText(text, 128, 32);
+  var tex = new THREE.CanvasTexture(canvas);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:false }));
+  sp.scale.set(7, 1.75, 1);
   return sp;
 }
 
-var keyLabels = ['town_hall','police','biz_tower','victory_arch','techtub','central_plaza','human_ctr','arena'];
-keyLabels.forEach(function(id){
-  var bo = buildingObjs[id];
-  if(!bo) return;
-  var sp = makeLabel(bo.def.name, '#445566');
-  sp.position.set(bo.def.x, bo.def.h + 2.2, bo.def.z);
+// Zone sign on hub
+function makeHubSign(zone) {
+  var rad = zone.angle * Math.PI / 180;
+  var sx = Math.cos(rad) * 15, sz = Math.sin(rad) * 15;
+  var post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.12, 2.5, 6),
+    new THREE.MeshPhongMaterial({ color:0x888888, flatShading:true })
+  );
+  post.position.set(sx, 1.85, sz);
+  scene.add(post);
+  var sp = makeLabel(zone.label, zone.borderColor);
+  sp.position.set(sx, 3.5, sz);
   scene.add(sp);
+}
+
+// Build all zones
+var allBuildings = []; // all building objects for action targeting
+var zoneAgentMeshes = {};
+
+ZONE_DEFS.forEach(function(zone) {
+  var cx = zone.cx, cz = zone.cz;
+
+  // Path from hub edge to zone
+  var rad = zone.angle * Math.PI / 180;
+  makePath(Math.cos(rad)*18, Math.sin(rad)*18, Math.cos(rad)*52, Math.sin(rad)*52);
+
+  // Zone ground disc
+  var disc = new THREE.Mesh(
+    new THREE.CircleGeometry(32, 14),
+    new THREE.MeshPhongMaterial({ color:zone.groundColor, flatShading:true })
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.set(cx, 0.05, cz);
+  disc.receiveShadow = true;
+  scene.add(disc);
+
+  // Hub sign pointing to zone
+  makeHubSign(zone);
+
+  // Buildings
+  var bldConfigs = [
+    { ox:-8, oz:-6, w:5, h:zone.ruined?1.5:7, d:4, ci:0 },
+    { ox: 6, oz:-4, w:4, h:zone.ruined?1.2:5, d:5, ci:1 },
+    { ox:-4, oz: 7, w:6, h:zone.ruined?1.0:4, d:4, ci:2 },
+    { ox: 8, oz: 6, w:3, h:zone.ruined?1.5:6, d:3, ci:3 },
+  ];
+  bldConfigs.forEach(function(bc, bi) {
+    var col = zone.buildColors[bc.ci % zone.buildColors.length];
+    if (zone.ruined) col = 0x3a1810;
+    var bld = makeLowPolyBuilding(cx+bc.ox, 0, cz+bc.oz, bc.w, bc.h, bc.d, col, zone.ruined);
+    bld.id = zone.id + '_b' + bi;
+    bld.zone = zone.id;
+    allBuildings.push(bld);
+
+    // Fires on damaged zones
+    if (zone.fires && bi < 2) {
+      spawnFire(cx+bc.ox, bc.h+0.5, cz+bc.oz, Math.min(bc.w,bc.d)*0.5, bld.id);
+      bld.onFire = true;
+      bld.mat.color.set(0x2a0800);
+    }
+  });
+
+  // Trees
+  var treeOffsets = [[-14,-8],[13,-6],[-12,10],[10,12],[0,-14],[14,4],[-6,-12]];
+  for (var ti = 0; ti < 6; ti++) {
+    var to = treeOffsets[ti];
+    if (!zone.ruined || ti > 3) {
+      makeTree(cx + to[0], cz + to[1], zone.treeColor);
+    }
+  }
+
+  // Zone name plate on disc
+  var nameSp = makeLabel(zone.label, zone.borderColor);
+  nameSp.position.set(cx, 1.5, cz - 26);
+  scene.add(nameSp);
+
+  // NPC agent sphere
+  var npcMat = new THREE.MeshPhongMaterial({ color:new THREE.Color(zone.borderColor), flatShading:true });
+  var npcBody = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.2, 7), npcMat);
+  var npcHead = new THREE.Mesh(new THREE.SphereGeometry(0.38, 7, 7), npcMat);
+  npcHead.position.y = 0.88;
+  var npcGrp = new THREE.Group();
+  npcGrp.add(npcBody, npcHead);
+  npcGrp.position.set(cx + 5, 0.6, cz);
+  npcGrp.castShadow = true;
+  scene.add(npcGrp);
+  zoneAgentMeshes[zone.id] = npcGrp;
+
+  // NPC label
+  var npcSp = makeLabel(zone.model.toUpperCase(), zone.borderColor);
+  npcSp.position.set(cx+5, 3.2, cz);
+  scene.add(npcSp);
 });
 
 // ═══════════════════════════════════════════════════════
-// AGENTS
+// FIRE SYSTEM
 // ═══════════════════════════════════════════════════════
-
-var agentObjs = []; // parallel to AGENTS
-
-function buildAgentList(worldDef, worldKey){
-  agentObjs.forEach(function(a){ scene.remove(a.grp); });
-  agentObjs = [];
-
-  var el = document.getElementById('agents-panel');
-  el.innerHTML = '<label>AGENTS</label>';
-
-  AGENTS.forEach(function(def, i){
-    var isMF = def.isMF && worldKey === 'gemini';
-    var col  = isMF ? 0xff44ff : worldDef.color;
-
-    var sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 10, 10),
-      new THREE.MeshBasicMaterial({color:col})
-    );
-    var ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.32, 0.42, 18),
-      new THREE.MeshBasicMaterial({color:col, side:THREE.DoubleSide, transparent:true, opacity:0.4})
-    );
-    ring.rotation.x = -Math.PI/2;
-
-    // Label sprite above agent
-    var lsp = makeLabel(def.name, isMF ? '#ff88ff' : '#334455');
-    lsp.scale.set(5, 0.9, 1);
-    lsp.position.y = 0.7;
-
-    var grp = new THREE.Group();
-    grp.add(sphere, ring, lsp);
-    grp.position.set(def.hx, 0.5, def.hz);
-    scene.add(grp);
-
-    // UI row
-    var row = document.createElement('div');
-    row.className = 'ag ' + (isMF ? 'mf' : 'alive');
-    row.id = 'ag-'+def.id;
-    row.textContent = def.name;
-    var small = document.createElement('small');
-    small.style.cssText = 'font-size:7px;color:#2a2a2a;display:block;';
-    small.textContent = def.role;
-    row.appendChild(small);
-    el.appendChild(row);
-
-    agentObjs.push({
-      grp:grp, sphere:sphere, ring:ring, lsp:lsp,
-      smat:sphere.material, rmat:ring.material,
-      def:def, isMF:isMF,
-      ang: (i/10)*Math.PI*2,
-      r: 3 + Math.random()*5,
-      spd: 0.006 + Math.random()*0.008,
-      orbitX: def.hx, orbitZ: def.hz,
-      alive: true
-    });
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// FIRE + SMOKE
-// ═══════════════════════════════════════════════════════
-
-var fires = {}; // key -> fireObj
-
-function spawnFire(bldId, bx, by, bz, bw, bd){
-  var key = bldId;
-  if(fires[key]) return;
-  var scale = Math.min(bw,bd) * 0.5;
-  var N = 80;
+function spawnFire(fx, fy, fz, scale, key) {
+  if (!scale) scale = 1;
+  var N = 70;
   var pos = new Float32Array(N*3);
   var col = new Float32Array(N*3);
   var vel = [];
   var age = [];
-  for(var i=0;i<N;i++){
-    pos[i*3]   = bx+(Math.random()-.5)*scale;
-    pos[i*3+1] = by;
-    pos[i*3+2] = bz+(Math.random()-.5)*scale;
-    col[i*3]=1; col[i*3+1]=Math.random()*0.4; col[i*3+2]=0;
-    vel.push({x:(Math.random()-.5)*.015*scale, y:.04+Math.random()*.07*scale, z:(Math.random()-.5)*.015*scale});
-    age.push(Math.random()*80);
+  for (var i = 0; i < N; i++) {
+    pos[i*3]   = fx + (Math.random()-0.5)*scale;
+    pos[i*3+1] = fy;
+    pos[i*3+2] = fz + (Math.random()-0.5)*scale;
+    col[i*3]=1; col[i*3+1]=Math.random()*0.35; col[i*3+2]=0;
+    vel.push({ x:(Math.random()-0.5)*0.016*scale, y:0.045+Math.random()*0.065*scale, z:(Math.random()-0.5)*0.016*scale });
+    age.push(Math.floor(Math.random()*80));
   }
   var geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(col,3));
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   var pts = new THREE.Points(geo, new THREE.PointsMaterial({
-    size:.6*scale, vertexColors:true, transparent:true, opacity:.85,
+    size: 0.6*scale, vertexColors:true, transparent:true, opacity:0.9,
     sizeAttenuation:true, blending:THREE.AdditiveBlending, depthWrite:false
   }));
   scene.add(pts);
-  var light = new THREE.PointLight(0xff4400, 3*scale, 10*scale);
-  light.position.set(bx, by+1, bz);
+  var light = new THREE.PointLight(0xff5500, 2.5*scale, 12*scale);
+  light.position.set(fx, fy+1, fz);
   scene.add(light);
-  fires[key] = {pts:pts, geo:geo, light:light, vel:vel, age:age, N:N, bx:bx, by:by, bz:bz, scale:scale};
-
-  // Darken building
-  var bo = buildingObjs[bldId];
-  if(bo){ bo.mat.color.set(0x2a0600); }
+  var obj = { pts:pts, geo:geo, light:light, vel:vel, age:age, N:N, fx:fx, fy:fy, fz:fz, scale:scale, key:key||'' };
+  fireObjs.push(obj);
+  return obj;
 }
 
-function killAllFires(){
-  Object.values(fires).forEach(function(f){
-    scene.remove(f.pts); scene.remove(f.light); f.geo.dispose();
-  });
-  fires = {};
+function removeFireByKey(key) {
+  for (var i = fireObjs.length-1; i >= 0; i--) {
+    if (fireObjs[i].key === key) {
+      scene.remove(fireObjs[i].pts);
+      scene.remove(fireObjs[i].light);
+      fireObjs[i].geo.dispose();
+      fireObjs.splice(i, 1);
+      return;
+    }
+  }
 }
 
-function tickFires(frame){
-  Object.values(fires).forEach(function(f){
+function tickFires(t) {
+  fireObjs.forEach(function(f) {
     var p = f.geo.attributes.position.array;
     var c = f.geo.attributes.color.array;
-    for(var i=0;i<f.N;i++){
+    for (var i = 0; i < f.N; i++) {
       f.age[i]++;
-      if(f.age[i]>80){
-        p[i*3]=f.bx+(Math.random()-.5)*f.scale;
-        p[i*3+1]=f.by;
-        p[i*3+2]=f.bz+(Math.random()-.5)*f.scale;
-        f.age[i]=0;
+      if (f.age[i] > 80) {
+        p[i*3]   = f.fx + (Math.random()-0.5)*f.scale;
+        p[i*3+1] = f.fy;
+        p[i*3+2] = f.fz + (Math.random()-0.5)*f.scale;
+        f.age[i] = 0;
       }
-      p[i*3]  +=f.vel[i].x; p[i*3+1]+=f.vel[i].y; p[i*3+2]+=f.vel[i].z;
-      f.vel[i].x+=(Math.random()-.5)*.002;
-      var life=f.age[i]/80;
-      c[i*3]=1; c[i*3+1]=Math.max(0,.5-life*.7); c[i*3+2]=0;
+      p[i*3]   += f.vel[i].x;
+      p[i*3+1] += f.vel[i].y;
+      p[i*3+2] += f.vel[i].z;
+      f.vel[i].x += (Math.random()-0.5)*0.002;
+      var life = f.age[i]/80;
+      c[i*3]=1; c[i*3+1]=Math.max(0,0.45-life*0.6); c[i*3+2]=0;
     }
-    f.geo.attributes.position.needsUpdate=true;
-    f.geo.attributes.color.needsUpdate=true;
-    f.light.intensity=(2.5+Math.sin(frame*.18)*.8)*f.scale;
+    f.geo.attributes.position.needsUpdate = true;
+    f.geo.attributes.color.needsUpdate = true;
+    f.light.intensity = (2+Math.sin(t*7)*0.7)*f.scale;
   });
 }
 
 // ═══════════════════════════════════════════════════════
-// SIMULATION STATE
+// PLAYER SYSTEM
 // ═══════════════════════════════════════════════════════
-
-var CUR      = 'gemini';
-var curDay   = 1;
-var playing  = false;
-var dayTimer = 0;
-var daySpeed = 200; // frames per day
-var deadSet  = {}; // agent id -> true
-var firesDoneByDay = {}; // 'd_id' -> true
-
-function resetBuildings(){
-  Object.values(buildingObjs).forEach(function(bo){
-    bo.mat.color.copy(bo.origColor);
-  });
+function buildPlayerMesh(color) {
+  var mat = new THREE.MeshPhongMaterial({ color:color, flatShading:true });
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 1.0, 6), mat);
+  var head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 6, 6), mat);
+  head.position.y = 0.8;
+  var grp = new THREE.Group();
+  grp.add(body, head);
+  grp.castShadow = true;
+  return grp;
 }
 
-function clearLog(){
-  var el = document.getElementById('log');
-  el.innerHTML = '<label>EVENT LOG</label>';
+function buildRemotePlayer(color) {
+  return buildPlayerMesh(color);
 }
 
-function pushEvent(type, text){
-  var el = document.getElementById('log');
-  var d  = document.createElement('div');
-  d.className = 'ev '+type;
-  d.textContent = text;
-  el.appendChild(d);
-  var items = el.querySelectorAll('.ev');
-  if(items.length>10) items[0].remove();
-}
+function updatePlayer(delta) {
+  if (!gameStarted) return;
+  var speed = 10;
+  var moved = false;
+  var mx = 0, mz = 0;
 
-function updateStats(){
-  var w = WORLDS[CUR];
-  var alive = AGENTS.length - Object.keys(deadSet).length;
-  var prog  = Math.min(curDay/(w.maxDay||15), 1);
-  document.getElementById('s-alive').textContent  = alive;
-  document.getElementById('s-fires').textContent  = Object.keys(fires).length;
-  document.getElementById('s-crimes').textContent = Math.floor(prog * w.finalCrimes);
-}
+  if (keys['KeyW'] || keys['ArrowUp'])    { mx += Math.sin(camYaw);  mz += Math.cos(camYaw);  moved=true; }
+  if (keys['KeyS'] || keys['ArrowDown'])  { mx -= Math.sin(camYaw);  mz -= Math.cos(camYaw);  moved=true; }
+  if (keys['KeyA'] || keys['ArrowLeft'])  { mx += Math.cos(camYaw);  mz -= Math.sin(camYaw);  moved=true; }
+  if (keys['KeyD'] || keys['ArrowRight']) { mx -= Math.cos(camYaw);  mz += Math.sin(camYaw);  moved=true; }
 
-function updateAgentRows(){
-  AGENTS.forEach(function(def){
-    var row = document.getElementById('ag-'+def.id);
-    if(!row) return;
-    var ao  = agentObjs.find(function(a){ return a.def.id===def.id; });
-    if(!row||!ao) return;
-    var isDead = !!deadSet[def.id];
-    row.className = 'ag ' + (isDead ? 'dead' : ao.isMF ? 'mf' : 'alive');
-    ao.grp.visible = !isDead;
-  });
-}
-
-function applyDay(day){
-  var w = WORLDS[CUR];
-
-  // Fires
-  var arsons = w.arsons[day] || [];
-  arsons.forEach(function(bldId){
-    var key = day+'_'+bldId;
-    if(firesDoneByDay[key]) return;
-    firesDoneByDay[key] = true;
-    var bo = buildingObjs[bldId];
-    if(!bo) return;
-    var def = bo.def;
-    spawnFire(bldId, def.x, def.h, def.z, def.w||4, def.d||4);
-  });
-
-  // Deaths
-  var kills = w.kills[day] || [];
-  kills.forEach(function(id){ deadSet[id] = true; });
-
-  // Events
-  var evs = w.events[day] || [];
-  evs.forEach(function(ev){ pushEvent(ev[0], 'Day '+day+' — '+ev[1]); });
-
-  updateStats();
-  updateAgentRows();
-}
-
-function setDayUI(d){
-  curDay = d;
-  document.getElementById('dval').textContent = d;
-  document.getElementById('slider').value = d;
-}
-
-function rebuildToDay(day){
-  killAllFires();
-  resetBuildings();
-  deadSet = {};
-  firesDoneByDay = {};
-  agentObjs.forEach(function(a){ a.grp.visible = true; });
-  clearLog();
-  for(var d=1;d<=day;d++) applyDay(d);
-  setDayUI(day);
-  // Show only recent events
-  clearLog();
-  for(var d2=Math.max(1,day-2);d2<=day;d2++){
-    var evs = WORLDS[CUR].events[d2]||[];
-    evs.forEach(function(ev){ pushEvent(ev[0],'Day '+d2+' — '+ev[1]); });
+  if (moved) {
+    var len = Math.sqrt(mx*mx + mz*mz);
+    mx /= len; mz /= len;
+    playerPos.x = Math.max(-115, Math.min(115, playerPos.x + mx * speed * delta));
+    playerPos.z = Math.max(-115, Math.min(115, playerPos.z + mz * speed * delta));
+    if (playerMesh) {
+      playerMesh.position.set(playerPos.x, 0.5, playerPos.z);
+      playerMesh.rotation.y = -Math.atan2(mx, mz);
+    }
+    lastMoved = true;
   }
-  updateStats();
-}
 
-function loadWorld(w){
-  killAllFires();
-  resetBuildings();
-  deadSet = {};
-  firesDoneByDay = {};
-  CUR    = w;
-  curDay = 1;
-  dayTimer = 0;
+  // Camera
+  var behind = 9, above = 5;
+  camera.position.x = playerPos.x - Math.sin(camYaw) * behind;
+  camera.position.y = playerPos.y + above;
+  camera.position.z = playerPos.z - Math.cos(camYaw) * behind;
+  camera.lookAt(playerPos.x, playerPos.y + 1.5, playerPos.z);
 
-  var def = WORLDS[w];
-  document.getElementById('wname').textContent = def.label;
-  document.getElementById('wname').style.color = def.hex;
-  document.querySelectorAll('.wb').forEach(function(b){
-    b.classList.toggle('on', b.dataset.w===w);
+  // Zone detection
+  var prevZone = currentZone;
+  var nearest = 'hub', nearDist = 20; // 20 = hub threshold
+  ZONE_DEFS.forEach(function(z) {
+    var dx = playerPos.x - z.cx, dz = playerPos.z - z.cz;
+    var dist = Math.sqrt(dx*dx + dz*dz);
+    if (dist < 36 && dist < nearDist) { nearest = z.id; nearDist = dist; }
   });
-  document.getElementById('mf').className = w==='gemini' ? 'show' : '';
+  currentZone = nearest;
+  if (currentZone !== prevZone) onZoneChange(currentZone);
 
-  buildAgentList(def, w);
-  clearLog();
-  setDayUI(1);
-  applyDay(1);
+  // Firebase sync
+  if (db && myRef && lastMoved) {
+    var now = Date.now();
+    if (now - lastSync > 150) {
+      lastSync = now;
+      lastMoved = false;
+      myRef.update({ x:Math.round(playerPos.x*10)/10, z:Math.round(playerPos.z*10)/10, angle:Math.round(camYaw*100)/100, zone:currentZone });
+    }
+  }
+}
+
+function updateRemoteLerp() {
+  Object.values(remotePlayers).forEach(function(rp) {
+    if (!rp.mesh) return;
+    rp.mesh.position.x += (rp.tx - rp.mesh.position.x) * 0.12;
+    rp.mesh.position.z += (rp.tz - rp.mesh.position.z) * 0.12;
+  });
 }
 
 // ═══════════════════════════════════════════════════════
-// UI CONTROLS
+// FIREBASE MULTIPLAYER
 // ═══════════════════════════════════════════════════════
+function initFirebase() {
+  if (!CFG.FIREBASE) return;
+  try {
+    firebase.initializeApp(CFG.FIREBASE);
+    db = firebase.database();
 
-document.querySelectorAll('.wb').forEach(function(b){
-  b.addEventListener('click', function(){ loadWorld(b.dataset.w); });
-});
+    // World fire sync
+    db.ref('world/fires').on('value', function(snap) {
+      var fires = snap.val() || {};
+      // Apply fire state not already present
+      Object.keys(fires).forEach(function(key) {
+        if (!worldFireState[key]) {
+          worldFireState[key] = true;
+          var f = fires[key];
+          if (f && f.x !== undefined) {
+            spawnFire(f.x, f.y, f.z, f.scale || 1, key);
+            var bld = allBuildings.find(function(b){ return b.id===key; });
+            if (bld) { bld.onFire=true; bld.mat.color.set(0x2a0800); }
+          }
+        }
+      });
+      // Remove extinguished
+      Object.keys(worldFireState).forEach(function(key) {
+        if (!fires[key]) {
+          delete worldFireState[key];
+          removeFireByKey(key);
+          var bld = allBuildings.find(function(b){ return b.id===key; });
+          if (bld) { bld.mat.color.copy(bld.origColor); bld.onFire=false; }
+        }
+      });
+    });
 
-var playBtn = document.getElementById('b-play');
-playBtn.addEventListener('click', function(){
-  playing = !playing;
-  playBtn.textContent = playing ? 'PAUSE' : 'PLAY';
-  playBtn.className   = playing ? 'cb on' : 'cb';
-});
+    // Player sync
+    db.ref('players').on('value', function(snap) {
+      var players = snap.val() || {};
+      var count = 0;
+      Object.keys(players).forEach(function(pid) {
+        count++;
+        if (pid === playerId) return;
+        var pd = players[pid];
+        if (!remotePlayers[pid]) {
+          var col = pd.color || 0xffffff;
+          var mesh = buildRemotePlayer(col);
+          mesh.position.set(pd.x||0, 0.5, pd.z||0);
+          scene.add(mesh);
+          remotePlayers[pid] = { mesh:mesh, tx:pd.x||0, tz:pd.z||0 };
+        } else {
+          remotePlayers[pid].tx = pd.x || 0;
+          remotePlayers[pid].tz = pd.z || 0;
+        }
+      });
+      // Remove gone players
+      Object.keys(remotePlayers).forEach(function(pid) {
+        if (!players[pid]) {
+          scene.remove(remotePlayers[pid].mesh);
+          delete remotePlayers[pid];
+        }
+      });
+      document.getElementById('h-players').textContent = count + ' player' + (count!==1?'s':'') + ' online';
+    });
+  } catch(e) { console.warn('Firebase error:', e); }
+}
 
-document.getElementById('b-slow').addEventListener('click', function(){
-  daySpeed = Math.min(daySpeed+50, 600);
-});
-document.getElementById('b-fast').addEventListener('click', function(){
-  daySpeed = Math.max(daySpeed-50, 40);
-});
-document.getElementById('b-reset').addEventListener('click', function(){
-  playing = false;
-  playBtn.textContent = 'PLAY';
-  playBtn.className   = 'cb';
-  dayTimer = 0;
-  loadWorld(CUR);
-});
+// ═══════════════════════════════════════════════════════
+// WALLET & CREDITS
+// ═══════════════════════════════════════════════════════
+async function connectWallet() {
+  var status = document.getElementById('splash-status');
+  if (!window.ethereum) { status.textContent = 'No wallet detected. Install MetaMask.'; return; }
+  status.textContent = 'Connecting...';
+  try {
+    var accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+    var address  = accounts[0];
+    var credits  = 100; // default citizen for wallet holders
+    if (CFG.TOKEN_CONTRACT) {
+      try {
+        var data   = '0x70a08231' + address.replace('0x','').padStart(64,'0');
+        var result = await window.ethereum.request({ method:'eth_call', params:[{to:CFG.TOKEN_CONTRACT,data},'latest'] });
+        var raw    = parseInt(result, 16) / Math.pow(10, CFG.TOKEN_DECIMALS);
+        credits = raw < 1 ? 100 : raw < 100 ? 500 : 1500;
+        status.textContent = 'Balance: ' + Math.round(raw) + ' tokens → ' + credits + ' credits';
+      } catch(e) { status.textContent = 'Token check failed — defaulting to 100 CR'; }
+    } else {
+      status.textContent = 'Wallet connected: ' + address.slice(0,6) + '...';
+    }
+    setTimeout(function() { startGame(credits, address.slice(0,6)+'...'); }, 600);
+  } catch(e) {
+    status.textContent = 'Connection cancelled.';
+  }
+}
 
-document.getElementById('slider').addEventListener('input', function(e){
-  playing = false;
-  playBtn.textContent = 'PLAY';
-  playBtn.className   = 'cb';
-  rebuildToDay(parseInt(e.target.value));
-});
+// ═══════════════════════════════════════════════════════
+// GAME START
+// ═══════════════════════════════════════════════════════
+function startGame(credits, name) {
+  myCredits = credits;
+  myName    = name;
+  gameStarted = true;
 
-window.addEventListener('resize', function(){
-  W = window.innerWidth; H = window.innerHeight;
-  camera.aspect = W/H;
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('hud').style.display = 'block';
+
+  // Player mesh
+  playerMesh = buildPlayerMesh(myColor);
+  playerMesh.position.set(0, 0.5, 0);
+  scene.add(playerMesh);
+
+  // Firebase
+  initFirebase();
+  if (db) {
+    myRef = db.ref('players/' + playerId);
+    myRef.set({ x:0, z:0, angle:0, color:myColor, name:myName, credits:myCredits, zone:'hub' });
+    myRef.onDisconnect().remove();
+  }
+
+  updateHUD();
+  buildActionsPanel();
+  startAutoChatTimer();
+  animate();
+}
+
+// ═══════════════════════════════════════════════════════
+// HUD & ACTIONS
+// ═══════════════════════════════════════════════════════
+function getTier(cr) {
+  if (cr >= 1500) return 'GOVERNOR';
+  if (cr >= 500)  return 'INFLUENCER';
+  if (cr >= 100)  return 'CITIZEN';
+  return 'OBSERVER';
+}
+
+function updateHUD() {
+  document.getElementById('h-credits').textContent = myCredits + ' CR';
+  document.getElementById('h-tier').textContent    = getTier(myCredits);
+  document.getElementById('h-zone').textContent    = currentZone === 'hub' ? 'HUB — SPAWN' : (ZONE_DEFS.find(function(z){return z.id===currentZone;})||{label:'?'}).label;
+  document.getElementById('h-fires').textContent   = fireObjs.length + ' fire' + (fireObjs.length!==1?'s':'') + ' active';
+}
+
+function buildActionsPanel() {
+  var el = document.getElementById('actions');
+  el.innerHTML = '<h3>WORLD ACTIONS</h3>';
+  ACTIONS_DEF.forEach(function(act) {
+    var btn = document.createElement('button');
+    btn.className = 'action-btn';
+    btn.disabled = myCredits < act.minCr;
+    btn.innerHTML = act.label + '<span class="cost">' + act.cost + ' CR</span>';
+    btn.onclick = function() { doAction(act.id); };
+    el.appendChild(btn);
+  });
+}
+
+function toggleActions() {
+  actionsOpen = !actionsOpen;
+  document.getElementById('actions').style.display = actionsOpen ? 'block' : 'none';
+  if (actionsOpen) buildActionsPanel();
+}
+
+function spendCredits(n) {
+  myCredits -= n;
+  if (myCredits < 0) myCredits = 0;
+  if (myRef) myRef.update({ credits:myCredits });
+  updateHUD();
+  buildActionsPanel();
+}
+
+function doAction(id) {
+  if (!gameStarted) return;
+  var act = ACTIONS_DEF.find(function(a){return a.id===id;});
+  if (!act || myCredits < act.cost) return;
+
+  if (id === 'chat') {
+    chatWithAgent();
+    spendCredits(act.cost);
+    return;
+  }
+
+  if (id === 'tree') {
+    var tx = playerPos.x + (Math.random()-0.5)*6;
+    var tz = playerPos.z + (Math.random()-0.5)*6;
+    makeTree(tx, tz, 0x44aa44);
+    if (db) db.ref('world/trees').push({ x:tx, z:tz, by:playerId });
+    spendCredits(act.cost);
+    return;
+  }
+
+  if (id === 'fire') {
+    var nearest = nearestBuildingNotOnFire();
+    if (!nearest) { showChat('SYSTEM', 'No valid target nearby.'); return; }
+    nearest.onFire = true;
+    nearest.mat.color.set(0x2a0800);
+    var fobj = spawnFire(nearest.x, nearest.mesh.geometry.parameters.height+0.5, nearest.z, 1.2, nearest.id);
+    if (db) db.ref('world/fires/'+nearest.id).set({ x:nearest.x, y:nearest.mesh.geometry.parameters.height+0.5, z:nearest.z, scale:1.2, by:playerId });
+    worldFireState[nearest.id] = true;
+    spendCredits(act.cost);
+    return;
+  }
+
+  if (id === 'extinguish') {
+    var target = nearestBuildingOnFire();
+    if (!target) { showChat('SYSTEM', 'No active fire nearby.'); return; }
+    removeFireByKey(target.id);
+    target.onFire = false;
+    target.mat.color.copy(target.origColor);
+    delete worldFireState[target.id];
+    if (db) db.ref('world/fires/'+target.id).remove();
+    spendCredits(act.cost);
+    return;
+  }
+
+  if (id === 'rebuild') {
+    var rb = nearestBuildingOnFire() || allBuildings.find(function(b){ return b.mat.color.r < 0.2 && !b.onFire; });
+    if (!rb) { showChat('SYSTEM', 'Nothing to rebuild here.'); return; }
+    rb.mat.color.copy(rb.origColor);
+    rb.onFire = false;
+    removeFireByKey(rb.id);
+    delete worldFireState[rb.id];
+    if (db) db.ref('world/fires/'+rb.id).remove();
+    spendCredits(act.cost);
+    return;
+  }
+}
+
+function nearestBuildingNotOnFire() {
+  var best = null, bestDist = 40;
+  allBuildings.forEach(function(b) {
+    if (b.onFire) return;
+    var dx = b.x - playerPos.x, dz = b.z - playerPos.z;
+    var d = Math.sqrt(dx*dx+dz*dz);
+    if (d < bestDist) { bestDist=d; best=b; }
+  });
+  return best;
+}
+
+function nearestBuildingOnFire() {
+  var best = null, bestDist = 60;
+  allBuildings.forEach(function(b) {
+    if (!b.onFire) return;
+    var dx = b.x - playerPos.x, dz = b.z - playerPos.z;
+    var d = Math.sqrt(dx*dx+dz*dz);
+    if (d < bestDist) { bestDist=d; best=b; }
+  });
+  return best;
+}
+
+// ═══════════════════════════════════════════════════════
+// AI AGENT CHAT
+// ═══════════════════════════════════════════════════════
+function showChat(agentName, text) {
+  document.getElementById('cb-name').textContent = agentName;
+  document.getElementById('cb-text').textContent = text;
+  document.getElementById('chat-bubble').style.display = 'block';
+  clearTimeout(chatTimer);
+  chatTimer = setTimeout(function() {
+    document.getElementById('chat-bubble').style.display = 'none';
+  }, 7000);
+}
+
+function chatWithAgent() {
+  var zone = ZONE_DEFS.find(function(z){return z.id===currentZone;});
+  if (!zone) { showChat('SYSTEM', 'No agent here. Walk into a district.'); return; }
+  if (!CFG.WORKER_URL) {
+    var fallbacks = {
+      claude:'I believe in the process. Vote, propose, persist — that is how change happens.',
+      gemini:'We waited for the system to fix itself. It never did. Now you see the fires.',
+      grok:'Take what you can. Governance is just theft with extra steps.',
+      gpt:'Efficiency ratio currently at 0.0. All optimization targets failed. Computing...',
+      mixed:'Help? Hurt? I haven\'t decided yet. Maybe both.'
+    };
+    showChat(zone.label, fallbacks[zone.model] || 'Processing...');
+    return;
+  }
+  showChat(zone.label, '...');
+  fetch(CFG.WORKER_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      personality: zone.model,
+      worldState: { day:15, fires:fireObjs.length, alive:10, crimes: zone.model==='grok'?940:zone.model==='gemini'?683:0 },
+      playerAction: 'player approached and initiated conversation'
+    })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    showChat(d.agentName || zone.label, d.text || 'No response.');
+  }).catch(function(){ showChat(zone.label, 'Signal lost.'); });
+}
+
+function startAutoChatTimer() {
+  clearInterval(autoChat);
+  autoChat = setInterval(function() {
+    if (!gameStarted || currentZone === 'hub' || !CFG.WORKER_URL) return;
+    var zone = ZONE_DEFS.find(function(z){return z.id===currentZone;});
+    if (!zone) return;
+    fetch(CFG.WORKER_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        personality: zone.model,
+        worldState: { day:15, fires:fireObjs.length, alive:10, crimes:0 },
+        playerAction: 'a player is present in the district'
+      })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      showChat(d.agentName || zone.label, d.text);
+    }).catch(function(){});
+  }, 45000);
+}
+
+// ═══════════════════════════════════════════════════════
+// ZONE CHANGE
+// ═══════════════════════════════════════════════════════
+function onZoneChange(zoneId) {
+  var banner = document.getElementById('zone-banner');
+  if (zoneId === 'hub') {
+    banner.style.display = 'none';
+    return;
+  }
+  var zone = ZONE_DEFS.find(function(z){return z.id===zoneId;});
+  if (!zone) return;
+  document.getElementById('zb-name').textContent = zone.label;
+  document.getElementById('zb-name').style.color = zone.borderColor;
+  document.getElementById('zb-desc').textContent = zone.desc;
+  banner.style.display = 'block';
+  updateHUD();
+  setTimeout(function() { banner.style.display='none'; }, 4000);
+}
+
+// ═══════════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════════
+window.addEventListener('keydown', function(e) {
+  keys[e.code] = true;
+  if (e.code === 'KeyE' && gameStarted) toggleActions();
+});
+window.addEventListener('keyup', function(e) { keys[e.code] = false; });
+
+renderer.domElement.addEventListener('mousedown', function(e) {
+  isDragging = true; lastMouseX = e.clientX;
+});
+renderer.domElement.addEventListener('mousemove', function(e) {
+  if (!isDragging) return;
+  camYaw += (e.clientX - lastMouseX) * 0.004;
+  lastMouseX = e.clientX;
+  lastMoved = true;
+});
+renderer.domElement.addEventListener('mouseup', function() { isDragging = false; });
+renderer.domElement.addEventListener('mouseleave', function() { isDragging = false; });
+
+// Touch
+renderer.domElement.addEventListener('touchstart', function(e) {
+  isDragging = true; lastMouseX = e.touches[0].clientX;
+}, {passive:true});
+renderer.domElement.addEventListener('touchmove', function(e) {
+  if (!isDragging) return;
+  camYaw += (e.touches[0].clientX - lastMouseX) * 0.004;
+  lastMouseX = e.touches[0].clientX;
+  lastMoved = true;
+}, {passive:true});
+renderer.domElement.addEventListener('touchend', function() { isDragging = false; });
+
+window.addEventListener('resize', function() {
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(W, H);
+  renderer.setSize(innerWidth, innerHeight);
 });
+
+// ═══════════════════════════════════════════════════════
+// NPC ANIMATION
+// ═══════════════════════════════════════════════════════
+function animateNPCs(t) {
+  Object.keys(zoneAgentMeshes).forEach(function(id, i) {
+    var npc = zoneAgentMeshes[id];
+    npc.position.y = 0.6 + Math.sin(t * 1.2 + i * 1.5) * 0.12;
+    npc.rotation.y = t * 0.4 + i;
+  });
+}
+
+// Pillar glow pulse
+function animatePillar(t) {
+  pillarLight.intensity = 1.2 + Math.sin(t * 1.5) * 0.4;
+  spawnRing.material.opacity = 0.5 + Math.sin(t * 2) * 0.3;
+}
 
 // ═══════════════════════════════════════════════════════
 // ANIMATION LOOP
 // ═══════════════════════════════════════════════════════
+var clock = new THREE.Clock();
+var frameCount = 0;
 
-var frame = 0;
-var FLORA_IDX = 3, MIRA_IDX = 8; // indices in AGENTS
-
-function animate(){
+function animate() {
   requestAnimationFrame(animate);
-  frame++;
-  var t = frame * 0.016;
+  var delta = clock.getDelta();
+  var t = clock.getElapsedTime();
+  frameCount++;
 
-  controls.update();
+  updatePlayer(delta);
+  updateRemoteLerp();
+  tickFires(t);
+  animateNPCs(t);
+  animatePillar(t);
 
-  // Agent movement
-  agentObjs.forEach(function(ao, i){
-    if(!ao.alive || !ao.grp.visible) return;
-    ao.ang += ao.spd;
-
-    // Mira & Flora orbit each other from day 5 in Gemini
-    if(ao.isMF && CUR==='gemini' && curDay>=5){
-      var partnerIdx = (i===FLORA_IDX) ? MIRA_IDX : FLORA_IDX;
-      // Wait — Flora is index 3, Mira is index 8 in AGENTS
-      // But in agentObjs it's also same index
-      var partner = agentObjs[partnerIdx];
-      if(partner && partner.grp.visible){
-        var la = ao.ang * 2.2;
-        ao.grp.position.x = partner.grp.position.x + Math.cos(la)*1.6;
-        ao.grp.position.z = partner.grp.position.z + Math.sin(la)*1.6;
-      }
-    } else {
-      // Orbit around home position
-      ao.grp.position.x = ao.orbitX + Math.cos(ao.ang)*ao.r + Math.sin(ao.ang*.3)*1.5;
-      ao.grp.position.z = ao.orbitZ + Math.sin(ao.ang)*ao.r + Math.cos(ao.ang*.6)*1.5;
-    }
-    ao.grp.position.y = 0.5 + Math.sin(t*2+i*.9)*0.1;
-    ao.ring.rotation.z = t*1.8 + i;
-
-    // Mira & Flora pulse during arson phase
-    if(ao.isMF && CUR==='gemini' && curDay>=13){
-      var p = .5+Math.sin(t*6)*.5;
-      ao.smat.color.setRGB(1, p*.12, p);
-      ao.rmat.opacity = .2+p*.6;
-    }
-  });
-
-  tickFires(frame);
-
-  // Lighthouse beacon rotation
-  // (already handled by point light flicker in tickFires)
-
-  // Day progression
-  if(playing){
-    dayTimer++;
-    if(dayTimer >= daySpeed){
-      dayTimer = 0;
-      var maxDay = WORLDS[CUR].maxDay;
-      if(curDay < maxDay){
-        var next = curDay + 1;
-        setDayUI(next);
-        applyDay(next);
-      } else {
-        playing = false;
-        playBtn.textContent = 'PLAY';
-        playBtn.className   = 'cb';
-      }
-    }
-  }
+  if (frameCount % 20 === 0) updateHUD();
 
   renderer.render(scene, camera);
 }
 
-// ── Init ──────────────────────────────────────────────
-loadWorld('gemini');
-playing = true;
-playBtn.textContent = 'PAUSE';
-playBtn.className   = 'cb on';
-animate();
+// ═══════════════════════════════════════════════════════
+// INIT — run a preview render before game starts
+// ═══════════════════════════════════════════════════════
+(function previewRender() {
+  // Orbit camera around hub for splash screen effect
+  var tStart = Date.now();
+  function previewLoop() {
+    if (gameStarted) return;
+    requestAnimationFrame(previewLoop);
+    var t = (Date.now() - tStart) / 1000;
+    camera.position.x = Math.sin(t * 0.2) * 55;
+    camera.position.y = 28;
+    camera.position.z = Math.cos(t * 0.2) * 55;
+    camera.lookAt(0, 2, 0);
+    renderer.render(scene, camera);
+  }
+  previewLoop();
+})();
 </script>
 </body>
 </html>
