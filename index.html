@@ -520,6 +520,7 @@
 </head>
 <body>
 <div class="noise"></div>
+<audio id="bgAudio" src="/background.mp3" loop preload="auto"></audio>
 
 <!-- STATUS BAR -->
 <div class="status-bar">
@@ -1108,6 +1109,49 @@ SOL: THE HIGHWAY TO BAGS (EMPTY)
 </div><!-- /container -->
 
 <script>
+// ── Background Audio ──
+(function () {
+  const audio = document.getElementById('bgAudio');
+  const TARGET_VOL = 0.01;
+  const FADE_MS    = 1000;
+  const STEPS      = 60;
+  let started = false;
+
+  function fadeIn() {
+    audio.volume = 0;
+    const step = TARGET_VOL / STEPS;
+    const tick = FADE_MS / STEPS;
+    const id = setInterval(() => {
+      audio.volume = Math.min(TARGET_VOL, audio.volume + step);
+      if (audio.volume >= TARGET_VOL) clearInterval(id);
+    }, tick);
+  }
+
+  function fadeOut() {
+    const step = audio.volume / STEPS;
+    const tick = FADE_MS / STEPS;
+    const id = setInterval(() => {
+      audio.volume = Math.max(0, audio.volume - step);
+      if (audio.volume <= 0) { audio.pause(); clearInterval(id); }
+    }, tick);
+  }
+
+  function start() {
+    if (started) return;
+    started = true;
+    audio.play().then(fadeIn).catch(() => { started = false; });
+  }
+
+  // Try immediate autoplay; fall back to first user gesture
+  audio.play().then(() => { started = true; fadeIn(); }).catch(() => {
+    ['click', 'keydown', 'touchstart'].forEach(ev =>
+      document.addEventListener(ev, start, { once: true, passive: true })
+    );
+  });
+
+  window.addEventListener('beforeunload', fadeOut);
+})();
+
 // ── Clock ──
 function updateClock() {
   const pad = n => String(n).padStart(2,'0');
