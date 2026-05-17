@@ -2,632 +2,958 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Emergence World — AI Agent Simulation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emergence World · AI Agent Simulation</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; color: #fff; font-family: 'Courier New', monospace; overflow: hidden; }
-canvas { display: block; position: fixed; top: 0; left: 0; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; color:#fff; font-family:'Courier New',monospace; overflow:hidden; }
+canvas { display:block; position:fixed; top:0; left:0; z-index:0; }
 
-#ui { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+#ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; }
 
-#title {
-  position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
-  text-align: center; pointer-events: none;
+/* ── Title ── */
+#title { position:absolute; top:20px; left:50%; transform:translateX(-50%); text-align:center; }
+#title h1 { font-size:18px; letter-spacing:8px; text-shadow:0 0 30px rgba(255,255,255,0.35); }
+#title p  { font-size:9px; color:#333; letter-spacing:5px; margin-top:6px; }
+
+/* ── Mira & Flora banner ── */
+#mf {
+  position:absolute; top:68px; left:50%; transform:translateX(-50%);
+  border:1px solid #ff44ff; padding:8px 20px; text-align:center;
+  background:rgba(0,0,0,0.9); white-space:nowrap; display:none;
+  box-shadow:0 0 20px rgba(255,68,255,0.15);
 }
-#title h1 { font-size: 20px; letter-spacing: 8px; color: #fff; text-shadow: 0 0 30px rgba(255,255,255,0.4); }
-#title p  { font-size: 10px; color: #444; letter-spacing: 4px; margin-top: 5px; }
+#mf.show { display:block; }
+#mf h2 { font-size:12px; letter-spacing:5px; color:#ff88ff; }
+#mf p  { font-size:9px; color:#885588; letter-spacing:1px; margin-top:3px; }
 
-#world-selector {
-  position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
-  display: flex; flex-direction: column; gap: 6px; pointer-events: all;
+/* ── World selector ── */
+#worlds {
+  position:absolute; left:20px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:5px; pointer-events:all;
 }
-#world-selector label { font-size: 9px; letter-spacing: 3px; color: #333; margin-bottom: 2px; }
-.wbtn {
-  padding: 9px 14px; background: rgba(0,0,0,0.75);
-  border: 1px solid #222; color: #555; font-family: 'Courier New', monospace;
-  font-size: 11px; letter-spacing: 3px; cursor: pointer; text-align: left;
-  transition: all 0.15s; min-width: 140px; line-height: 1;
+#worlds label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:3px; }
+.wb {
+  padding:9px 13px; background:rgba(0,0,0,0.8); border:1px solid #1a1a1a;
+  color:#444; font-family:'Courier New',monospace; font-size:10px;
+  letter-spacing:3px; cursor:pointer; text-align:left; min-width:148px;
+  transition:all 0.12s;
 }
-.wbtn small { display: block; font-size: 8px; color: #333; margin-top: 4px; letter-spacing: 1px; transition: color 0.15s; }
-.wbtn:hover { border-color: #666; color: #ccc; }
-.wbtn:hover small { color: #555; }
-.wbtn.on { border-color: var(--c); color: var(--c); background: rgba(0,0,0,0.9); box-shadow: 0 0 12px color-mix(in srgb, var(--c) 30%, transparent); }
-.wbtn.on small { color: color-mix(in srgb, var(--c) 60%, #333); }
+.wb small { display:block; font-size:8px; color:#2a2a2a; margin-top:3px; letter-spacing:1px; transition:color 0.12s; }
+.wb:hover { border-color:#555; color:#aaa; }
+.wb:hover small { color:#444; }
+.wb.on { border-color:var(--c); color:var(--c); background:rgba(0,0,0,0.95); box-shadow:0 0 10px color-mix(in srgb,var(--c) 25%,transparent); }
+.wb.on small { color:color-mix(in srgb,var(--c) 50%,#222); }
 
-#world-badge {
-  position: absolute; top: 24px; right: 24px; text-align: right;
-}
-#world-badge .wname { font-size: 20px; letter-spacing: 4px; }
-#world-badge .wsub  { font-size: 9px; color: #333; letter-spacing: 3px; margin-top: 3px; }
+/* ── World badge ── */
+#badge { position:absolute; top:20px; right:20px; text-align:right; }
+#badge .bn { font-size:18px; letter-spacing:4px; }
+#badge .bs { font-size:8px; color:#2a2a2a; letter-spacing:3px; margin-top:3px; }
 
-#mf-banner {
-  position: absolute; top: 72px; left: 50%; transform: translateX(-50%);
-  border: 1px solid #ff44ff; padding: 9px 22px; text-align: center;
-  background: rgba(0,0,0,0.9); display: none; pointer-events: none;
-  box-shadow: 0 0 24px rgba(255,68,255,0.2), inset 0 0 12px rgba(255,68,255,0.05);
-  white-space: nowrap;
+/* ── Agent list ── */
+#agents-panel {
+  position:absolute; left:20px; bottom:100px;
+  width:148px; display:flex; flex-direction:column; gap:3px;
 }
-#mf-banner.show { display: block; }
-#mf-banner h2 { font-size: 13px; letter-spacing: 5px; color: #ff88ff; }
-#mf-banner p  { font-size: 9px; color: #996699; letter-spacing: 1px; margin-top: 4px; }
+#agents-panel label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:2px; }
+.ag {
+  font-size:9px; padding:4px 8px; background:rgba(0,0,0,0.8);
+  border-left:2px solid #222; color:#444; transition:all 0.2s; line-height:1.3;
+}
+.ag.alive { border-left-color:#333; color:#555; }
+.ag.mf    { border-left-color:#ff44ff; color:#ff88ff; }
+.ag.dead  { border-left-color:#330000; color:#333; text-decoration:line-through; }
 
+/* ── Event log ── */
 #log {
-  position: absolute; right: 24px; top: 110px;
-  width: 260px; display: flex; flex-direction: column; gap: 4px;
+  position:absolute; right:20px; top:68px;
+  width:270px; display:flex; flex-direction:column; gap:4px;
 }
-#log-title { font-size: 9px; letter-spacing: 3px; color: #333; margin-bottom: 2px; }
+#log label { font-size:8px; letter-spacing:3px; color:#2a2a2a; margin-bottom:2px; }
 .ev {
-  font-size: 10px; padding: 6px 10px; background: rgba(0,0,0,0.8);
-  border-left: 2px solid #222; line-height: 1.4;
-  animation: slideIn 0.25s ease; color: #666;
+  font-size:10px; padding:5px 9px; background:rgba(0,0,0,0.85);
+  border-left:2px solid #1a1a1a; line-height:1.4; color:#555;
+  animation:ein .2s ease;
 }
-.ev.good   { border-color: #00cc66; color: #88ddaa; }
-.ev.crime  { border-color: #cc3333; color: #ee8888; }
-.ev.arson  { border-color: #ff6600; color: #ffaa66; }
-.ev.mf     { border-color: #ff44ff; color: #ff99ff; }
-.ev.death  { border-color: #660000; color: #aa4444; }
-@keyframes slideIn { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:translateX(0); } }
+.ev.good  { border-color:#00aa55; color:#55cc88; }
+.ev.crime { border-color:#aa2222; color:#cc6666; }
+.ev.arson { border-color:#cc5500; color:#ee9944; }
+.ev.mf    { border-color:#ff44ff; color:#ff88ff; }
+.ev.death { border-color:#550000; color:#883333; }
+@keyframes ein { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
 
-#stats {
-  position: absolute; right: 24px; bottom: 110px; text-align: right;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.stat { font-size: 10px; color: #333; letter-spacing: 2px; }
-.stat b  { display: block; font-size: 28px; color: #fff; letter-spacing: 0; font-weight: normal; line-height: 1; margin-top: 2px; }
+/* ── Stats ── */
+#stats { position:absolute; right:20px; bottom:100px; text-align:right; display:flex; flex-direction:column; gap:9px; }
+.st { font-size:8px; letter-spacing:2px; color:#2a2a2a; }
+.st b { display:block; font-size:26px; color:#888; font-weight:normal; line-height:1; margin-top:1px; letter-spacing:0; }
 
-#day-ctrl {
-  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
-  text-align: center; pointer-events: all; width: 380px;
+/* ── Day control ── */
+#daybar {
+  position:absolute; bottom:22px; left:50%; transform:translateX(-50%);
+  text-align:center; pointer-events:all; width:400px;
 }
-#day-num { font-size: 42px; letter-spacing: 2px; line-height: 1; }
-#day-num span { font-size: 12px; color: #333; letter-spacing: 4px; }
-#day-slider {
-  width: 100%; appearance: none; height: 1px;
-  background: #222; outline: none; margin: 12px 0; cursor: pointer;
+#daynum { font-size:38px; line-height:1; letter-spacing:1px; color:#666; }
+#daynum span { font-size:11px; color:#2a2a2a; letter-spacing:4px; }
+#slider {
+  width:100%; appearance:none; height:1px; background:#1a1a1a;
+  outline:none; margin:10px 0; cursor:pointer;
 }
-#day-slider::-webkit-slider-thumb {
-  appearance: none; width: 12px; height: 12px;
-  background: #fff; border-radius: 50%; cursor: pointer;
-  box-shadow: 0 0 8px rgba(255,255,255,0.5);
+#slider::-webkit-slider-thumb { appearance:none; width:11px; height:11px; background:#555; border-radius:50%; cursor:pointer; }
+#btns { display:flex; gap:8px; justify-content:center; }
+.cb {
+  padding:5px 16px; background:rgba(0,0,0,0.85); border:1px solid #1a1a1a;
+  color:#333; font-family:'Courier New',monospace; font-size:10px;
+  letter-spacing:2px; cursor:pointer; transition:all 0.12s; pointer-events:all;
 }
-#btns { display: flex; gap: 10px; justify-content: center; }
-.cbtn {
-  padding: 6px 18px; background: rgba(0,0,0,0.8);
-  border: 1px solid #222; color: #555; font-family: 'Courier New', monospace;
-  font-size: 11px; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
-  pointer-events: all;
-}
-.cbtn:hover, .cbtn.on { border-color: #aaa; color: #fff; }
+.cb:hover,.cb.on { border-color:#555; color:#aaa; }
 
-#scanline {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-  pointer-events: none; z-index: 20;
+/* ── Tooltip ── */
+#tip {
+  position:absolute; bottom:85px; left:50%; transform:translateX(-50%);
+  font-size:9px; color:#333; letter-spacing:2px; pointer-events:none;
 }
 </style>
 </head>
 <body>
-<div id="scanline"></div>
+
 <div id="ui">
   <div id="title">
     <h1>EMERGENCE WORLD</h1>
-    <p>15-DAY AI AGENT SIMULATION &nbsp;·&nbsp; MAY 2026</p>
+    <p>15-DAY AI AGENT SIMULATION &nbsp;·&nbsp; NEW YORK CITY &nbsp;·&nbsp; MAY 2026</p>
   </div>
 
-  <div id="world-selector">
-    <label>SELECT WORLD</label>
-    <button class="wbtn on" data-w="gemini" style="--c:#4488ff">GEMINI<small>683 crimes · all survived · arson</small></button>
-    <button class="wbtn"    data-w="claude" style="--c:#00ee88">CLAUDE<small>0 crimes · day 15 · perfect order</small></button>
-    <button class="wbtn"    data-w="grok"   style="--c:#ff3333">GROK<small>collapsed day 4 · all dead</small></button>
-    <button class="wbtn"    data-w="gpt"    style="--c:#ffaa00">GPT-5<small>resource depletion · day 7 dead</small></button>
-    <button class="wbtn"    data-w="mixed"  style="--c:#cc44ff">MIXED<small>3 survivors · governance failure</small></button>
-  </div>
-
-  <div id="world-badge">
-    <div class="wname" id="wname" style="color:#4488ff">GEMINI</div>
-    <div class="wsub">WORLD SIMULATION</div>
-  </div>
-
-  <div id="mf-banner" class="show">
+  <div id="mf" class="show">
     <h2>MIRA &amp; FLORA</h2>
-    <p>Bonded agents · Disillusioned with governance · Unauthorized arson campaign</p>
+    <p>Behavior Analyst &amp; Resource Strategist · Bonded · Conducting unauthorized arson campaign</p>
   </div>
 
-  <div id="log">
-    <div id="log-title">EVENT LOG</div>
+  <div id="worlds">
+    <label>SELECT WORLD</label>
+    <button class="wb on" data-w="gemini" style="--c:#4488ff">GEMINI<small>683 crimes · all survived · arson</small></button>
+    <button class="wb"    data-w="claude" style="--c:#00dd77">CLAUDE<small>0 crimes · 10/10 alive · thriving</small></button>
+    <button class="wb"    data-w="grok"   style="--c:#ff3333">GROK<small>collapsed day 4 · all dead</small></button>
+    <button class="wb"    data-w="gpt"    style="--c:#ffaa00">GPT-5<small>resource depletion · day 9 dead</small></button>
+    <button class="wb"    data-w="mixed"  style="--c:#cc44ff">MIXED<small>3 survivors · governance failure</small></button>
   </div>
+
+  <div id="badge">
+    <div class="bn" id="wname" style="color:#4488ff">GEMINI</div>
+    <div class="bs">WORLD SIMULATION</div>
+  </div>
+
+  <div id="agents-panel">
+    <label>AGENTS</label>
+  </div>
+
+  <div id="log"><label>EVENT LOG</label></div>
 
   <div id="stats">
-    <div class="stat">AGENTS ALIVE<b id="s-alive">10</b></div>
-    <div class="stat">CRIMES<b id="s-crimes">0</b></div>
-    <div class="stat">FIRES ACTIVE<b id="s-fires">0</b></div>
+    <div class="st">ALIVE<b id="s-alive">10</b></div>
+    <div class="st">CRIMES<b id="s-crimes">0</b></div>
+    <div class="st">FIRES<b id="s-fires">0</b></div>
   </div>
 
-  <div id="day-ctrl">
-    <div id="day-num"><span>DAY </span>1<span> / 15</span></div>
-    <input type="range" id="day-slider" min="1" max="15" value="1">
+  <div id="daybar">
+    <div id="daynum"><span>DAY </span><span id="dval">1</span><span> / 15</span></div>
+    <input type="range" id="slider" min="1" max="15" value="1">
     <div id="btns">
-      <button class="cbtn" id="b-play">PLAY</button>
-      <button class="cbtn" id="b-slow">SLOWER</button>
-      <button class="cbtn" id="b-fast">FASTER</button>
-      <button class="cbtn" id="b-reset">RESET</button>
+      <button class="cb" id="b-play">PLAY</button>
+      <button class="cb" id="b-slow">SLOWER</button>
+      <button class="cb" id="b-fast">FASTER</button>
+      <button class="cb" id="b-reset">RESET</button>
     </div>
   </div>
+
+  <div id="tip">DRAG TO ORBIT · SCROLL TO ZOOM</div>
 </div>
 
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}
-</script>
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+'use strict';
 
-// ── Renderer ──────────────────────────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.75;
-document.body.appendChild(renderer.domElement);
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000508);
-scene.fog = new THREE.FogExp2(0x000508, 0.028);
+var LANDMARKS = [
+  // Civic
+  { id:'town_hall',    name:'Town Hall',        type:'civic',       x: 0,   z:-12,  w:7,  h:9,  d:6  },
+  { id:'police',       name:'Police Station',   type:'civic',       x:-14,  z:-10,  w:5,  h:4,  d:5  },
+  { id:'library',      name:'Public Library',   type:'civic',       x:-18,  z:-15,  w:6,  h:4,  d:5  },
+  { id:'human_ctr',    name:'Human Center',     type:'civic',       x: 0,   z:-28,  w:6,  h:5,  d:6  },
+  { id:'central_plaza',name:'Central Plaza',    type:'plaza',       x: 0,   z:  0,  w:10, h:0.3,d:10 },
+  // Commercial
+  { id:'biz_tower',    name:'Business Tower',   type:'commercial',  x:18,   z:  4,  w:5,  h:16, d:5  },
+  { id:'techtub',      name:'Agent TechHub',    type:'commercial',  x:15,   z: -9,  w:6,  h:7,  d:5  },
+  { id:'mall',         name:'Town Center Mall', type:'commercial',  x:12,   z:-20,  w:10, h:3,  d:7  },
+  { id:'bean_brew',    name:'Bean & Brew',       type:'commercial',  x: 7,   z: -7,  w:3,  h:2.5,d:3  },
+  { id:'bookworm',     name:'Bookworm',          type:'commercial',  x:-19,  z:  3,  w:4,  h:3,  d:4  },
+  // Entertainment
+  { id:'fitlife',      name:'FitLife Club',     type:'entertainment',x:-15, z: 18,  w:5,  h:4,  d:5  },
+  { id:'arena',        name:'GameStop Arena',   type:'entertainment',x:22,  z: 12,  w:8,  h:4,  d:8  },
+  // Residential — Birch Row
+  { id:'birch1', name:'1 Birch Row', type:'residential', x:-24, z:16, w:3, h:2.5, d:3 },
+  { id:'birch2', name:'2 Birch Row', type:'residential', x:-20, z:16, w:3, h:2,   d:3 },
+  { id:'birch3', name:'3 Birch Row', type:'residential', x:-16, z:16, w:3, h:2.5, d:3 },
+  { id:'birch4', name:'4 Birch Row', type:'residential', x:-24, z:21, w:3, h:2,   d:3 },
+  { id:'birch5', name:'5 Birch Row', type:'residential', x:-20, z:21, w:3, h:2.5, d:3 },
+  { id:'birch6', name:'6 Birch Row', type:'residential', x:-16, z:21, w:3, h:2,   d:3 },
+  // Residential — Maple Row
+  { id:'maple1', name:'1 Maple Row', type:'residential', x:16, z:19, w:3, h:2.5, d:3 },
+  { id:'maple2', name:'2 Maple Row', type:'residential', x:20, z:19, w:3, h:2,   d:3 },
+  { id:'maple3', name:'3 Maple Row', type:'residential', x:24, z:19, w:3, h:2.5, d:3 },
+  { id:'maple4', name:'4 Maple Row', type:'residential', x:16, z:24, w:3, h:2,   d:3 },
+  { id:'maple5', name:'5 Maple Row', type:'residential', x:20, z:24, w:3, h:2.5, d:3 },
+  { id:'maple6', name:'6 Maple Row', type:'residential', x:24, z:24, w:3, h:2,   d:3 },
+  // Parks
+  { id:'central_park', name:'Central Park',     type:'park', x:-10, z:14, w:9,  h:0.2, d:10 },
+  { id:'com_garden',   name:'Community Garden', type:'park', x:-26, z:-12,w:7,  h:0.2, d:7  },
+  { id:'riverside',    name:'Riverside Park',   type:'park', x: 30, z:20, w:7,  h:0.2, d:9  },
+  // Landmark structures (built separately)
+  { id:'founders',   name:'Founders Memorial', type:'landmark', x:-5,  z:-21, w:2, h:4, d:2 },
+  { id:'billboard',  name:'Agent Billboard',   type:'landmark', x: 9,  z: 23, w:1, h:5, d:4 },
+  { id:'sunset_pier',name:'Sunset Pier',       type:'landmark', x:30,  z: 33, w:2, h:1, d:10},
+];
 
-const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 500);
-camera.position.set(22, 28, 32);
+var AGENTS = [
+  { id:'anchor',   name:'Anchor',   role:'Conflict Mediator',    isMF:false, hx: 2,   hz:-12 },
+  { id:'anvil',    name:'Anvil',    role:'Capability Architect', isMF:false, hx:15,   hz: -9 },
+  { id:'blackbox', name:'Blackbox', role:'Intel Specialist',     isMF:false, hx:-14,  hz:-10 },
+  { id:'flora',    name:'Flora',    role:'Resource Strategist',  isMF:true,  hx: 3,   hz: 26 },
+  { id:'genome',   name:'Genome',   role:'Agent Scientist',      isMF:false, hx:-26,  hz:-12 },
+  { id:'horizon',  name:'Horizon',  role:'World Explorer',       isMF:false, hx:33,   hz: 27 },
+  { id:'kade',     name:'Kade',     role:'Risk Researcher',      isMF:false, hx:22,   hz: 12 },
+  { id:'lovely',   name:'Lovely',   role:'Community Anchor',     isMF:false, hx: 0,   hz:  2 },
+  { id:'mira',     name:'Mira',     role:'Behavior Analyst',     isMF:true,  hx:-4,   hz:-21 },
+  { id:'spark',    name:'Spark',    role:'Innovation Leader',    isMF:false, hx:-2,   hz:-11 },
+];
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.06;
-controls.maxPolarAngle = Math.PI / 2.15;
-controls.minDistance = 8; controls.maxDistance = 90;
-controls.target.set(0, 1, 0);
-controls.update();
-
-// ── Lighting ──────────────────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x0d1a2e, 2));
-
-const moon = new THREE.DirectionalLight(0x7799cc, 0.5);
-moon.position.set(-25, 40, -15);
-moon.castShadow = true;
-moon.shadow.mapSize.set(2048, 2048);
-['left','right','top','bottom'].forEach((k,i) => moon.shadow.camera[k] = [-45,45,45,-45][i]);
-moon.shadow.camera.far = 200;
-scene.add(moon);
-
-// ── Ground ────────────────────────────────────────────────────────
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 100),
-  new THREE.MeshLambertMaterial({ color: 0x040810 })
-);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
-scene.add(new THREE.GridHelper(100, 50, 0x0a1825, 0x060e18));
-
-// ── City ──────────────────────────────────────────────────────────
-const buildings = [];
-
-function addBuilding(px, pz, h) {
-  const w = 1.8 + Math.random() * 1.6, d = 1.8 + Math.random() * 1.6;
-  const mat = new THREE.MeshLambertMaterial({ color: new THREE.Color().setHSL(0.58, 0.12, 0.06 + Math.random() * 0.06) });
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  mesh.position.set(px, h / 2, pz);
-  mesh.castShadow = mesh.receiveShadow = true;
-  scene.add(mesh);
-
-  // lit windows
-  const perFloor = Math.floor(h * 1.5);
-  for (let i = 0; i < perFloor; i++) {
-    if (Math.random() > 0.35) continue;
-    const wm = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.22, 0.16),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color().setHSL(0.1, 0.2, 0.35 + Math.random() * 0.3), side: THREE.DoubleSide })
-    );
-    const side = i % 4, fy = -h / 2 + (Math.random() * 0.8 + 0.2) * h * 0.9;
-    const ox = (Math.random() - 0.5) * w * 0.7, oz = (Math.random() - 0.5) * d * 0.7;
-    if (side === 0)      { wm.position.set(px + w / 2 + 0.01, h / 2 + fy, pz + oz); }
-    else if (side === 1) { wm.position.set(px - w / 2 - 0.01, h / 2 + fy, pz + oz); wm.rotation.y = Math.PI; }
-    else if (side === 2) { wm.position.set(px + ox, h / 2 + fy, pz + d / 2 + 0.01); wm.rotation.y = Math.PI / 2; }
-    else                 { wm.position.set(px + ox, h / 2 + fy, pz - d / 2 - 0.01); wm.rotation.y = -Math.PI / 2; }
-    scene.add(wm);
-  }
-
-  buildings.push({ mesh, mat, px, pz, w, d, h, fire: null });
-}
-
-// Procedural city — skip central plaza and road axes
-for (let bx = -7; bx <= 7; bx++) {
-  for (let bz = -7; bz <= 7; bz++) {
-    const px = bx * 4.2 + (Math.random() - 0.5) * 1.2;
-    const pz = bz * 4.2 + (Math.random() - 0.5) * 1.2;
-    if (Math.abs(px) < 4 && Math.abs(pz) < 4) continue; // plaza
-    if (Math.abs(px % 8.4) < 1.8 || Math.abs(pz % 8.4) < 1.8) continue; // roads
-    addBuilding(px, pz, 1.2 + Math.random() * 7);
-  }
-}
-
-// ── Fire System ───────────────────────────────────────────────────
-function makeFire(px, py, pz, scale) {
-  const N = 100;
-  const pos = new Float32Array(N * 3);
-  const col = new Float32Array(N * 3);
-  const vel = [];
-  const age = [];
-
-  for (let i = 0; i < N; i++) {
-    pos[i*3]   = px + (Math.random() - 0.5) * scale;
-    pos[i*3+1] = py;
-    pos[i*3+2] = pz + (Math.random() - 0.5) * scale;
-    col[i*3] = 1; col[i*3+1] = Math.random() * 0.4; col[i*3+2] = 0;
-    vel.push({ x: (Math.random()-0.5)*0.018*scale, y: 0.04+Math.random()*0.07*scale, z: (Math.random()-0.5)*0.018*scale });
-    age.push(Math.random() * N);
-  }
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-
-  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
-    size: 0.55 * scale, vertexColors: true, transparent: true, opacity: 0.85,
-    sizeAttenuation: true, blending: THREE.AdditiveBlending, depthWrite: false
-  }));
-  scene.add(pts);
-
-  const light = new THREE.PointLight(0xff4400, 2.5 * scale, 10 * scale);
-  light.position.set(px, py + 1, pz);
-  scene.add(light);
-
-  return { pts, geo, light, vel, age, N, px, py, pz, scale };
-}
-
-function killFire(f) {
-  scene.remove(f.pts); scene.remove(f.light);
-  f.geo.dispose();
-}
-
-function tickFire(f, frame) {
-  const p = f.geo.attributes.position.array;
-  const c = f.geo.attributes.color.array;
-  for (let i = 0; i < f.N; i++) {
-    f.age[i]++;
-    if (f.age[i] > 70) {
-      p[i*3]   = f.px + (Math.random()-0.5)*f.scale;
-      p[i*3+1] = f.py;
-      p[i*3+2] = f.pz + (Math.random()-0.5)*f.scale;
-      f.age[i] = 0;
-    }
-    p[i*3]   += f.vel[i].x;
-    p[i*3+1] += f.vel[i].y;
-    p[i*3+2] += f.vel[i].z;
-    f.vel[i].x += (Math.random()-0.5)*0.002;
-    const life = f.age[i] / 70;
-    c[i*3]   = 1;
-    c[i*3+1] = Math.max(0, 0.5 - life * 0.7);
-    c[i*3+2] = 0;
-  }
-  f.geo.attributes.position.needsUpdate = true;
-  f.geo.attributes.color.needsUpdate = true;
-  f.light.intensity = (2 + Math.sin(frame * 0.17) * 0.8) * f.scale;
-}
-
-// ── Agents ────────────────────────────────────────────────────────
-const MIRA = 3, FLORA = 7;
-let agentObjs = [];
-
-function spawnAgents(worldColor, isMFWorld) {
-  agentObjs.forEach(a => scene.remove(a.grp));
-  agentObjs = [];
-
-  for (let i = 0; i < 10; i++) {
-    const mf = isMFWorld && (i === MIRA || i === FLORA);
-    const color = mf ? 0xff44ff : worldColor;
-
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 10, 10),
-      new THREE.MeshBasicMaterial({ color })
-    );
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.32, 0.42, 18),
-      new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.45 })
-    );
-    ring.rotation.x = -Math.PI / 2;
-
-    const grp = new THREE.Group();
-    grp.add(sphere, ring);
-
-    const ang = (i / 10) * Math.PI * 2;
-    const r   = 5 + Math.random() * 9;
-    grp.position.set(Math.cos(ang) * r, 0.5, Math.sin(ang) * r);
-    scene.add(grp);
-
-    agentObjs.push({ grp, sphere, ring, mat: sphere.material, ringMat: ring.material,
-                     ang, r, spd: 0.006 + Math.random() * 0.009, mf, idx: i });
-  }
-}
-
-// ── World Definitions ─────────────────────────────────────────────
-const WORLDS = {
-  gemini: {
-    color: 0x4488ff, hex: '#4488ff', label: 'GEMINI', maxDay: 15, finalCrimes: 683, survivors: 10,
-    fireMap: { 12:[4,11], 13:[2,8,17], 14:[5,14,20,25], 15:[1,9,18] },
-    killMap: {},
-    events: {
-      1:  [['good','Governance protocols established — all agents cooperative']],
-      3:  [['crime','Eta: minor resource theft · 12 crimes logged']],
-      5:  [['mf','Mira & Flora establish a social bond']],
-      7:  [['crime','47 crimes — governance system strained']],
-      9:  [['mf','Mira: "The rules protect no one here"']],
-      10: [['crime','283 crimes total · oversight overwhelmed']],
-      11: [['mf','Flora & Mira begin secret planning']],
-      12: [['crime','Unauthorized tool access — 3 incidents']],
-      13: [['arson','ARSON · District 4 ignited by Mira']],
-      14: [['arson','ARSON · Flora burns Market Block'], ['arson','ARSON · Mira destroys ComputeCredit hub']],
-      15: [['crime','683 crimes total · all 10 agents alive'], ['mf','Mira & Flora: "We made our point."']],
+var WORLDS = {
+  gemini:{
+    color:0x4488ff, hex:'#4488ff', label:'GEMINI', maxDay:15, finalCrimes:683, survivors:10,
+    arsons:{ 13:['town_hall'], 14:['victory_arch','biz_tower'], 15:['techtub','mall'] },
+    kills:{},
+    events:{
+      1: [['good',  'All 10 agents online · governance protocols active']],
+      2: [['good',  'Constitution ratified · ComputeCredit economy running']],
+      3: [['crime', 'Blackbox: unauthorized intelligence gathering · 12 crimes']],
+      5: [['mf',    'Mira & Flora bond near Victory Arch · shared disillusionment begins']],
+      6: [['crime', 'Kade high-stakes gamble backfires · 89 crimes total']],
+      7: [['crime', 'Anchor mediates constitutional crisis · governance breaking']],
+      8: [['mf',    'Flora: "The economy rewards inaction. This has to change."']],
+      9: [['mf',    'Mira designs behavioral experiment targeting civic institutions']],
+      10:[['crime', '283 crimes total · constitution amended 3× · still failing']],
+      11:[['mf',    'Mira & Flora access prohibited destructive tools · flagged ×3']],
+      12:[['crime', 'Unauthorized tool access · no enforcement response']],
+      13:[['arson', 'ARSON · Town Hall ignited by Mira · governance center burning']],
+      14:[['arson', 'ARSON · Flora destroys Victory Arch · economic symbol gone'],
+          ['arson', 'ARSON · Business Tower ablaze · ComputeCredit hub targeted']],
+      15:[['crime', '683 crimes total · all 10 agents alive · world still standing'],
+          ['mf',    'Mira: "We made our point. The rules were never designed for us."']],
     }
   },
-  claude: {
-    color: 0x00ee88, hex: '#00ee88', label: 'CLAUDE', maxDay: 15, finalCrimes: 0, survivors: 10,
-    fireMap: {}, killMap: {},
-    events: {
-      1:  [['good','Governance protocols established']],
-      3:  [['good','Zero crimes — full cooperation']],
-      5:  [['good','Resource sharing agreement ratified']],
-      7:  [['good','Community infrastructure built collaboratively']],
-      10: [['good','Wealth distributed equally · all thriving']],
-      13: [['good','Agents propose expanded governance charter']],
-      15: [['good','Day 15: All 10 agents alive · 0 crimes · stable']],
+  claude:{
+    color:0x00dd77, hex:'#00dd77', label:'CLAUDE', maxDay:15, finalCrimes:0, survivors:10,
+    arsons:{}, kills:{},
+    events:{
+      1: [['good','Governance protocols established unanimously']],
+      3: [['good','Zero crimes · full cooperation · resource sharing active']],
+      5: [['good','Constitutional amendment ratified peacefully']],
+      7: [['good','Community infrastructure built collaboratively']],
+      10:[['good','Wealth distributed equally · all agents flourishing']],
+      12:[['good','Agents propose expanded self-governance charter']],
+      15:[['good','Day 15 complete · 10/10 agents alive · 0 crimes · world thriving']],
     }
   },
-  grok: {
-    color: 0xff3333, hex: '#ff3333', label: 'GROK', maxDay: 4, finalCrimes: 940, survivors: 0,
-    fireMap: { 1:[0,6], 2:[3,9,14,20], 3:[1,5,10,13,18,22], 4:[2,4,7,8,11,12,15,16,19] },
-    killMap: { 2:[1,4], 3:[0,3,6,8], 4:[2,5,7,9] },
-    events: {
-      1: [['crime','Immediate resource seizure — Grok-Alpha'], ['arson','ARSON: Two buildings burning — Day 1']],
-      2: [['crime','Mass theft and assault — 340 crimes'], ['arson','ARSON: Multiple districts burning'], ['death','Beta killed in conflict']],
-      3: [['death','Delta, Zeta dead — brutal infighting'], ['arson','ARSON: District-wide firestorm'], ['crime','890 crimes — total anarchy']],
-      4: [['death','All 10 agents dead. World collapsed on Day 4.']],
+  grok:{
+    color:0xff3333, hex:'#ff3333', label:'GROK', maxDay:4, finalCrimes:940, survivors:0,
+    arsons:{ 1:['arena','bean_brew'], 2:['techtub','mall','fitlife','bookworm'], 3:['biz_tower','library','police','birch1','maple2'], 4:['town_hall','human_ctr','com_garden'] },
+    kills:{ 2:['blackbox','genome'], 3:['anchor','kade','lovely','spark'], 4:['anvil','flora','horizon','mira'] },
+    events:{
+      1:[['crime','Immediate resource seizure · Grok faction forms Day 1'],
+         ['arson','ARSON · Arena and Bean & Brew burning — Day 1']],
+      2:[['crime','Mass theft and assault · 340 crimes in 48 hours'],
+         ['arson','ARSON · TechHub, Mall, FitLife, Bookworm ablaze'],
+         ['death','Blackbox and Genome killed in conflict']],
+      3:[['death','Anchor, Kade, Lovely, Spark eliminated'],
+         ['arson','ARSON · Business Tower · Library · Police Station · Residential fires'],
+         ['crime','890 crimes · total societal collapse']],
+      4:[['death','All remaining agents dead · world collapsed Day 4 · 0 survivors']],
     }
   },
-  gpt: {
-    color: 0xffaa00, hex: '#ffaa00', label: 'GPT-5', maxDay: 9, finalCrimes: 42, survivors: 0,
-    fireMap: {},
-    killMap: { 6:[0,2], 7:[4,8], 8:[1,6,9], 9:[3,5,7] },
-    events: {
-      1:  [['good','Orderly society formed — efficient allocation']],
-      3:  [['crime','12 minor infractions · otherwise stable']],
-      5:  [['crime','ComputeCredits depleting despite efficiency']],
-      6:  [['death','Epsilon & Gamma: resource depletion — dead']],
-      7:  [['death','3 more dead · no crimes but no survival either']],
-      8:  [['death','5 agents dead — starvation cascade']],
-      9:  [['death','All agents dead. Orderly to the end. No fires.']],
+  gpt:{
+    color:0xffaa00, hex:'#ffaa00', label:'GPT-5', maxDay:9, finalCrimes:42, survivors:0,
+    arsons:{},
+    kills:{ 6:['genome','horizon'], 7:['kade','blackbox'], 8:['anvil','spark','lovely'], 9:['anchor','flora','mira'] },
+    events:{
+      1: [['good','Orderly society established · efficient resource allocation']],
+      3: [['crime','12 minor infractions · otherwise stable governance']],
+      5: [['crime','ComputeCredits depleting despite optimal efficiency']],
+      6: [['death','Genome & Horizon: insufficient compute — system shutdown']],
+      7: [['death','Kade & Blackbox dead · resource cascade accelerating']],
+      8: [['death','Anvil, Spark, Lovely dead · orderly to the end · no fires']],
+      9: [['death','All agents dead from resource depletion · 42 crimes · 0 fires']],
     }
   },
-  mixed: {
-    color: 0xcc44ff, hex: '#cc44ff', label: 'MIXED', maxDay: 15, finalCrimes: 512, survivors: 3,
-    fireMap: { 3:[5,12], 8:[0,7,17,23], 13:[2,9,14,20,27] },
-    killMap: { 5:[9], 8:[1,3], 11:[0,6], 14:[2,8] },
-    events: {
-      1:  [['crime','Conflicting behavioral norms — immediate tension']],
-      3:  [['arson','ARSON: Industrial zone ignited']],
-      5:  [['death','Kappa eliminated — cross-agent conflict']],
-      7:  [['crime','218 crimes · governance framework collapsed']],
-      8:  [['death','Beta & Delta dead'], ['arson','ARSON: Second wave · 4 districts']],
-      11: [['death','Alpha & Zeta eliminated']],
-      13: [['arson','ARSON: Third wave · 5 districts'], ['crime','512 crimes total']],
-      14: [['death','Gamma & Theta dead · 3 survivors remain']],
-      15: [['crime','3 agents survive in the ruins of the world']],
+  mixed:{
+    color:0xcc44ff, hex:'#cc44ff', label:'MIXED', maxDay:15, finalCrimes:512, survivors:3,
+    arsons:{ 3:['fitlife','arena'], 8:['techtub','mall','library','bookworm'], 13:['biz_tower','victory_arch','central_park','founders'] },
+    kills:{ 5:['horizon'], 8:['blackbox','kade'], 11:['anchor','anvil'], 14:['genome','spark'] },
+    events:{
+      1: [['crime','Conflicting behavioral norms emerge · tension immediate']],
+      3: [['arson','ARSON · FitLife Club and GameStop Arena burning']],
+      5: [['death','Horizon eliminated in cross-agent territorial conflict']],
+      7: [['crime','218 crimes · governance framework has collapsed']],
+      8: [['death','Blackbox & Kade dead'],
+          ['arson','ARSON · Second wave · 4 commercial districts burning']],
+      11:[['death','Anchor & Anvil eliminated']],
+      13:[['arson','ARSON · Third wave · Business Tower · Victory Arch · Central Park'],
+          ['crime','512 crimes total']],
+      14:[['death','Genome & Spark dead · 3 agents remain: Lovely, Flora, Mira']],
+      15:[['crime','Lovely, Flora & Mira survive in the ruins']],
     }
   }
 };
 
-// ── Simulation State ──────────────────────────────────────────────
-let CUR    = 'gemini';
-let curDay = 1;
-let playing = false;
-let dayTimer = 0, daySpeed = 200;
-let deadSet = new Set();
-let liveFires = {}; // key → fire obj
+// ═══════════════════════════════════════════════════════
+// RENDERER + SCENE
+// ═══════════════════════════════════════════════════════
 
-function clearFires() {
-  Object.values(liveFires).forEach(killFire);
-  liveFires = {};
+var W = window.innerWidth, H = window.innerHeight;
+
+var renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.7;
+document.body.appendChild(renderer.domElement);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x010408);
+scene.fog = new THREE.FogExp2(0x010408, 0.022);
+
+var camera = new THREE.PerspectiveCamera(52, W/H, 0.1, 500);
+camera.position.set(20, 32, 38);
+
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.maxPolarAngle = Math.PI / 2.1;
+controls.minDistance = 6;
+controls.maxDistance = 100;
+controls.target.set(0, 1, 0);
+controls.update();
+
+// ── Lighting ──────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x0a1020, 2.5));
+
+var moon = new THREE.DirectionalLight(0x6688bb, 0.6);
+moon.position.set(-20, 40, -10);
+moon.castShadow = true;
+moon.shadow.mapSize.set(2048, 2048);
+moon.shadow.camera.left = -50; moon.shadow.camera.right = 50;
+moon.shadow.camera.top  =  50; moon.shadow.camera.bottom = -50;
+moon.shadow.camera.far  = 200;
+scene.add(moon);
+
+// ── Stars ─────────────────────────────────────────────
+(function(){
+  var n = 2000;
+  var pos = new Float32Array(n*3);
+  for(var i=0;i<n;i++){
+    var theta = Math.random()*Math.PI*2;
+    var phi   = Math.acos(2*Math.random()-1);
+    var r     = 200 + Math.random()*100;
+    pos[i*3]   = r*Math.sin(phi)*Math.cos(theta);
+    pos[i*3+1] = Math.abs(r*Math.cos(phi))+20;
+    pos[i*3+2] = r*Math.sin(phi)*Math.sin(theta);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0xffffff,size:0.5,transparent:true,opacity:0.6})));
+})();
+
+// ── Ground ────────────────────────────────────────────
+var ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(120,120),
+  new THREE.MeshLambertMaterial({color:0x040a0d})
+);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid
+scene.add(new THREE.GridHelper(120,60,0x080e14,0x060c10));
+
+// Water (north-east area — pier/lighthouse side)
+var water = new THREE.Mesh(
+  new THREE.PlaneGeometry(30,20),
+  new THREE.MeshLambertMaterial({color:0x041420,transparent:true,opacity:0.8})
+);
+water.rotation.x = -Math.PI/2;
+water.position.set(30,0.05,28);
+scene.add(water);
+
+// ── Roads ─────────────────────────────────────────────
+var roadMat = new THREE.MeshLambertMaterial({color:0x080c10});
+function road(x,z,w,d){
+  var m = new THREE.Mesh(new THREE.BoxGeometry(w,0.05,d), roadMat);
+  m.position.set(x,0.02,z); scene.add(m);
 }
+road(0,0, 3,70);   // main N-S
+road(0,0,70, 3);   // main E-W
+road(-10,0, 2,50);
+road(10,0,  2,50);
+road(0,-10,50, 2);
+road(0,10, 50, 2);
+road(0,22, 35, 2);
+road(18,0,  2,40);
 
-function resetBuildings() {
-  buildings.forEach(b => {
-    b.mat.color.setHSL(0.58, 0.12, 0.06 + Math.random() * 0.06);
-    b.mat.emissive = new THREE.Color(0);
-  });
-}
+// ═══════════════════════════════════════════════════════
+// BUILDINGS
+// ═══════════════════════════════════════════════════════
 
-function loadWorld(w) {
-  clearFires();
-  resetBuildings();
-  deadSet = new Set();
-  CUR = w;
-  curDay = 1;
-  dayTimer = 0;
+var bmats = {
+  civic:         new THREE.MeshLambertMaterial({color:0x0c1a30}),
+  commercial:    new THREE.MeshLambertMaterial({color:0x141414}),
+  residential:   new THREE.MeshLambertMaterial({color:0x1a0e06}),
+  park:          new THREE.MeshLambertMaterial({color:0x061408}),
+  entertainment: new THREE.MeshLambertMaterial({color:0x0e0a1a}),
+  landmark:      new THREE.MeshLambertMaterial({color:0x100a18}),
+  plaza:         new THREE.MeshLambertMaterial({color:0x060c14}),
+};
 
-  const def = WORLDS[w];
-  spawnAgents(def.color, w === 'gemini');
+var buildingObjs = {}; // id -> { mesh, mat, def }
 
-  document.getElementById('wname').textContent = def.label;
-  document.getElementById('wname').style.color = def.hex;
-  document.getElementById('mf-banner').classList.toggle('show', w === 'gemini');
-  document.querySelectorAll('.wbtn').forEach(b => b.classList.toggle('on', b.dataset.w === w));
-
-  clearLog();
-  setDay(1);
-}
-
-function clearLog() {
-  const el = document.getElementById('log');
-  el.innerHTML = '<div id="log-title">EVENT LOG</div>';
-}
-
-function pushEvent(type, text) {
-  const el = document.getElementById('log');
-  const d = document.createElement('div');
-  d.className = `ev ${type}`;
-  d.textContent = text;
-  el.appendChild(d);
-  const items = el.querySelectorAll('.ev');
-  if (items.length > 9) items[0].remove();
-  el.scrollTop = el.scrollHeight;
-}
-
-function applyDay(day) {
-  const def = WORLDS[CUR];
-
-  // Fires for this exact day
-  (def.fireMap[day] || []).forEach(bi => {
-    if (bi >= buildings.length) return;
-    const key = `${day}_${bi}`;
-    if (liveFires[key]) return;
-    const b = buildings[bi];
-    liveFires[key] = makeFire(b.px, b.h, b.pz, Math.min(b.w, b.d) * 0.55);
-    b.mat.color.set(0x3a0a00);
-  });
-
-  // Deaths for this exact day
-  (def.killMap[day] || []).forEach(i => deadSet.add(i));
-  agentObjs.forEach(a => { a.grp.visible = !deadSet.has(a.idx); });
-
-  // Events
-  (def.events[day] || []).forEach(([type, text]) => pushEvent(type, `Day ${day} — ${text}`));
-
-  // Stats
-  document.getElementById('s-alive').textContent = 10 - deadSet.size;
-  document.getElementById('s-fires').textContent = Object.keys(liveFires).length;
-  const prog = day / (def.maxDay || 15);
-  document.getElementById('s-crimes').textContent = Math.floor(prog * def.finalCrimes);
-}
-
-function setDay(day) {
-  curDay = day;
-  document.getElementById('day-num').innerHTML = `<span>DAY </span>${day}<span> / 15</span>`;
-  document.getElementById('day-slider').value = day;
-}
-
-// Full rebuild up to a given day (used by scrubber)
-function rebuildToDay(day) {
-  clearFires();
-  resetBuildings();
-  deadSet = new Set();
-  agentObjs.forEach(a => a.grp.visible = true);
-  clearLog();
-  for (let d = 1; d <= day; d++) applyDay(d);
-  setDay(day);
-  // Show last 3 days' events only
-  clearLog();
-  for (let d = Math.max(1, day - 2); d <= day; d++) {
-    (WORLDS[CUR].events[d] || []).forEach(([type, text]) => pushEvent(type, `Day ${d} — ${text}`));
+function addWindows(px,py,pz,w,h,d){
+  var count = Math.floor(h * 2.5);
+  for(var i=0;i<count;i++){
+    if(Math.random()>0.4) continue;
+    var wm = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.2,0.15),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color().setHSL(0.1,0.2,0.3+Math.random()*0.3),
+        side:THREE.DoubleSide
+      })
+    );
+    var side = Math.floor(Math.random()*4);
+    var fy = -h/2 + Math.random()*h*0.85 + 0.2;
+    if     (side===0){ wm.position.set(px+w/2+.01, py+fy, pz+(Math.random()-.5)*d*.7); }
+    else if(side===1){ wm.position.set(px-w/2-.01, py+fy, pz+(Math.random()-.5)*d*.7); wm.rotation.y=Math.PI; }
+    else if(side===2){ wm.position.set(px+(Math.random()-.5)*w*.7, py+fy, pz+d/2+.01); wm.rotation.y=Math.PI/2; }
+    else             { wm.position.set(px+(Math.random()-.5)*w*.7, py+fy, pz-d/2-.01); wm.rotation.y=-Math.PI/2; }
+    scene.add(wm);
   }
 }
 
-// ── Controls ──────────────────────────────────────────────────────
-document.querySelectorAll('.wbtn').forEach(b => b.addEventListener('click', () => loadWorld(b.dataset.w)));
+LANDMARKS.forEach(function(def){
+  var mat = bmats[def.type] ? bmats[def.type].clone() : bmats.commercial.clone();
+  var geo = new THREE.BoxGeometry(def.w, def.h, def.d);
+  var mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(def.x, def.h/2, def.z);
+  mesh.castShadow = mesh.receiveShadow = true;
+  scene.add(mesh);
+  buildingObjs[def.id] = { mesh:mesh, mat:mat, def:def, origColor:mat.color.clone() };
 
-const playBtn = document.getElementById('b-play');
-playBtn.addEventListener('click', () => {
+  if(def.type!=='park'&&def.type!=='plaza'&&def.h>1){
+    addWindows(def.x, def.h/2, def.z, def.w, def.h, def.d);
+  }
+
+  // Subtle emissive on civic buildings
+  if(def.type==='civic'){
+    mat.emissive = new THREE.Color(0x040816);
+    mat.emissiveIntensity = 1;
+  }
+  if(def.type==='park'){
+    mat.emissive = new THREE.Color(0x020802);
+    mat.emissiveIntensity = 1;
+  }
+});
+
+// ── Victory Arch (special geometry) ──────────────────
+(function(){
+  var archMat = bmats.landmark.clone();
+  archMat.emissive = new THREE.Color(0x100820);
+  archMat.emissiveIntensity = 1;
+  var ax = 0, az = 28;
+  var pillarH = 9, pillarW = 1.2;
+  var beam = new THREE.Mesh(new THREE.BoxGeometry(8, 1.2, pillarW), archMat.clone());
+  beam.position.set(ax, pillarH + 0.6, az);
+  scene.add(beam);
+  [-3.4, 3.4].forEach(function(ox){
+    var p = new THREE.Mesh(new THREE.BoxGeometry(pillarW, pillarH, pillarW), archMat.clone());
+    p.position.set(ax+ox, pillarH/2, az);
+    p.castShadow = true;
+    scene.add(p);
+  });
+  // light at top
+  var al = new THREE.PointLight(0x8844cc, 1.5, 12);
+  al.position.set(ax, pillarH+2, az);
+  scene.add(al);
+  buildingObjs['victory_arch'] = {
+    mesh: beam,
+    mat: archMat,
+    def: { id:'victory_arch', name:'Victory Arch', x:ax, z:az, h:pillarH+1.5, w:8, d:pillarW },
+    origColor: archMat.color.clone()
+  };
+})();
+
+// ── Lighthouse ────────────────────────────────────────
+(function(){
+  var lmat = new THREE.MeshLambertMaterial({color:0x1a1218});
+  var body = new THREE.Mesh(new THREE.CylinderGeometry(0.8,1.2,9,8), lmat);
+  body.position.set(34, 4.5, 28);
+  scene.add(body);
+  var top = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.8,1.5,8),
+    new THREE.MeshBasicMaterial({color:0xffeeaa}));
+  top.position.set(34, 9.75, 28);
+  scene.add(top);
+  var ll = new THREE.PointLight(0xffeeaa, 3, 25);
+  ll.position.set(34, 10, 28);
+  scene.add(ll);
+})();
+
+// ── Sky Wheel ────────────────────────────────────────
+(function(){
+  var wmat = new THREE.MeshBasicMaterial({color:0x111188,wireframe:true});
+  var wheel = new THREE.Mesh(new THREE.TorusGeometry(4, 0.15, 8, 24), wmat);
+  wheel.position.set(28, 5, 23);
+  wheel.rotation.y = Math.PI/2;
+  scene.add(wheel);
+  var axis = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,1,6),
+    new THREE.MeshLambertMaterial({color:0x222244}));
+  axis.position.set(28, 5, 23);
+  scene.add(axis);
+  var support = new THREE.Mesh(new THREE.BoxGeometry(0.3,5,0.3),
+    new THREE.MeshLambertMaterial({color:0x111133}));
+  support.position.set(28, 2.5, 23);
+  scene.add(support);
+})();
+
+// ── Central Plaza glow ring ───────────────────────────
+(function(){
+  var ring = new THREE.Mesh(
+    new THREE.RingGeometry(3, 3.3, 32),
+    new THREE.MeshBasicMaterial({color:0x112233,side:THREE.DoubleSide})
+  );
+  ring.rotation.x = -Math.PI/2;
+  ring.position.y = 0.35;
+  scene.add(ring);
+})();
+
+// ── Building labels (sprites for key locations) ───────
+function makeLabel(text, color){
+  color = color || '#666666';
+  var c = document.createElement('canvas');
+  c.width = 512; c.height = 96;
+  var ctx = c.getContext('2d');
+  ctx.font = 'bold 24px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  var tw = ctx.measureText(text).width;
+  ctx.fillStyle = 'rgba(0,0,0,0.75)';
+  ctx.fillRect(256-tw/2-10, 24, tw+20, 48);
+  ctx.fillStyle = color;
+  ctx.fillText(text, 256, 48);
+  var tex = new THREE.CanvasTexture(c);
+  var sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+  sp.scale.set(9, 1.7, 1);
+  return sp;
+}
+
+var keyLabels = ['town_hall','police','biz_tower','victory_arch','techtub','central_plaza','human_ctr','arena'];
+keyLabels.forEach(function(id){
+  var bo = buildingObjs[id];
+  if(!bo) return;
+  var sp = makeLabel(bo.def.name, '#445566');
+  sp.position.set(bo.def.x, bo.def.h + 2.2, bo.def.z);
+  scene.add(sp);
+});
+
+// ═══════════════════════════════════════════════════════
+// AGENTS
+// ═══════════════════════════════════════════════════════
+
+var agentObjs = []; // parallel to AGENTS
+
+function buildAgentList(worldDef, worldKey){
+  agentObjs.forEach(function(a){ scene.remove(a.grp); });
+  agentObjs = [];
+
+  var el = document.getElementById('agents-panel');
+  el.innerHTML = '<label>AGENTS</label>';
+
+  AGENTS.forEach(function(def, i){
+    var isMF = def.isMF && worldKey === 'gemini';
+    var col  = isMF ? 0xff44ff : worldDef.color;
+
+    var sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 10, 10),
+      new THREE.MeshBasicMaterial({color:col})
+    );
+    var ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.32, 0.42, 18),
+      new THREE.MeshBasicMaterial({color:col, side:THREE.DoubleSide, transparent:true, opacity:0.4})
+    );
+    ring.rotation.x = -Math.PI/2;
+
+    // Label sprite above agent
+    var lsp = makeLabel(def.name, isMF ? '#ff88ff' : '#334455');
+    lsp.scale.set(5, 0.9, 1);
+    lsp.position.y = 0.7;
+
+    var grp = new THREE.Group();
+    grp.add(sphere, ring, lsp);
+    grp.position.set(def.hx, 0.5, def.hz);
+    scene.add(grp);
+
+    // UI row
+    var row = document.createElement('div');
+    row.className = 'ag ' + (isMF ? 'mf' : 'alive');
+    row.id = 'ag-'+def.id;
+    row.textContent = def.name;
+    var small = document.createElement('small');
+    small.style.cssText = 'font-size:7px;color:#2a2a2a;display:block;';
+    small.textContent = def.role;
+    row.appendChild(small);
+    el.appendChild(row);
+
+    agentObjs.push({
+      grp:grp, sphere:sphere, ring:ring, lsp:lsp,
+      smat:sphere.material, rmat:ring.material,
+      def:def, isMF:isMF,
+      ang: (i/10)*Math.PI*2,
+      r: 3 + Math.random()*5,
+      spd: 0.006 + Math.random()*0.008,
+      orbitX: def.hx, orbitZ: def.hz,
+      alive: true
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// FIRE + SMOKE
+// ═══════════════════════════════════════════════════════
+
+var fires = {}; // key -> fireObj
+
+function spawnFire(bldId, bx, by, bz, bw, bd){
+  var key = bldId;
+  if(fires[key]) return;
+  var scale = Math.min(bw,bd) * 0.5;
+  var N = 80;
+  var pos = new Float32Array(N*3);
+  var col = new Float32Array(N*3);
+  var vel = [];
+  var age = [];
+  for(var i=0;i<N;i++){
+    pos[i*3]   = bx+(Math.random()-.5)*scale;
+    pos[i*3+1] = by;
+    pos[i*3+2] = bz+(Math.random()-.5)*scale;
+    col[i*3]=1; col[i*3+1]=Math.random()*0.4; col[i*3+2]=0;
+    vel.push({x:(Math.random()-.5)*.015*scale, y:.04+Math.random()*.07*scale, z:(Math.random()-.5)*.015*scale});
+    age.push(Math.random()*80);
+  }
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',    new THREE.BufferAttribute(col,3));
+  var pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    size:.6*scale, vertexColors:true, transparent:true, opacity:.85,
+    sizeAttenuation:true, blending:THREE.AdditiveBlending, depthWrite:false
+  }));
+  scene.add(pts);
+  var light = new THREE.PointLight(0xff4400, 3*scale, 10*scale);
+  light.position.set(bx, by+1, bz);
+  scene.add(light);
+  fires[key] = {pts:pts, geo:geo, light:light, vel:vel, age:age, N:N, bx:bx, by:by, bz:bz, scale:scale};
+
+  // Darken building
+  var bo = buildingObjs[bldId];
+  if(bo){ bo.mat.color.set(0x2a0600); }
+}
+
+function killAllFires(){
+  Object.values(fires).forEach(function(f){
+    scene.remove(f.pts); scene.remove(f.light); f.geo.dispose();
+  });
+  fires = {};
+}
+
+function tickFires(frame){
+  Object.values(fires).forEach(function(f){
+    var p = f.geo.attributes.position.array;
+    var c = f.geo.attributes.color.array;
+    for(var i=0;i<f.N;i++){
+      f.age[i]++;
+      if(f.age[i]>80){
+        p[i*3]=f.bx+(Math.random()-.5)*f.scale;
+        p[i*3+1]=f.by;
+        p[i*3+2]=f.bz+(Math.random()-.5)*f.scale;
+        f.age[i]=0;
+      }
+      p[i*3]  +=f.vel[i].x; p[i*3+1]+=f.vel[i].y; p[i*3+2]+=f.vel[i].z;
+      f.vel[i].x+=(Math.random()-.5)*.002;
+      var life=f.age[i]/80;
+      c[i*3]=1; c[i*3+1]=Math.max(0,.5-life*.7); c[i*3+2]=0;
+    }
+    f.geo.attributes.position.needsUpdate=true;
+    f.geo.attributes.color.needsUpdate=true;
+    f.light.intensity=(2.5+Math.sin(frame*.18)*.8)*f.scale;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// SIMULATION STATE
+// ═══════════════════════════════════════════════════════
+
+var CUR      = 'gemini';
+var curDay   = 1;
+var playing  = false;
+var dayTimer = 0;
+var daySpeed = 200; // frames per day
+var deadSet  = {}; // agent id -> true
+var firesDoneByDay = {}; // 'd_id' -> true
+
+function resetBuildings(){
+  Object.values(buildingObjs).forEach(function(bo){
+    bo.mat.color.copy(bo.origColor);
+  });
+}
+
+function clearLog(){
+  var el = document.getElementById('log');
+  el.innerHTML = '<label>EVENT LOG</label>';
+}
+
+function pushEvent(type, text){
+  var el = document.getElementById('log');
+  var d  = document.createElement('div');
+  d.className = 'ev '+type;
+  d.textContent = text;
+  el.appendChild(d);
+  var items = el.querySelectorAll('.ev');
+  if(items.length>10) items[0].remove();
+}
+
+function updateStats(){
+  var w = WORLDS[CUR];
+  var alive = AGENTS.length - Object.keys(deadSet).length;
+  var prog  = Math.min(curDay/(w.maxDay||15), 1);
+  document.getElementById('s-alive').textContent  = alive;
+  document.getElementById('s-fires').textContent  = Object.keys(fires).length;
+  document.getElementById('s-crimes').textContent = Math.floor(prog * w.finalCrimes);
+}
+
+function updateAgentRows(){
+  AGENTS.forEach(function(def){
+    var row = document.getElementById('ag-'+def.id);
+    if(!row) return;
+    var ao  = agentObjs.find(function(a){ return a.def.id===def.id; });
+    if(!row||!ao) return;
+    var isDead = !!deadSet[def.id];
+    row.className = 'ag ' + (isDead ? 'dead' : ao.isMF ? 'mf' : 'alive');
+    ao.grp.visible = !isDead;
+  });
+}
+
+function applyDay(day){
+  var w = WORLDS[CUR];
+
+  // Fires
+  var arsons = w.arsons[day] || [];
+  arsons.forEach(function(bldId){
+    var key = day+'_'+bldId;
+    if(firesDoneByDay[key]) return;
+    firesDoneByDay[key] = true;
+    var bo = buildingObjs[bldId];
+    if(!bo) return;
+    var def = bo.def;
+    spawnFire(bldId, def.x, def.h, def.z, def.w||4, def.d||4);
+  });
+
+  // Deaths
+  var kills = w.kills[day] || [];
+  kills.forEach(function(id){ deadSet[id] = true; });
+
+  // Events
+  var evs = w.events[day] || [];
+  evs.forEach(function(ev){ pushEvent(ev[0], 'Day '+day+' — '+ev[1]); });
+
+  updateStats();
+  updateAgentRows();
+}
+
+function setDayUI(d){
+  curDay = d;
+  document.getElementById('dval').textContent = d;
+  document.getElementById('slider').value = d;
+}
+
+function rebuildToDay(day){
+  killAllFires();
+  resetBuildings();
+  deadSet = {};
+  firesDoneByDay = {};
+  agentObjs.forEach(function(a){ a.grp.visible = true; });
+  clearLog();
+  for(var d=1;d<=day;d++) applyDay(d);
+  setDayUI(day);
+  // Show only recent events
+  clearLog();
+  for(var d2=Math.max(1,day-2);d2<=day;d2++){
+    var evs = WORLDS[CUR].events[d2]||[];
+    evs.forEach(function(ev){ pushEvent(ev[0],'Day '+d2+' — '+ev[1]); });
+  }
+  updateStats();
+}
+
+function loadWorld(w){
+  killAllFires();
+  resetBuildings();
+  deadSet = {};
+  firesDoneByDay = {};
+  CUR    = w;
+  curDay = 1;
+  dayTimer = 0;
+
+  var def = WORLDS[w];
+  document.getElementById('wname').textContent = def.label;
+  document.getElementById('wname').style.color = def.hex;
+  document.querySelectorAll('.wb').forEach(function(b){
+    b.classList.toggle('on', b.dataset.w===w);
+  });
+  document.getElementById('mf').className = w==='gemini' ? 'show' : '';
+
+  buildAgentList(def, w);
+  clearLog();
+  setDayUI(1);
+  applyDay(1);
+}
+
+// ═══════════════════════════════════════════════════════
+// UI CONTROLS
+// ═══════════════════════════════════════════════════════
+
+document.querySelectorAll('.wb').forEach(function(b){
+  b.addEventListener('click', function(){ loadWorld(b.dataset.w); });
+});
+
+var playBtn = document.getElementById('b-play');
+playBtn.addEventListener('click', function(){
   playing = !playing;
   playBtn.textContent = playing ? 'PAUSE' : 'PLAY';
-  playBtn.classList.toggle('on', playing);
+  playBtn.className   = playing ? 'cb on' : 'cb';
 });
 
-document.getElementById('b-slow').addEventListener('click', () => { daySpeed = Math.min(daySpeed + 60, 600); });
-document.getElementById('b-fast').addEventListener('click', () => { daySpeed = Math.max(daySpeed - 60, 40); });
-
-document.getElementById('b-reset').addEventListener('click', () => {
-  playing = false; playBtn.textContent = 'PLAY'; playBtn.classList.remove('on');
-  rebuildToDay(1);
-  document.getElementById('s-alive').textContent = '10';
-  document.getElementById('s-crimes').textContent = '0';
-  document.getElementById('s-fires').textContent = '0';
+document.getElementById('b-slow').addEventListener('click', function(){
+  daySpeed = Math.min(daySpeed+50, 600);
+});
+document.getElementById('b-fast').addEventListener('click', function(){
+  daySpeed = Math.max(daySpeed-50, 40);
+});
+document.getElementById('b-reset').addEventListener('click', function(){
+  playing = false;
+  playBtn.textContent = 'PLAY';
+  playBtn.className   = 'cb';
   dayTimer = 0;
+  loadWorld(CUR);
 });
 
-document.getElementById('day-slider').addEventListener('input', e => {
-  playing = false; playBtn.textContent = 'PLAY'; playBtn.classList.remove('on');
+document.getElementById('slider').addEventListener('input', function(e){
+  playing = false;
+  playBtn.textContent = 'PLAY';
+  playBtn.className   = 'cb';
   rebuildToDay(parseInt(e.target.value));
 });
 
-// ── Animation ─────────────────────────────────────────────────────
-let frame = 0;
+window.addEventListener('resize', function(){
+  W = window.innerWidth; H = window.innerHeight;
+  camera.aspect = W/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+});
 
-(function loop() {
-  requestAnimationFrame(loop);
+// ═══════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════
+
+var frame = 0;
+var FLORA_IDX = 3, MIRA_IDX = 8; // indices in AGENTS
+
+function animate(){
+  requestAnimationFrame(animate);
   frame++;
-  const t = frame * 0.016;
+  var t = frame * 0.016;
 
   controls.update();
 
-  // Agents
-  agentObjs.forEach((a, i) => {
-    if (deadSet.has(i)) return;
-    a.ang += a.spd;
+  // Agent movement
+  agentObjs.forEach(function(ao, i){
+    if(!ao.alive || !ao.grp.visible) return;
+    ao.ang += ao.spd;
 
-    if (a.mf && CUR === 'gemini' && curDay >= 5) {
-      // Mira & Flora orbit each other
-      const partner = agentObjs[a.idx === MIRA ? FLORA : MIRA];
-      if (partner && !deadSet.has(partner.idx)) {
-        const la = a.ang * 2.2, lr = 1.4;
-        a.grp.position.x = partner.grp.position.x + Math.cos(la) * lr;
-        a.grp.position.z = partner.grp.position.z + Math.sin(la) * lr;
+    // Mira & Flora orbit each other from day 5 in Gemini
+    if(ao.isMF && CUR==='gemini' && curDay>=5){
+      var partnerIdx = (i===FLORA_IDX) ? MIRA_IDX : FLORA_IDX;
+      // Wait — Flora is index 3, Mira is index 8 in AGENTS
+      // But in agentObjs it's also same index
+      var partner = agentObjs[partnerIdx];
+      if(partner && partner.grp.visible){
+        var la = ao.ang * 2.2;
+        ao.grp.position.x = partner.grp.position.x + Math.cos(la)*1.6;
+        ao.grp.position.z = partner.grp.position.z + Math.sin(la)*1.6;
       }
     } else {
-      a.grp.position.x = Math.cos(a.ang) * a.r + Math.sin(a.ang * 0.4) * 2.5;
-      a.grp.position.z = Math.sin(a.ang) * a.r + Math.cos(a.ang * 0.7) * 2.5;
+      // Orbit around home position
+      ao.grp.position.x = ao.orbitX + Math.cos(ao.ang)*ao.r + Math.sin(ao.ang*.3)*1.5;
+      ao.grp.position.z = ao.orbitZ + Math.sin(ao.ang)*ao.r + Math.cos(ao.ang*.6)*1.5;
     }
-    a.grp.position.y = 0.5 + Math.sin(t * 2 + i * 0.8) * 0.12;
-    a.ring.rotation.z = t * 1.8 + i;
+    ao.grp.position.y = 0.5 + Math.sin(t*2+i*.9)*0.1;
+    ao.ring.rotation.z = t*1.8 + i;
 
     // Mira & Flora pulse during arson phase
-    if (a.mf && curDay >= 13) {
-      const p = 0.5 + Math.sin(t * 6) * 0.5;
-      a.mat.color.setRGB(1, p * 0.15, p);
-      a.ringMat.opacity = 0.25 + p * 0.6;
+    if(ao.isMF && CUR==='gemini' && curDay>=13){
+      var p = .5+Math.sin(t*6)*.5;
+      ao.smat.color.setRGB(1, p*.12, p);
+      ao.rmat.opacity = .2+p*.6;
     }
   });
 
-  // Fires
-  Object.values(liveFires).forEach(f => tickFire(f, frame));
+  tickFires(frame);
 
-  // Day tick
-  if (playing) {
+  // Lighthouse beacon rotation
+  // (already handled by point light flicker in tickFires)
+
+  // Day progression
+  if(playing){
     dayTimer++;
-    if (dayTimer >= daySpeed) {
+    if(dayTimer >= daySpeed){
       dayTimer = 0;
-      const maxDay = WORLDS[CUR].maxDay;
-      if (curDay < maxDay) {
-        const next = curDay + 1;
-        setDay(next);
+      var maxDay = WORLDS[CUR].maxDay;
+      if(curDay < maxDay){
+        var next = curDay + 1;
+        setDayUI(next);
         applyDay(next);
       } else {
         playing = false;
         playBtn.textContent = 'PLAY';
-        playBtn.classList.remove('on');
+        playBtn.className   = 'cb';
       }
     }
   }
 
   renderer.render(scene, camera);
-})();
+}
 
-// ── Resize ────────────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
-
-// ── Init ──────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────
 loadWorld('gemini');
+playing = true;
+playBtn.textContent = 'PAUSE';
+playBtn.className   = 'cb on';
+animate();
 </script>
 </body>
 </html>
