@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S0L4N4.C0RE // m3m3c01nZ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --green: #00ff41;
+    --dim-green: #00aa2a;
+    --dark-green: #003d0e;
+    --purple: #9d00ff;
+    --cyan: #00ffff;
+    --red: #ff0033;
+    --bg: #000000;
+    --amber: #ffb000;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,65,0.015) 2px,
+      rgba(0,255,65,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+    animation: scanline 8s linear infinite;
+  }
+
+  @keyframes scanline {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100vh; }
+  }
+
+  .noise {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    animation: flicker 0.15s infinite;
+  }
+
+  @keyframes flicker {
+    0%, 100% { opacity: 0.03; }
+    50% { opacity: 0.05; }
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  pre {
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* GLITCH */
+  .glitch {
+    position: relative;
+    display: inline-block;
+  }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+  }
+  .glitch::before {
+    color: var(--red);
+    animation: glitch1 3s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  }
+  .glitch::after {
+    color: var(--cyan);
+    animation: glitch2 3s infinite;
+    clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+  }
+  @keyframes glitch1 {
+    0%, 90%, 100% { transform: translate(0); }
+    92% { transform: translate(-3px, 1px); }
+    94% { transform: translate(3px, -1px); }
+    96% { transform: translate(-2px, 2px); }
+  }
+  @keyframes glitch2 {
+    0%, 88%, 100% { transform: translate(0); }
+    90% { transform: translate(3px, -2px); }
+    93% { transform: translate(-3px, 1px); }
+    97% { transform: translate(2px, -1px); }
+  }
+
+  /* BLINK */
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  .blink-slow { animation: blink 2.5s step-end infinite; }
+
+  /* PULSE */
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { text-shadow: 0 0 4px var(--green), 0 0 10px var(--green); }
+    50% { text-shadow: 0 0 10px var(--green), 0 0 30px var(--green), 0 0 60px var(--green); }
+  }
+
+  .pulse-purple { animation: pulsep 2s ease-in-out infinite; }
+  @keyframes pulsep {
+    0%, 100% { text-shadow: 0 0 4px var(--purple), 0 0 10px var(--purple); color: var(--purple); }
+    50% { text-shadow: 0 0 10px var(--purple), 0 0 30px var(--purple), 0 0 60px var(--purple); color: #cc44ff; }
+  }
+
+  .pulse-amber { animation: pulsea 2s ease-in-out infinite; }
+  @keyframes pulsea {
+    0%, 100% { text-shadow: 0 0 4px var(--amber), 0 0 10px var(--amber); color: var(--amber); }
+    50% { text-shadow: 0 0 10px var(--amber), 0 0 30px var(--amber); color: #ffd040; }
+  }
+
+  /* TYPEWRITER */
+  .typewriter {
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 2px solid var(--green);
+    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+  }
+  @keyframes typing { from { width: 0 } to { width: 100% } }
+  @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--green); } }
+
+  /* COLORS */
+  .g { color: var(--green); }
+  .d { color: var(--dim-green); }
+  .p { color: var(--purple); }
+  .c { color: var(--cyan); }
+  .r { color: var(--red); }
+  .a { color: var(--amber); }
+  .w { color: #ffffff; }
+
+  /* SECTIONS */
+  .section { margin: 40px 0; }
+
+  /* BORDER BOXES */
+  .box {
+    border: 1px solid var(--dim-green);
+    padding: 15px;
+    margin: 10px 0;
+    position: relative;
+  }
+  .box::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -8px; left: 10px;
+    background: var(--bg);
+    padding: 0 5px;
+    font-size: 11px;
+    color: var(--dim-green);
+  }
+
+  .box-purple {
+    border-color: var(--purple);
+  }
+  .box-purple::before { color: var(--purple); }
+
+  .box-amber {
+    border-color: var(--amber);
+  }
+  .box-amber::before { color: var(--amber); }
+
+  /* TICKER */
+  .ticker-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--dim-green);
+    border-bottom: 1px solid var(--dim-green);
+    padding: 6px 0;
+    margin: 20px 0;
+  }
+  .ticker {
+    display: inline-block;
+    white-space: nowrap;
+    animation: ticker 30s linear infinite;
+  }
+  @keyframes ticker {
+    0% { transform: translateX(100vw); }
+    100% { transform: translateX(-100%); }
+  }
+
+  /* LINKS */
+  a {
+    color: var(--green);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--cyan);
+    text-shadow: 0 0 8px var(--cyan);
+    text-decoration: underline;
+  }
+
+  /* COIN CARDS */
+  .coin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+  }
+
+  .coin-card {
+    border: 1px solid var(--dim-green);
+    padding: 12px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .coin-card:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 15px rgba(0,255,65,0.2);
+  }
+
+  .coin-card.purple {
+    border-color: #4d0080;
+  }
+  .coin-card.purple:hover {
+    border-color: var(--purple);
+    box-shadow: 0 0 15px rgba(157,0,255,0.2);
+  }
+
+  .coin-card.amber {
+    border-color: #5a3d00;
+  }
+  .coin-card.amber:hover {
+    border-color: var(--amber);
+    box-shadow: 0 0 15px rgba(255,176,0,0.2);
+  }
+
+  /* WARNING FLASH */
+  .warning {
+    color: var(--red);
+    animation: warnflash 0.5s step-end infinite;
+  }
+  @keyframes warnflash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* MATRIX RAIN BG HINT */
+  .matrix-hint {
+    color: var(--dark-green);
+    font-size: 10px;
+    line-height: 1.2;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* STATUS LINE */
+  .status-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(0,0,0,0.95);
+    border-top: 1px solid var(--dim-green);
+    padding: 4px 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    z-index: 1000;
+  }
+
+  /* SCROLL INDICATOR */
+  .scroll-line {
+    border-left: 1px dashed var(--dark-green);
+    padding-left: 15px;
+    margin-left: 10px;
+  }
+
+  hr.ascii {
+    border: none;
+    color: var(--dim-green);
+    text-align: center;
+    overflow: visible;
+  }
+  hr.ascii::after {
+    content: '─────────────────────────────────────────────────────────────────────────';
+    color: var(--dark-green);
+  }
+
+  .center { text-align: center; }
+  .mb { margin-bottom: 10px; }
+  .mt { margin-top: 10px; }
+
+  /* FLIP EFFECT */
+  @keyframes colorcycle {
+    0%   { color: var(--green); }
+    25%  { color: var(--cyan); }
+    50%  { color: var(--purple); }
+    75%  { color: var(--amber); }
+    100% { color: var(--green); }
+  }
+  .rainbow { animation: colorcycle 4s linear infinite; }
+
+  /* DEATH SCROLL */
+  @keyframes drift {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+    100% { transform: translateY(0px); }
+  }
+  .drift { animation: drift 6s ease-in-out infinite; }
+
+  .small { font-size: 11px; }
+  .tiny { font-size: 10px; }
+
+  /* FOOTER SPACE */
+  .footer-pad { padding-bottom: 60px; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <span class="d">S0L.C0RE v0.0.1 // <span class="blink g">■</span> LIVE</span>
+  <span class="d">N3TW0RK: <span class="g">S0LANA MAINNET</span></span>
+  <span class="d">BL0CK: <span class="a">∞</span></span>
+  <span class="d tiny" id="clock">--:--:--</span>
+</div>
+
+<div class="container footer-pad">
+
+<!-- MATRIX BACKGROUND TEXT -->
+<div class="matrix-hint center tiny" style="letter-spacing:3px; margin-bottom:5px;">
+01001101 01000101 01001101 01000101 00100000 01000011 01001111 01001001 01001110 01011010
+</div>
+
+<!-- ═══════════════ HEADER ASCII ═══════════════ -->
+<div class="section center">
+<pre class="pulse" style="display:inline-block;">
+ ██████╗  ██████╗ ██╗      ██╗  ██╗███╗  ██╗ █████╗
+██╔════╝ ██╔═══██╗██║      ██║  ██║████╗ ██║██╔══██╗
+╚█████╗  ██║   ██║██║      ███████║██╔██╗██║███████║
+ ╚═══██╗ ██║   ██║██║      ██╔══██║██║╚████║██╔══██║
+██████╔╝ ╚██████╔╝███████╗ ██║  ██║██║ ╚███║██║  ██║
+╚═════╝   ╚═════╝ ╚══════╝ ╚═╝  ╚═╝╚═╝  ╚══╝╚═╝  ╚═╝
+</pre>
+<br>
+<pre class="pulse-purple" style="display:inline-block;">
+███╗   ███╗███████╗███╗   ███╗███████╗ ██████╗ ██████╗ ██╗███╗  ██╗███████╗
+████╗ ████║██╔════╝████╗ ████║██╔════╝██╔════╝██╔═══██╗██║████╗ ██║╚════██║
+██╔████╔██║█████╗  ██╔████╔██║█████╗  ██║     ██║   ██║██║██╔██╗██║  ███╔═╝
+██║╚██╔╝██║██╔══╝  ██║╚██╔╝██║██╔══╝  ██║     ██║   ██║██║██║╚████║ ███╔══╝
+██║ ╚═╝ ██║███████╗██║ ╚═╝ ██║███████╗╚██████╗╚██████╔╝██║██║ ╚███║███████╗
+╚═╝     ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝╚═╝  ╚══╝╚══════╝
+</pre>
+</div>
+
+<div class="center mb mt">
+  <span class="d">[ </span><span class="glitch a" data-text="D3G3N3R4T3 0R D1E">D3G3N3R4T3 0R D1E</span><span class="d"> ]</span>
+</div>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="d">░░░ </span>
+    <span class="a">$B0NK</span><span class="d"> +420.69% ░░ </span>
+    <span class="g">$W1F</span><span class="d"> +69.0% ░░ </span>
+    <span class="c">$P0PC4T</span><span class="d"> +133.7% ░░ </span>
+    <span class="p">$MYR0</span><span class="d"> +88.8% ░░ </span>
+    <span class="r">$S4M0</span><span class="d"> -13.37% ░░ </span>
+    <span class="a">$J33T</span><span class="d"> +∞% ░░ </span>
+    <span class="g">$SC0FF</span><span class="d"> +777% ░░ </span>
+    <span class="c">$D0GW1F</span><span class="d"> +42069% ░░ </span>
+    <span class="p">$B00MER</span><span class="d"> -100% ░░ </span>
+    <span class="r warning">$RUGD // W4RN1NG</span><span class="d"> ░░░ </span>
+    <span class="a">$B0NK</span><span class="d"> +420.69% ░░ </span>
+    <span class="g">$W1F</span><span class="d"> +69.0% ░░ </span>
+    <span class="c">$P0PC4T</span><span class="d"> +133.7% ░░ </span>
+    <span class="p">$MYR0</span><span class="d"> +88.8% ░░ </span>
+  </div>
+</div>
+
+<!-- ═══════════════ ENTRY PORTAL ASCII ═══════════════ -->
+<div class="section">
+<pre class="d center">
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                    ░▒▓  ENT3R TH3 V0ID  ▓▒░                             ║
+║                                                                          ║
+╠══════════════════════════════════════════════════════════════════════════╣</pre>
+<pre class="center drift" style="color:#1a6600;">
+║                                                                          ║
+║         .  .  .  . * .   . * . . .  *  .   *    .    .    .             ║
+║     .   *    __/\__     .    .   .    .     *  .    .    .    *          ║
+║       .    _/      \_    *     .   *    .     .   *   .    .             ║
+║          _/  S0L4N4 \_     .     .    .   *    .    .    .   .           ║
+║    .    / .  .  .  . .\  .   *    .      .   .    *    .    .            ║
+║        |    M3M3 Z0N3  |    .   .    .      .   .    .    *    .         ║
+║        |    ________   |  .    .   .    *     .    .    .    .           ║
+║        |   | ☠  ☠  |  |    *    .    .    .    *    .    .    .          ║
+║        |   |  ☠☠☠  |  |  .    .    .    .    .    .    *    .            ║
+║        |   |_______|  |    .    .    .    *    .    .    .    .           ║
+║        |   ___   ___  |  *    .    .    .    .    .    .    .             ║
+║        |  |   | |   | |    .    .    *    .    .    .    .    .           ║
+║        |  |DGN| |WIF| |  .    .    .    .    .    *    .    .             ║
+║         \  \___/ \__/ /    .    .    .    .    .    .    .    .           ║
+║     .    \          /   *    .    .    .    .    .    .    .               ║
+║           \________/  .    .    .    .    *    .    .    .    .            ║
+║                                                                           ║
+╚══════════════════════════════════════════════════════════════════════════╝</pre>
+</div>
+
+<!-- WARNING BOX -->
+<div class="center mb" style="margin: 10px 0;">
+<pre class="r" style="display:inline-block;">
+  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\
+
+  N0T F1N4NC14L 4DV1C3. TH1S 1S P4PER M0NEY G0BL1N SP3AK.
+  Y0U W1LL L0SE 3V3RYTH1NG 4ND Y0U W1LL BE H4PPY.
+
+  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\  /!\</pre>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ ABOUT ═══════════════ -->
+<div class="section scroll-line">
+<div class="box" data-label="// 4B0UT TH1S PL4C3">
+<pre class="g">
+   ┌──────────────────────────────────────────────────────────┐
+   │  W3LC0M3 T0 TH3 D4RK P00L 0F S0L4N4 M3M3C01NZ            │
+   │                                                           │
+   │  wh3r3 rugz 4r3 c3rt41n  .  pr0f1tz 4r3 d3lus10n4l       │
+   │  4nd 3v3ry c0in h4s 4 d0g w34r1ng 4 h4t                  │
+   │                                                           │
+   │  >> y0u f0und th3 t3rm1n4l                                │
+   │  >> th3 t3rm1n4l f0und y0u                                │
+   │  >> th3r3 1z n0 3x1t 0nly j33t1ng                        │
+   └──────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</div>
+
+<!-- ═══════════════ COIN DIRECTORY ═══════════════ -->
+<div class="section">
+<div class="center mb">
+<span class="d">▓▓▓ </span><span class="rainbow">D1R3KT0RY 0F D3G3NZ</span><span class="d"> ▓▓▓</span>
+</div>
+
+<div class="coin-grid">
+
+  <!-- BONK -->
+  <div class="coin-card amber">
+    <pre class="a">
+  ██████╗  ██████╗ ███╗  ██╗██╗  ██╗
+  ██╔══██╗██╔═══██╗████╗ ██║██║ ██╔╝
+  ██████╔╝██║   ██║██╔██╗██║█████╔╝
+  ██╔══██╗██║   ██║██║╚████║██╔═██╗
+  ██████╔╝╚██████╔╝██║ ╚███║██║  ██╗
+  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝╚═╝  ╚═╝</pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="a">▓▓▓▓▓▓▓▓▓▓</span> MAX      │
+   │ D3GEN:   <span class="a">▓▓▓▓▓▓▓▓░░</span> H1GH    │
+   │ RUG:     <span class="g">▓▓░░░░░░░░</span> L0W      │
+   │ M4RK3T:  <span class="a">H1GH S3NT1M3NT</span>    │
+   └─────────────────────────────┘
+   TH3 0G S0L4N4 D0G M3M3.
+   B0NK Y0UR W4Y T0 G4INZ
+   0R ST4RVE W1TH TH3 R3ST.
+    </pre>
+  </div>
+
+  <!-- WIF -->
+  <div class="coin-card purple">
+    <pre class="p">
+  ██╗    ██╗ ██╗ ███████╗
+  ██║    ██║ ██║ ██╔════╝
+  ██║ █╗ ██║ ██║ █████╗
+  ██║███╗██║ ██║ ██╔══╝
+  ╚███╔███╔╝ ██║ ██║
+   ╚══╝╚══╝  ╚═╝ ╚═╝     </pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="p">▓▓▓▓▓▓▓▓▓░</span> H1GH    │
+   │ D3GEN:   <span class="p">▓▓▓▓▓▓▓▓▓▓</span> MAX      │
+   │ RUG:     <span class="g">▓▓▓░░░░░░░</span> L0W      │
+   │ V1B3S:   <span class="p">D0G W34RS H4T</span>     │
+   └─────────────────────────────┘
+   D0GW1F H4T. TH4TZ 1T.
+   TH4TZ TH3 WH0L3 PR0J3CT.
+   4ND 1T W0RK3D. G0D H3LP.
+    </pre>
+  </div>
+
+  <!-- POPCAT -->
+  <div class="coin-card">
+    <pre class="c">
+  ██████╗  ██████╗ ██████╗  ██████╗ 4T
+  ██╔══██╗██╔═══██╗██╔══██╗██╔════╝
+  ██████╔╝██║   ██║██████╔╝██║
+  ██╔═══╝ ██║   ██║██╔═══╝ ██║
+  ██║     ╚██████╔╝██║     ╚██████╗
+  ╚═╝      ╚═════╝ ╚═╝      ╚═════╝  </pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="c">▓▓▓▓▓▓▓░░░</span> MED      │
+   │ M3M3:    <span class="c">▓▓▓▓▓▓▓▓▓▓</span> MAX      │
+   │ RUG:     <span class="g">▓▓▓▓░░░░░░</span> POSS     │
+   │ V1B3S:   <span class="c">C4T G0 P0P</span>        │
+   └─────────────────────────────┘
+   Y0U H34RD TH3 S0UND.
+   Y0U F3LT TH3 PUMP.
+   N0W Y0U 4R3 TH3 C4T.
+    </pre>
+  </div>
+
+  <!-- MYRO -->
+  <div class="coin-card purple">
+    <pre class="p">
+  ███╗   ███╗██╗   ██╗██████╗  ██████╗
+  ████╗ ████║╚██╗ ██╔╝██╔══██╗██╔═══██╗
+  ██╔████╔██║ ╚████╔╝ ██████╔╝██║   ██║
+  ██║╚██╔╝██║  ╚██╔╝  ██╔══██╗██║   ██║
+  ██║ ╚═╝ ██║   ██║   ██║  ██║╚██████╔╝
+  ╚═╝     ╚═╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝ </pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="p">▓▓▓▓▓░░░░░</span> MED      │
+   │ D3GEN:   <span class="p">▓▓▓▓▓▓▓░░░</span> H1GH    │
+   │ RUG:     <span class="r">▓▓▓▓▓░░░░░</span> MED      │
+   │ 4GE:     <span class="p">S0L4N4 L4BZ D0G</span>  │
+   └─────────────────────────────┘
+   AN4TOLY'S D0G 0WNS
+   M0R3 S0L TH4N Y0U.
+   4CC3PT TH1S TRUTH.
+    </pre>
+  </div>
+
+  <!-- SAMO -->
+  <div class="coin-card">
+    <pre class="g">
+   ██████╗  █████╗ ███╗   ███╗ ██████╗
+  ██╔════╝ ██╔══██╗████╗ ████║██╔═══██╗
+  ╚█████╗  ███████║██╔████╔██║██║   ██║
+   ╚═══██╗ ██╔══██║██║╚██╔╝██║██║   ██║
+  ██████╔╝ ██║  ██║██║ ╚═╝ ██║╚██████╔╝
+  ╚═════╝  ╚═╝  ╚═╝╚═╝     ╚═╝ ╚═════╝ </pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="g">▓▓▓▓░░░░░░</span> LOW      │
+   │ D3GEN:   <span class="g">▓▓▓░░░░░░░</span> L0W      │
+   │ RUG:     <span class="r">▓▓▓▓▓▓░░░░</span> H1GH    │
+   │ ST4TUS:  <span class="r">ST1LL H3R3?</span>       │
+   └─────────────────────────────┘
+   TH3 S4M0Y3D D0G.
+   TH3 PUMP N3V3R C4M3.
+   W3 W41T 3T3RN4LLY.
+    </pre>
+  </div>
+
+  <!-- JEET -->
+  <div class="coin-card amber">
+    <pre class="a">
+        _ 3 3 T _
+     _ | 3 3 3 | _
+    |  | _   _ |  |
+    |  ||J| |T||  |
+    |  ||___||  |  |
+    |   \_____/   |
+    |   J33T1NG   |
+    |_____________|
+    $J33T // 3X1T </pre>
+    <pre class="d small">
+   ┌─────────────────────────────┐
+   │ S1GNAL:  <span class="a">▓▓▓▓▓▓▓▓▓▓</span> S3LL   │
+   │ D3GEN:   <span class="r">▓▓▓▓▓▓▓▓▓▓</span> P4N1C  │
+   │ RUG:     <span class="r">▓▓▓▓▓▓▓▓▓▓</span> C3RT   │
+   │ ST4TUS:  <span class="r">DUMP 1T N0W</span>      │
+   └─────────────────────────────┘
+   TH3 C01N 4B0UT S3LL1NG.
+   J33TING 1Z 4N 4RT F0RM.
+   4ND Y0U'R3 TH3 C4NV4S.
+    </pre>
+  </div>
+
+</div>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ PUMP.FUN PORTAL ═══════════════ -->
+<div class="section">
+<div class="center mb">
+<pre class="d" style="display:inline-block;">
+╔═══════════════════════════════════════════════════════╗
+║          ░░░   PUM P . F U N   P 0 R T 4 L   ░░░     ║
+╚═══════════════════════════════════════════════════════╝</pre>
+</div>
+
+<pre class="g center">
+   ___________________________________________
+  |                                           |
+  |   ████████╗██╗  ██╗███████╗               |
+  |   ╚══██╔══╝██║  ██║██╔════╝               |
+  |      ██║   ███████║█████╗                 |
+  |      ██║   ██╔══██║██╔══╝                 |
+  |      ██║   ██║  ██║███████╗               |
+  |      ╚═╝   ╚═╝  ╚═╝╚══════╝               |
+  |    ________________                        |
+  |   | M4CH1N3        |  <span class="r blink">◄ INSERT C01N</span>     |
+  |   |________________|                       |
+  |                                            |
+  |   R3M0V3Z L1QU1D1TY RUG 1N <span class="a">3 STEPz:</span>     |
+  |                                            |
+  |   [1] <span class="a">D3PLOY T0K3N</span>  // <span class="d">5 S0L</span>             |
+  |   [2] <span class="p">SHILL T0 FR13NDZ</span> // <span class="d">L0SE FR13NDZ</span>  |
+  |   [3] <span class="r">3X1T LIQ</span>       // <span class="d">3T3RN4L SH4M3</span>  |
+  |                                            |
+  |   <span class="c">M4RK3T C4P CURV3:</span> 69K USD T0 R4DICAT3  |
+  |___________________________________________|</pre>
+</div>
+
+<!-- ═══════════════ THE RITUAL ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="p pulse-purple">TH3 D3G3N R1TU4L</span><span class="d"> ▓▓▓</span>
+</div>
+
+<div class="box box-purple" data-label="// ST3PZ">
+<pre class="p">
+  ST3P  1  ──  0P3N TW1TT3R 4T 3:00 4M
+  ST3P  2  ──  S33 SH1LL TW33T FR0M 4CC0UNT W1TH 12 F0LL0W3RZ
+  ST3P  3  ──  SP3ND 3 S0L 0N N3W T0K3N
+  ST3P  4  ──  PUMP WH1L3 W4TCH1NG CHART 4T 4X
+  ST3P  5  ──  T3LL N0 0N3. T3LL 3V3RY0N3.
+  ST3P  6  ──  S33 C4NDL3 G0 R3D
+  ST3P  7  ──  D3V W4LL3T DUMP3D
+  ST3P  8  ──  P0ST "W4GM1" 4NYW4Y
+  ST3P  9  ──  R3P34T FR0M ST3P 1
+  ST3P ∞  ──  Y0U N3V3R L34RN.  W3 N3V3R L34RN.
+</pre>
+</div>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ SOLANA CHAIN ASCII ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="g pulse">TH3 CH41N</span><span class="d"> ▓▓▓</span>
+</div>
+
+<pre class="center d">
+        [BL0CK]──[BL0CK]──[BL0CK]──[BL0CK]──[BL0CK]
+           │        │        │        │        │
+           ▼        ▼        ▼        ▼        ▼
+        [TX: <span class="a">B0NK</span>][TX: <span class="p">W1F</span>][TX: <span class="c">POP</span>][TX: <span class="r">RUG</span>][TX: <span class="g">FR33</span>]
+           │        │        │        │        │
+           └────────┴────────┴────────┴────────┘
+                          │
+                          ▼
+                    [Y0U L0ST]
+</pre>
+
+<pre class="center tiny" style="color: #0d3300; margin-top: 5px;">
+4000 TPS // SUB-SEC 3 FINALITY // 4ND YET S0M3H0W ST1LL R3VT
+P3RF3CT T3CH T0 L0SE M0N3Y FAST3R THAN EV3R B3F0R3
+SOL: THE HIGHWAY TO BAGS (EMPTY)
+</pre>
+</div>
+
+<!-- ═══════════════ WALLET CONNECT FAKE ═══════════════ -->
+<div class="section">
+<div class="box box-amber" data-label="// W4LL3T C0NN3CT">
+<pre class="a center">
+   ╔══════════════════════════════════════════════╗
+   ║                                              ║
+   ║   <span class="w">C0NN3CT Y0UR W4LL3T T0 C0NT1NU3</span>          ║
+   ║                                              ║
+   ║   ┌──────────┐  ┌──────────┐  ┌──────────┐  ║
+   ║   │ PH4NT0M  │  │  S0LAR3  │  │  BACKP4K │  ║
+   ║   │  👻       │  │  ☀️       │  │  🎒       │  ║
+   ║   │ [C0NN3CT]│  │ [C0NN3CT]│  │ [C0NN3CT]│  ║
+   ║   └──────────┘  └──────────┘  └──────────┘  ║
+   ║                                              ║
+   ║   <span class="r small">! W4RN1NG: C0NN3CT1NG = C0NS3NT1NG T0</span>     ║
+   ║   <span class="r small">  4LL3G3D RUGZ, PUMP4ND DUMPZ & S4DN3SS</span>   ║
+   ║                                              ║
+   ╚══════════════════════════════════════════════╝</pre>
+</div>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ LORE ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="c">S4CR3D T3XTZ</span><span class="d"> ▓▓▓</span>
+</div>
+
+<div class="box" data-label="// PR0PH3C13Z">
+<pre class="g small">
+
+  "W3 4R3 ALL G0ING T0 M4K3 1T"
+            — 4N0NYM0US, 2 H0URZ B3F0R3 RUG PULL
+
+  "TH1S 1S TH3 W4Y"
+            — GUY H0LD1NG 4 J33T3D T0K3N 4T -98%
+
+  "BUY TH3 D1P"
+            — TRUTH, BU7 WH1CH D1P? TH3R3 4R3 5000 D1PZ
+
+  "GM"
+            — TH3 0NLY TH1NG WE K3EP
+
+  "NGM1"
+            — N0T G0ING T0 M4K3 1T (YOU KNOW WHO YOU ARE)
+
+  "1 S0L 4ND 4 DR34M"
+            — B4SED. 4LS0 TH3 PR1C3 T0 L4UNCH
+
+  "TH3 T3CH 1Z 4M4Z1NG"
+            — Y0U, 4S TH3 PR1C3 G0ES T0 Z3R0
+
+</pre>
+</div>
+</div>
+
+<!-- ═══════════════ MEMECOIN GENERATOR ASCII ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="rainbow">M3M3C01N G3N3R4T0R 3000™</span><span class="d"> ▓▓▓</span>
+</div>
+
+<pre class="d center">
+  ┌──────────────────────────────────────────────────────┐
+  │  STEP 1: PH4S3 Y0UR M3M3C01N N4M3                   │
+  │                                                       │
+  │  [  D0G/C4T  ] + [  H4T/GL4SS3Z/SH0ES  ] + [  Z  ]  │
+  │         +                                             │
+  │  [ S0L4N4 / S0L / B0NK / PH4NT0M ]                  │
+  │         =                                             │
+  │  <span class="a">$[Y0UR L4UNCHING SHI] </span>  T0K3N T1CK3R                │
+  │                                                       │
+  │  STEP 2: MINT 1 TR1LL10N T0K3NS                      │
+  │  STEP 3: K33P 80% F0R D3V (TEAm aLLoc)              │
+  │  STEP 4: P0ST "N0 T3AM 4LL0C4T10N" 0N TW1TT3R       │
+  │  STEP 5: PR4Y                                         │
+  └──────────────────────────────────────────────────────┘</pre>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ HALL OF RUINS ═══════════════ -->
+<div class="section">
+<div class="center mb">
+  <span class="d">▓▓▓ </span><span class="r warning">H4LL 0F RU1NZ</span><span class="d"> ▓▓▓</span>
+</div>
+
+<pre class="r small center">
+  ╔════════════════════════════════════════════════════╗
+  ║           IN M3M0R1AM // TH3 RUGG3D                ║
+  ╠════════════════════════════════════════════════════╣
+  ║                                                    ║
+  ║   $SQUID    ──  RIP 2021  ──  "TRUSTMEBRO.SOL"    ║
+  ║   $LUNA     ──  RIP 2022  ──  "ST4BL3 M4TH"       ║
+  ║   $SLERF    ──  RIP 2024  ──  "BUR N3D LP ACC"     ║
+  ║   $BOME     ──  RIP 2024  ──  "G4M3 N0T L4UNCH3D" ║
+  ║   $HAWK     ──  RIP 2024  ──  "SOL SL1PP4GE"      ║
+  ║   [Y0UR B4G] ─  RIP ????  ──  "NGM1"              ║
+  ║                                                    ║
+  ║   <span class="d">may they rest in the mempool forever</span>           ║
+  ╚════════════════════════════════════════════════════╝</pre>
+</div>
+
+<!-- ═══════════════ FINAL ASCII ═══════════════ -->
+<div class="section">
+<pre class="center drift" style="color: #004d14;">
+                          .    *    .    .    *
+              .    .    .   .    .    .    .
+          *      .    .    .    *    .    .    .
+     .  .   .  ____  .   .   .   .   .    *    .
+        .   . /    \ .  .   .  .   .   .   .   .
+      .    . /  ☠️  ☠️\ .   .    .   .    .    .
+       *   / ________ \.  .   *   .   .   .   .
+          | | $B0NK$ | |  .   .    .   .   .
+          | |  🐕🐕🐕  | |    .  .   .   *   .
+          | |_________| |  .    .    .    .
+          |  ___ ___   |   .  .   .   .   .   .
+          | |SOL|WIF|  | .   .    *    .    .    .
+          |  \_/ \_/   |    .   .   .   .   .
+    .     |_____________| .   .    .    .    .    .
+    . .  .                   .   .   *    .    .
+        .    .    .    .   .   .    .    .    .   *
+</pre>
+<div class="center mt mb">
+  <span class="d">[ </span><span class="g pulse">W3 4R3 4LL G0ING T0 M4K3 1T</span><span class="d"> ]</span>
+  <br>
+  <span class="d tiny">(w3 4r3 n0t)</span>
+</div>
+</div>
+
+<hr class="ascii">
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<div class="section center tiny">
+<pre class="d">
+  ╔══════════════════════════════════════════════════════╗
+  ║  S0L4N4.M3M3C0R3 // N0 C0PYRIGHT // ST34L 3V3RYTH1NG ║
+  ║  M4D3 W1TH: L0V3 • D3SPR4T10N • 3 4M • C0FF33 •  RUG ║
+  ║                                                      ║
+  ║  <span class="r">NFA. D0 Y0UR 0WN R3SE4RCH. (Y0U W0N'T)</span>           ║
+  ║                                                      ║
+  ║  V1S1T0RZ: <span class="a">0000420</span>  // L4ST RUG: <span class="r blink">R1GHT N0W</span>       ║
+  ╚══════════════════════════════════════════════════════╝
+</pre>
+<pre class="d tiny" style="margin-top:5px;">
+  [<a href="#">H0M3</a>] [<a href="#">C01NZ</a>] [<a href="#">RUG M4P</a>] [<a href="#">D3G3N L0R3</a>] [<a href="#">3X1T</a>]
+</pre>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// Clock
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  const el = document.getElementById('clock');
+  if (el) el.textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Random glitch effect on page
+setInterval(() => {
+  if (Math.random() < 0.1) {
+    document.body.style.transform = `skewX(${(Math.random()-0.5)*0.5}deg)`;
+    setTimeout(() => { document.body.style.transform = 'none'; }, 80);
+  }
+}, 2000);
+
+// Random pixel noise flicker
+const noise = document.querySelector('.noise');
+setInterval(() => {
+  if (noise) noise.style.opacity = (0.02 + Math.random() * 0.04).toFixed(3);
+}, 120);
+</script>
+</body>
+</html>
