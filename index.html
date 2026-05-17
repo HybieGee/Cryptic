@@ -1184,6 +1184,7 @@ async function connectWallet(type) {
   try {
     const resp = await provider.connect();
     connectedWallet = resp.publicKey.toString();
+    localStorage.setItem('walletAddress', connectedWallet);
     updateWalletUI();
     addLine(`<span class="g">[ W4LL3T ]</span> <span class="g">C0NN3CT3D: ${connectedWallet.slice(0,8)}...${connectedWallet.slice(-8)}</span>`);
   } catch(e) {
@@ -1196,6 +1197,7 @@ function connectWalletPrompt() {
     const provider = window.phantom?.solana || window.solana;
     if (provider?.disconnect) provider.disconnect();
     connectedWallet = null;
+    localStorage.removeItem('walletAddress');
     updateWalletUI();
     addLine(`<span class="d">[ W4LL3T ]</span> <span class="d">W4LL3T D1SC0NN3CT3D.</span>`);
   } else {
@@ -1422,6 +1424,7 @@ async function rollQuest() {
   const quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
   const qText = quest.text.replace(/\{T\}/g, tokenSymbol);
   currentQuest = { ...quest, startedAt: Date.now() };
+  localStorage.setItem('currentQuest', JSON.stringify(currentQuest));
   document.getElementById('verifyBtn').style.display = '';
   addLine(`<span class="p">╔═ QU3ST 4SS1GN3D ═╗</span>`);
   addLine(`<span class="a">║ ${esc(qText)}</span>`);
@@ -1460,6 +1463,7 @@ async function verifyQuest() {
       addLine(`<span class="g">╚══════════════════╝</span>`);
       chatHistory.push({ role: 'user', content: 'My quest has been verified on-chain. I held my tokens and completed the quest. Give me a short victory blessing.' });
       currentQuest = null;
+      localStorage.removeItem('currentQuest');
       document.getElementById('verifyBtn').style.display = 'none';
       await query();
     } else {
@@ -1500,7 +1504,39 @@ document.getElementById('termInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendMessage();
 });
 
+// ── Restore state across refreshes / redeploys ──
+async function restoreState() {
+  // Restore active quest from localStorage
+  const savedQuest = localStorage.getItem('currentQuest');
+  if (savedQuest) {
+    try {
+      currentQuest = JSON.parse(savedQuest);
+      document.getElementById('verifyBtn').style.display = '';
+      const questName = currentQuest.id.startsWith('hold_')
+        ? `H0LD ${currentQuest.duration / 3600000}HR`
+        : `MC $${currentQuest.mcTarget >= 1e6 ? currentQuest.mcTarget/1e6+'M' : currentQuest.mcTarget/1000+'K'}`;
+      addLine(`<span class="d">[ R3ST0R3 ]</span> <span class="d">4CT1V3 QU3ST R3L04D3D: ${questName}. H1T V3R1FY WH3N R34DY.</span>`);
+    } catch(e) {
+      localStorage.removeItem('currentQuest');
+    }
+  }
+
+  // Silent wallet reconnect — no popup, only works if user previously authorized
+  const provider = window.phantom?.solana || window.solana;
+  if (provider) {
+    try {
+      const resp = await provider.connect({ onlyIfTrusted: true });
+      connectedWallet = resp.publicKey.toString();
+      localStorage.setItem('walletAddress', connectedWallet);
+      updateWalletUI();
+    } catch(e) {
+      // Not previously authorized — stay disconnected silently
+    }
+  }
+}
+
 loadConfig();
+restoreState();
 </script>
 </body>
 </html>
