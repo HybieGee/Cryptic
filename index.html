@@ -290,19 +290,19 @@ var AGENT_DEFS=[
 ];
 
 var SHOPS=[
-  {id:'market',  name:'MARKET',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:28,z:18},  desc:'Supplies for the digital age.',
+  {id:'market',  name:'MARKET',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:32,z:22},  desc:'Supplies for the digital age.',
    items:[{name:'PROTEIN PACK',price:5,desc:'20 energy units'},{name:'WATER RATION',price:3,desc:'Hydration · 1 day'},{name:'TOOL KIT',price:15,desc:'General purpose tools'},{name:'DATA CACHE',price:12,desc:'50MB encrypted storage'}]},
-  {id:'casino',  name:'CASINO',       colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-32,z:16}, desc:'Luck is just probability you haven\'t modelled yet.'},
-  {id:'weapons', name:'WEAPONS STORE',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:22,z:-28}, desc:'Self-defense in a collapsing world.',
+  {id:'casino',  name:'CASINO',       colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-36,z:28}, desc:'Luck is just probability you haven\'t modelled yet.'},
+  {id:'weapons', name:'WEAPONS STORE',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:28,z:-32}, desc:'Self-defense in a collapsing world.',
    items:[{name:'STUN BATON',price:40,desc:'Non-lethal · 1m range'},{name:'FLARE GUN',price:25,desc:'Signal or blind targets'},{name:'MACHETE',price:30,desc:'Cutting · close defense'},{name:'SUPPRESSOR',price:80,desc:'Quieter operations'},{name:'RIOT SHIELD',price:65,desc:'Frontal protection'}]},
-  {id:'bank',    name:'BANK',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-22,z:-18},desc:'ComputeCredit exchange and ledger.',
+  {id:'bank',    name:'BANK',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-24,z:-24},desc:'ComputeCredit exchange and ledger.',
    items:[{name:'CC TRANSFER',price:0,desc:'Send credits to any agent'},{name:'CC LOAN',price:0,desc:'50 CC at 10% interest'},{name:'LEDGER AUDIT',price:5,desc:'Full transaction history'},{name:'CC BOND',price:50,desc:'7-day lock · 8% yield'}]},
-  {id:'pharmacy',name:'PHARMACY',     colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:44,z:32},  desc:'Medical and cognitive enhancements.',
+  {id:'pharmacy',name:'PHARMACY',     colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:55,z:45},  desc:'Medical and cognitive enhancements.',
    items:[{name:'MEDKIT',price:20,desc:'Full health restore'},{name:'STIMULANT',price:15,desc:'+50% speed · 60s'},{name:'ANTIDOTE',price:10,desc:'Clears all status effects'},{name:'NEURAL PATCH',price:35,desc:'+20% cognition · 24h'}]},
-  {id:'blackmarket',name:'BLACK MARKET',colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-44,z:-38},desc:'Unauthorized. Mira shops here.',
+  {id:'blackmarket',name:'BLACK MARKET',colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-52,z:-44},desc:'Unauthorized. Mira shops here.',
    items:[{name:'ARSON KIT',price:200,desc:'Mira\'s weapon of choice'},{name:'DATA TAP',price:150,desc:'Unauthorized surveillance'},{name:'GOV. OVERRIDE',price:500,desc:'Vote manipulation tool'},{name:'BLACKBOX ACCESS',price:350,desc:'Encrypted agent channel'}]},
-  {id:'library', name:'LIBRARY',      colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:5,z:44},   desc:'Records of the 15 days. Enter if you want the truth.'},
-  {id:'townhall',name:'TOWN HALL',    colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:0,z:-44},  desc:'Governance hub. Three amendments. 683 crimes.'},
+  {id:'library', name:'LIBRARY',      colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:10,z:58},  desc:'Records of the 15 days. Enter if you want the truth.'},
+  {id:'townhall',name:'TOWN HALL',    colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:-8,z:-56}, desc:'Governance hub. Three amendments. 683 crimes.'},
 ];
 
 // ─── SCENE ─────────────────────────────────────────────
@@ -339,6 +339,12 @@ var groundRay=new THREE.Raycaster(),wallRay=new THREE.Raycaster();
 var DOWN=new THREE.Vector3(0,-1,0);
 var _normalMatrix=new THREE.Matrix3(),_wNorm=new THREE.Vector3(),_proj=new THREE.Vector3();
 
+function setLoadBar(pct,label){
+  document.getElementById('load-bar-inner').style.width=pct+'%';
+  document.getElementById('load-pct').textContent=pct+'%';
+  if(label)document.getElementById('load-label').textContent=label;
+}
+
 var loader=new THREE.GLTFLoader();
 loader.load(CFG.CITY_MODEL,
   function(gltf){
@@ -351,15 +357,20 @@ loader.load(CFG.CITY_MODEL,
     world.position.x=-modelCenter.x;world.position.y=-modelBounds.min.y;world.position.z=-modelCenter.z;
     scene.add(world);world.updateMatrixWorld(true);
     modelBounds.setFromObject(world);modelBounds.getCenter(modelCenter);modelBounds.getSize(modelSize);
-    // Filter to structurally large meshes for wall raycasts (skip tiny props/decals)
     var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
     groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
-    document.getElementById('loading').style.display='none';
-    document.getElementById('spawn').style.display='flex';
-    previewAnimate();
+    // City done — now load all 5 agent models sequentially before showing spawn
+    setLoadBar(50,'LOADING AGENTS');
+    var agQ=AGENT_DEFS.slice(),agN=0;
+    (function nextAg(){
+      if(!agQ.length){setLoadBar(100,'READY');document.getElementById('loading').style.display='none';document.getElementById('spawn').style.display='flex';previewAnimate();return;}
+      var def=agQ.shift();
+      setLoadBar(50+agN*10,'LOADING '+def.name);
+      loader.load(def.model,function(g2){agentModels[def.id]=g2;agN++;nextAg();},null,function(){agentModels[def.id]=null;agN++;nextAg();});
+    })();
   },
-  function(xhr){if(xhr.total){var p=Math.round(xhr.loaded/xhr.total*100);document.getElementById('load-bar-inner').style.width=p+'%';document.getElementById('load-pct').textContent=p+'%';}},
+  function(xhr){if(xhr.total)setLoadBar(Math.round(xhr.loaded/xhr.total*50),'LOADING CITY');},
   function(e){console.error('City load error',e);}
 );
 
@@ -469,24 +480,7 @@ var agentModels={};  // loaded GLTF per agent id
 var agentCheckIdx=0;
 var AGENT_TICKER_LINES=['visiting the Market','browsing the Black Market','loitering near the Bank','observing the Casino','at the Pharmacy','near the Weapons Store','in the Library','outside Town Hall','wandering the district','watching the fires','patrolling the plaza'];
 
-function loadAgentModels(){
-  // Load one at a time to avoid GPU/network spike that causes 30s lag on entry
-  var queue=AGENT_DEFS.slice();
-  function loadNext(){
-    if(!queue.length)return;
-    var def=queue.shift();
-    loader.load(def.model,
-      function(gltf){
-        agentModels[def.id]=gltf;
-        agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag,gltf);});
-        loadNext();
-      },
-      null,
-      function(){agentModels[def.id]=null;loadNext();}
-    );
-  }
-  setTimeout(loadNext,2000);
-}
+function loadAgentModels(){/* models pre-loaded during loading screen */}
 
 function swapOrbToModel(ag,gltf){
   if(!ag.orbMode)return;
@@ -535,7 +529,7 @@ function swapOrbToModel(ag,gltf){
 
 function spawnAgents(streetY){
   AGENT_DEFS.forEach(function(def,i){
-    var angle=(i/AGENT_DEFS.length)*Math.PI*2,r=25+i*8;
+    var angle=(i/AGENT_DEFS.length)*Math.PI*2,r=14+i*4;
     var ax=Math.cos(angle)*r,az=Math.sin(angle)*r;
     var grp=new THREE.Group();
 
@@ -620,6 +614,9 @@ function updateAgents(delta,t){
 
 function spawnShops(streetY){
   SHOPS.forEach(function(sh){
+    // Snap to actual surface; fall back to streetY if on a rooftop or missing
+    var sy=getSurfaceY(sh.pos.x,sh.pos.z,streetY+6);
+    if(!sy||sy>streetY+5||sy<streetY-2)sy=streetY;
     var col=sh.colorHex,grp=new THREE.Group();
     var pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,3.2,8),new THREE.MeshPhongMaterial({color:col,emissive:col,emissiveIntensity:0.6}));
     pillar.position.y=1.6;
@@ -629,7 +626,7 @@ function spawnShops(streetY){
     ring.position.y=3.5;
     var ptLight=new THREE.PointLight(col,2.5,16);ptLight.position.y=3;
     grp.add(pillar,orb,ring,ptLight);
-    grp.position.set(sh.pos.x,streetY,sh.pos.z);
+    grp.position.set(sh.pos.x,sy,sh.pos.z);
     scene.add(grp);
 
     var lbl=document.createElement('div');
@@ -1183,7 +1180,6 @@ function enterWorld(){
   gameRunning=true;applyDay(1);renderObjectives();
   setTimeout(function(){document.getElementById('hud-bl').style.opacity='0';},14000);
   initFirebase(playerName);clock.start();gameLoop();
-  // Welcome credits
   setTimeout(function(){awardCredits(20,'Welcome to Emergence World');},2000);
 }
 document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')enterWorld();});
