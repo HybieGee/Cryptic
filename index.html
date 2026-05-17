@@ -410,7 +410,10 @@ function tryMove(dx,dz){
 }
 
 function findSpawn(){
-  return new THREE.Vector3(0,modelBounds.max.y+EYE_HEIGHT+10,0);
+  groundRay.set(new THREE.Vector3(0,modelBounds.max.y+5,0),DOWN);
+  var hits=groundRay.intersectObjects(groundMeshes,false);
+  var surfaceY=hits.length?hits[0].point.y:modelBounds.min.y;
+  return new THREE.Vector3(0,surfaceY+EYE_HEIGHT+0.2,0);
 }
 
 // ─── FIRE ──────────────────────────────────────────────
