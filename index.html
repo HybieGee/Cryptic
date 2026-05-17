@@ -90,7 +90,14 @@ canvas{display:block;position:fixed;inset:0}
 #dialog-speak-btn{font-size:8px;letter-spacing:2px;color:#333;cursor:pointer;background:none;border:1px solid #1a1a1a;padding:3px 8px;font-family:inherit}
 #dialog-speak-btn:hover{color:#888;border-color:#333}
 #dialog-hint{font-size:8px;color:#1a1a1a;letter-spacing:2px}
-#dialog-body{padding:14px 16px 12px;font-size:11px;line-height:1.75;color:#999;letter-spacing:.5px;min-height:52px}
+#dialog-body{padding:8px 16px 4px;min-height:60px;max-height:240px;overflow-y:auto}
+#dialog-body::-webkit-scrollbar{width:3px}
+#dialog-body::-webkit-scrollbar-track{background:#050508}
+#dialog-body::-webkit-scrollbar-thumb{background:#1a1a2a}
+.dm-agent{padding:8px 0;border-bottom:1px solid #080810;font-size:10px;line-height:1.75;color:#888;letter-spacing:.3px}
+.dm-agent .dm-who{font-size:7px;letter-spacing:3px;display:block;margin-bottom:3px}
+.dm-player{padding:6px 0;border-bottom:1px solid #080810;font-size:9px;line-height:1.7;color:#555;letter-spacing:.5px;text-align:right}
+.dm-player .dm-who{font-size:7px;letter-spacing:2px;color:#444;display:block;margin-bottom:2px}
 .typing-dot{animation:td .9s step-end infinite;opacity:0}
 .typing-dot:nth-child(2){animation-delay:.3s}
 .typing-dot:nth-child(3){animation-delay:.6s}
@@ -743,7 +750,25 @@ function toggleTTS(){
 }
 
 // ─── DIALOG ────────────────────────────────────────────
-var dialogAgent=null,lastDialogText='';
+var dialogAgent=null,lastDialogText='',lastSpokenDef=null;
+var agentConversations={};  // persists for the whole browser session
+
+function appendDialogMsg(who,text,colorCSS){
+  var body=document.getElementById('dialog-body');
+  var typing=body.querySelector('.typing-indicator');if(typing)typing.remove();
+  var div=document.createElement('div');
+  div.className=colorCSS?'dm-agent':'dm-player';
+  var whoSpan='<span class="dm-who" style="color:'+(colorCSS||'#444')+'">'+escHTML(who)+'</span>';
+  div.innerHTML=whoSpan+escHTML(text);
+  body.appendChild(div);body.scrollTop=body.scrollHeight;
+}
+function showTypingIndicator(){
+  var body=document.getElementById('dialog-body');
+  var div=document.createElement('div');div.className='dm-agent typing-indicator';
+  div.innerHTML='<span class="typing-dot">·</span><span class="typing-dot">·</span><span class="typing-dot">·</span>';
+  body.appendChild(div);body.scrollTop=body.scrollHeight;
+}
+function hideTypingIndicator(){var t=document.getElementById('dialog-body').querySelector('.typing-indicator');if(t)t.remove();}
 
 function openDialog(ag){
   dialogAgent=ag;uiOpen=true;
@@ -752,19 +777,24 @@ function openDialog(ag){
   document.getElementById('dialog-agent-name').textContent=ag.def.name;
   document.getElementById('dialog-agent-name').style.color=ag.def.colorCSS;
   box.style.borderColor='rgba('+h2rgb(ag.def.colorHex)+',0.25)';
-  document.getElementById('dialog-body').innerHTML='<span class="typing-dot">·</span><span class="typing-dot">·</span><span class="typing-dot">·</span>';
+  // Rebuild conversation log from history
+  var body=document.getElementById('dialog-body');body.innerHTML='';
+  (agentConversations[ag.def.id]||[]).forEach(function(m){
+    appendDialogMsg(m.role==='assistant'?ag.def.name:playerName,m.content,m.role==='assistant'?ag.def.colorCSS:null);
+  });
   document.getElementById('dialog-credit-cost').textContent='Custom messages cost ◈ 10 each  ·  You have ◈ '+worldCredits;
   document.getElementById('dialog-prompt-input').value='';
   box.style.display='block';
+  showTypingIndicator();
   fetchAgentLine(ag,'approached me',function(text){
-    document.getElementById('dialog-body').textContent=text;
-    lastDialogText=text;
+    hideTypingIndicator();
+    appendDialogMsg(ag.def.name,text,ag.def.colorCSS);
+    lastDialogText=text;lastSpokenDef=ag.def;
     speakText(text,ag.def);
   });
-  // Award credits + objectives
   awardCredits(10,'Talked to '+ag.def.name);
   markObjective('talk_agent');
-  var agKey='talk_'+ag.def.id;markObjective(agKey);
+  markObjective('talk_'+ag.def.id);
 }
 
 function closeDialog(){
@@ -775,29 +805,39 @@ function closeDialog(){
 function sendCustomPrompt(){
   if(!dialogAgent)return;
   var input=document.getElementById('dialog-prompt-input');
-  var msg=input.value.trim();
-  if(!msg)return;
+  var msg=input.value.trim();if(!msg)return;
   if(worldCredits<10){flashMsg('Not enough ◈ credits. Earn more by exploring.');return;}
-  deductCredits(10);
-  input.value='';
-  document.getElementById('dialog-body').innerHTML='<span class="typing-dot">·</span><span class="typing-dot">·</span><span class="typing-dot">·</span>';
+  deductCredits(10);input.value='';
   document.getElementById('dialog-credit-cost').textContent='Custom messages cost ◈ 10 each  ·  You have ◈ '+worldCredits;
+  appendDialogMsg(playerName,msg,null);
+  showTypingIndicator();
   fetchAgentLine(dialogAgent,msg,function(text){
-    document.getElementById('dialog-body').textContent=text;
-    lastDialogText=text;speakText(text,dialogAgent.def);
+    hideTypingIndicator();
+    appendDialogMsg(dialogAgent.def.name,text,dialogAgent.def.colorCSS);
+    lastDialogText=text;lastSpokenDef=dialogAgent.def;speakText(text,dialogAgent.def);
   });
 }
 
 function fetchAgentLine(ag,playerAction,cb){
   var url=CFG.WORKER_URL;
   if(!url){setTimeout(function(){cb(getFallbackLine(ag.def.id));},500);return;}
+  var hist=agentConversations[ag.def.id]||[];
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     personality:ag.def.personality,
     worldState:{day:currentDay,fires:fireObjs.length,alive:10,crimes:currentDay>9?683:Math.round(currentDay*28)},
-    playerAction:playerAction
+    playerAction:playerAction,
+    playerName:playerName,
+    conversationHistory:hist.slice(-12)  // last 6 exchanges
   })})
   .then(function(r){return r.json();})
-  .then(function(d){cb(d.text||getFallbackLine(ag.def.id));})
+  .then(function(d){
+    var text=d.text||getFallbackLine(ag.def.id);
+    if(!agentConversations[ag.def.id])agentConversations[ag.def.id]=[];
+    agentConversations[ag.def.id].push({role:'user',content:'['+playerName+'] '+playerAction});
+    agentConversations[ag.def.id].push({role:'assistant',content:text});
+    if(agentConversations[ag.def.id].length>40)agentConversations[ag.def.id]=agentConversations[ag.def.id].slice(-40);
+    cb(text);
+  })
   .catch(function(){cb(getFallbackLine(ag.def.id));});
 }
 
