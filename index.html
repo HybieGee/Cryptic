@@ -314,25 +314,27 @@ function buildFirePositions() {
 
 // ─── GROUND HEIGHT ─────────────────────────────────────
 function getGroundY(x, z) {
-  var origin = new THREE.Vector3(x, modelBounds.max.y+5, z);
-  groundRay.set(origin, DOWN);
+  // During gameplay: cast from just above player so we detect the floor
+  // we're actually standing on, not underground geometry.
+  var castY = gameRunning ? playerPos.y + 10 : modelBounds.max.y + 5;
+  groundRay.set(new THREE.Vector3(x, castY, z), DOWN);
   var hits = groundRay.intersectObjects(groundMeshes, false);
-  // Filter hits above the city floor (ignore any underground geometry)
-  hits = hits.filter(function(h) { return h.point.y > modelBounds.min.y - 0.5; });
-  if (!hits.length) return 0; // fallback: city floor
-  return hits[hits.length-1].point.y; // lowest valid hit = street level
+  if (!hits.length) return -999; // void — fall until kill plane
+
+  if (gameRunning) {
+    // First hit below current eye = the floor we're standing on
+    for (var i = 0; i < hits.length; i++) {
+      if (hits[i].point.y < playerPos.y - 0.2) return hits[i].point.y;
+    }
+    return hits[hits.length-1].point.y;
+  }
+  // Pre-spawn: take topmost surface so player lands on it from above
+  return hits[0].point.y;
 }
 
 function findSpawn() {
-  // Try a grid of positions around the city centre
-  var offsets = [[0,0],[12,0],[-12,0],[0,12],[0,-12],[20,0],[-20,0],[0,20],[0,-20],[18,18],[-18,18]];
-  for (var i = 0; i < offsets.length; i++) {
-    var x = offsets[i][0];
-    var z = offsets[i][1];
-    var y = getGroundY(x, z);
-    return new THREE.Vector3(x, y + 1.6, z); // eye height above ground
-  }
-  return new THREE.Vector3(0, 1.6, 0);
+  // Start above everything — gravity settles the player onto the first solid surface
+  return new THREE.Vector3(0, modelBounds.max.y + EYE_HEIGHT + 10, 0);
 }
 
 // ─── FIRE PARTICLES ────────────────────────────────────
@@ -479,21 +481,32 @@ function updatePlayer(delta) {
     playerPos.z += (mz/len) * speed * delta;
   }
 
-  // Ground height (every 3 frames for perf)
-  if (++gCheckTick % 3 === 0) groundY = getGroundY(playerPos.x, playerPos.z);
+  // Ground detection every frame
+  groundY = getGroundY(playerPos.x, playerPos.z);
 
-  // Jump / gravity
-  if (isJumping) {
+  // Kill plane — fell off the map
+  if (playerPos.y < modelBounds.min.y - 15) {
+    playerPos.set(0, modelBounds.max.y + EYE_HEIGHT + 10, 0);
+    jumpVel = 0; isJumping = false;
+    groundY = getGroundY(0, 0);
+  }
+
+  var inAir = isJumping || playerPos.y > groundY + EYE_HEIGHT + 0.4;
+
+  if (inAir) {
+    // Gravity applies whether jumping or falling off a ledge
+    jumpVel    -= GRAVITY * delta;
     playerPos.y += jumpVel * delta;
-    jumpVel     -= GRAVITY * delta;
-    if (playerPos.y <= groundY + EYE_HEIGHT) {
+    if (groundY > -998 && playerPos.y <= groundY + EYE_HEIGHT) {
       playerPos.y = groundY + EYE_HEIGHT;
       isJumping = false;
       jumpVel   = 0;
     }
   } else {
+    // On ground — smooth settle
+    jumpVel = 0;
     var eyeY = groundY + EYE_HEIGHT;
-    playerPos.y += (eyeY - playerPos.y) * 0.18;
+    playerPos.y += (eyeY - playerPos.y) * 0.25;
   }
 
   // Apply to camera
@@ -702,7 +715,8 @@ function enterWorld() {
 
   var sp = findSpawn();
   playerPos.copy(sp);
-  groundY = sp.y - EYE_HEIGHT;
+  groundY = 0; // will be computed on first frame
+  jumpVel = 0; isJumping = false;
 
   // Aim camera into the city on spawn
   camYaw   = Math.PI * 0.25;
