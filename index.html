@@ -1032,6 +1032,9 @@ function updatePlayer(delta){
   if(keys['KeyA']||keys['ArrowLeft']) {mx-=rgtX;mz-=rgtZ;}
   if(keys['KeyD']||keys['ArrowRight']){mx+=rgtX;mz+=rgtZ;}
   if(mx!==0||mz!==0){var len=Math.sqrt(mx*mx+mz*mz);tryMove((mx/len)*speed*delta,(mz/len)*speed*delta);}
+  // Hard boundary at city edges
+  playerPos.x=Math.max(modelBounds.min.x+2,Math.min(modelBounds.max.x-2,playerPos.x));
+  playerPos.z=Math.max(modelBounds.min.z+2,Math.min(modelBounds.max.z-2,playerPos.z));
 
   groundY=getGroundY(playerPos.x,playerPos.z);
   if(playerPos.y<modelBounds.min.y-15){playerPos.set(0,modelBounds.max.y+EYE_HEIGHT+10,0);jumpVel=0;isJumping=false;groundY=0;}
