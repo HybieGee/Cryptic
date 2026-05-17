@@ -16,15 +16,19 @@ function fmtUsd(n) {
 
 export async function onRequestPost(context) {
   try {
-    const { wallet, questId, questStarted } = await context.request.json();
+    const { wallet } = await context.request.json();
     const questAddress = context.env.QUEST_ADDRESS;
+    const db = context.env.DB;
 
-    if (!questAddress || questAddress === 'TBA') {
-      return json({ success: false, reason: 'QU3ST T0K3N N0T Y3T C0NF1GUR3D BY TH3 0R4CL3.' });
-    }
-    if (!wallet) {
-      return json({ success: false, reason: 'N0 W4LL3T 4DDR3SS PR0V1D3D.' });
-    }
+    if (!db) return json({ success: false, reason: 'D4T4B4S3 N0T C0NF1GUR3D. C0NT4CT 4DM1N.' });
+    if (!questAddress || questAddress === 'TBA') return json({ success: false, reason: 'QU3ST T0K3N N0T Y3T C0NF1GUR3D BY TH3 0R4CL3.' });
+    if (!wallet) return json({ success: false, reason: 'N0 W4LL3T 4DDR3SS PR0V1D3D.' });
+
+    // Read quest from D1 — startedAt is server-authoritative, not client-supplied
+    const row = await db.prepare('SELECT quest_id, started_at FROM quests WHERE wallet = ?').bind(wallet).first();
+    if (!row) return json({ success: false, reason: 'N0 4CT1V3 QU3ST F0UND F0R TH1S W4LL3T. R0LL 0N3 F1RST.' });
+
+    const { quest_id: questId, started_at: startedAt } = row;
 
     // Check on-chain token balance via Solana public RPC
     const rpcResp = await fetch('https://api.mainnet-beta.solana.com', {
@@ -49,10 +53,9 @@ export async function onRequestPost(context) {
 
     // Time quest
     if (questId in DURATIONS) {
-      const required = DURATIONS[questId];
-      const elapsed = Date.now() - questStarted;
-      if (elapsed < required) {
-        const left = required - elapsed;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < DURATIONS[questId]) {
+        const left = DURATIONS[questId] - elapsed;
         const fmtLeft = left >= 3600000
           ? `${Math.ceil(left / 3600000)}H`
           : left >= 60000
@@ -60,7 +63,6 @@ export async function onRequestPost(context) {
           : `${Math.ceil(left / 1000)}S`;
         return json({ success: false, reason: `T1M3 QU3ST N0T C0MPL3T3. ${fmtLeft} R3M41N1NG. D0 N0T J33T.` });
       }
-      return json({ success: true, balance });
     }
 
     // Market cap quest
@@ -78,10 +80,15 @@ export async function onRequestPost(context) {
           reason: `M4RK3T C4P N0T TH3R3 Y3T. CURR3NT: ${fmtUsd(mc)} // T4RG3T: ${fmtUsd(required)}. H0LD. W41T.`,
         });
       }
-      return json({ success: true, balance });
     }
 
-    return json({ success: false, reason: 'UNKN0WN QU3ST TYP3. H0W D1D Y0U G3T H3R3?' });
+    // Success — record completion and remove from active quests
+    await db.batch([
+      db.prepare('INSERT INTO completed_quests (wallet, quest_id, started_at, completed_at) VALUES (?, ?, ?, ?)').bind(wallet, questId, startedAt, Date.now()),
+      db.prepare('DELETE FROM quests WHERE wallet = ?').bind(wallet),
+    ]);
+
+    return json({ success: true, balance, questId });
   } catch (err) {
     return json({ success: false, reason: `3RR0R: ${err.message}` }, 500);
   }

@@ -432,7 +432,7 @@
     margin: 0 auto;
   }
   .ascii-title-green {
-    font-size: clamp(10px, 2.2vw, 17px);
+    font-size: clamp(13px, 2.8vw, 22px);
     color: var(--green);
     text-shadow: 0 0 6px var(--green), 0 0 18px var(--green);
   }
@@ -539,11 +539,11 @@
 <!-- ═══════════════ HEADER ASCII ═══════════════ -->
 <div class="section center">
 <pre class="ascii-title ascii-title-green pulse">
-  ___    ____    _  _     ____    _       _____
- / _ \  |  _ \  | || |  / ___|  | |    |___ /
-| | | | | |_) | | || | | |      | |      |_ \
-| |_| | |  _ <  |__  _| | |___  | |___  ___) |
- \___/  |_| \_\    |_|   \____|  |_____|____/
+  ___   ____   _  _   ___  _      ____
+ / _ \ |  _ \ | || | / __|| |    |___ \
+| | | || |_) ||_  _|| |   | |      __) |
+| |_| ||  _ <   | |  | |___| |___  / __/
+ \___/ |_| \_\  |_|  \____||_____|_____|
 </pre>
 </div>
 
@@ -1142,11 +1142,14 @@ setInterval(() => {
   if (noise) noise.style.opacity = (0.02 + Math.random() * 0.04).toFixed(3);
 }, 120);
 
-// ── Rate limits ──
-const CHAT_CD  = 10 * 1000;
-const QUEST_CD = 5 * 60 * 1000;
+// ── Rate limits (chat only — quest rate limiting is server-side via D1) ──
+const CHAT_CD = 10 * 1000;
 function msLeft(key, cd) { return Math.max(0, cd - (Date.now() - (+localStorage.getItem(key) || 0))); }
 function fmtMs(ms) { return ms >= 60000 ? `${Math.ceil(ms/60000)}m` : `${Math.ceil(ms/1000)}s`; }
+function fmtMsLong(ms) {
+  if (ms >= 60000) { const m = Math.ceil(ms/60000); return `${m} M1N${m !== 1 ? 'Z' : ''}`; }
+  return `${Math.ceil(ms/1000)} S3C`;
+}
 
 // ── CA ──
 let tokenSymbol = 'TH3 T0K3N';
@@ -1187,6 +1190,7 @@ async function connectWallet(type) {
     localStorage.setItem('walletAddress', connectedWallet);
     updateWalletUI();
     addLine(`<span class="g">[ W4LL3T ]</span> <span class="g">C0NN3CT3D: ${connectedWallet.slice(0,8)}...${connectedWallet.slice(-8)}</span>`);
+    restoreQuestFromD1();
   } catch(e) {
     addLine(`<span class="r">[ W4LL3T ]</span> <span class="r">C0NN3CT10N ${e.code === 4001 ? 'R3J3CT3D BY US3R' : esc(e.message)}.</span>`);
   }
@@ -1414,30 +1418,65 @@ async function sendMessage() {
 }
 
 async function rollQuest() {
-  if (busy) return;
-  const wait = msLeft('lastQuest', QUEST_CD);
-  if (wait > 0) {
-    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">QU3ST C00LD0WN: ${fmtMs(wait)} R3M41N1NG. TH3 V01D D3M4NDZ P4T13NC3.</span>`);
+  // Guard: quest token not live yet
+  if (questAddress === 'TBA') {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">QU3ST T0K3N N0T Y3T R3V34L3D. TH3 V01D 1S N0T R34DY F0R Y0U.</span>`);
     return;
   }
-  localStorage.setItem('lastQuest', Date.now());
-  const quest = QUESTS[Math.floor(Math.random() * QUESTS.length)];
-  const qText = quest.text.replace(/\{T\}/g, tokenSymbol);
-  currentQuest = { ...quest, startedAt: Date.now() };
-  localStorage.setItem('currentQuest', JSON.stringify(currentQuest));
-  document.getElementById('verifyBtn').style.display = '';
-  addLine(`<span class="p">╔═ QU3ST 4SS1GN3D ═╗</span>`);
-  addLine(`<span class="a">║ ${esc(qText)}</span>`);
-  if (quest.type === 'time') {
-    const hrs = quest.duration / 3600000;
-    addLine(`<span class="d">║ TYP3: T1M3 QU3ST // DUR4T10N: ${hrs < 1 ? quest.duration/60000 + 'M1N' : hrs + 'HR'}</span>`);
-  } else {
-    const fmtMc = quest.mcTarget >= 1e6 ? `$${quest.mcTarget/1e6}M` : `$${quest.mcTarget/1000}K`;
-    addLine(`<span class="d">║ TYP3: M4RK3T C4P QU3ST // T4RG3T: ${fmtMc}</span>`);
+  // Guard: still inside reveal countdown window
+  if (questRevealAt && Date.now() < questRevealAt) {
+    const left = questRevealAt - Date.now();
+    const mins = String(Math.floor(left / 60000)).padStart(2,'0');
+    const secs = String(Math.floor((left % 60000) / 1000)).padStart(2,'0');
+    addLine(`<span class="p">0R4CL3 &gt;</span> <span class="p">QU3ST T0K3N R3V34LS 1N ${mins}:${secs}. TH3 V01D PR3P4R3S. W41T.</span>`);
+    return;
   }
-  addLine(`<span class="p">╚══════════════════╝</span>`);
-  chatHistory.push({ role: 'user', content: `You just assigned me this holding quest: "${qText}". Give it a sacred name, a dark blessing for those who hold, and a warning about what happens to those who j33t early.` });
-  await query();
+  // Guard: wallet required
+  if (!connectedWallet) {
+    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">C0NN3CT Y0UR W4LL3T F1RST T0 R3C31V3 4 QU3ST, D3G3N.</span>`);
+    return;
+  }
+  if (busy) return;
+
+  addLine(`<span class="d">[ QU3ST ]</span> <span class="d">C0NSULT1NG TH3 V01D...</span>`);
+
+  try {
+    const res = await fetch('/api/quest/roll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet: connectedWallet }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      if (data.cooldown) {
+        addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">QU3ST C00LD0WN: ${fmtMsLong(data.cooldown)} R3M41N1NG. TH3 V01D D3M4NDZ P4T13NC3.</span>`);
+      } else {
+        addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">${esc(data.reason)}</span>`);
+      }
+      return;
+    }
+
+    const quest = QUESTS.find(q => q.id === data.questId) || QUESTS[0];
+    const qText = quest.text.replace(/\{T\}/g, tokenSymbol);
+    currentQuest = { ...quest, startedAt: data.startedAt };
+    document.getElementById('verifyBtn').style.display = '';
+
+    addLine(`<span class="p">╔═ QU3ST 4SS1GN3D ═╗</span>`);
+    addLine(`<span class="a">║ ${esc(qText)}</span>`);
+    if (quest.type === 'time') {
+      const hrs = quest.duration / 3600000;
+      addLine(`<span class="d">║ TYP3: T1M3 QU3ST // DUR4T10N: ${hrs < 1 ? quest.duration/60000 + 'M1N' : hrs + 'HR'}</span>`);
+    } else {
+      const fmtMc = quest.mcTarget >= 1e6 ? `$${quest.mcTarget/1e6}M` : `$${quest.mcTarget/1000}K`;
+      addLine(`<span class="d">║ TYP3: M4RK3T C4P QU3ST // T4RG3T: ${fmtMc}</span>`);
+    }
+    addLine(`<span class="p">╚══════════════════╝</span>`);
+    chatHistory.push({ role: 'user', content: `You just assigned me this holding quest: "${qText}". Give it a sacred name, a dark blessing for those who hold, and a warning about what happens to those who j33t early.` });
+    await query();
+  } catch(e) {
+    addLine(`<span class="r">[ QU3ST ]</span> <span class="r">3RR0R: ${esc(e.message)}</span>`);
+  }
 }
 
 async function verifyQuest() {
@@ -1445,16 +1484,12 @@ async function verifyQuest() {
     addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">C0NN3CT Y0UR W4LL3T F1RST, D3G3N. TH3 V01D C4NN0T S33 Y0U.</span>`);
     return;
   }
-  if (!currentQuest) {
-    addLine(`<span class="r">0R4CL3 &gt;</span> <span class="r">N0 4CT1V3 QU3ST. R0LL 0N3 F1RST.</span>`);
-    return;
-  }
-  addLine(`<span class="c">[ V3R1FY ]</span> <span class="c">CH3CK1NG 0N-CH41N D4T4...</span>`);
+  addLine(`<span class="c">[ V3R1FY ]</span> <span class="c">CH3CK1NG 0N-CH41N D4T4 V14 D1...</span>`);
   try {
     const res = await fetch('/api/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ wallet: connectedWallet, questId: currentQuest.id, questStarted: currentQuest.startedAt }),
+      body: JSON.stringify({ wallet: connectedWallet }),
     });
     const data = await res.json();
     if (data.success) {
@@ -1463,7 +1498,6 @@ async function verifyQuest() {
       addLine(`<span class="g">╚══════════════════╝</span>`);
       chatHistory.push({ role: 'user', content: 'My quest has been verified on-chain. I held my tokens and completed the quest. Give me a short victory blessing.' });
       currentQuest = null;
-      localStorage.removeItem('currentQuest');
       document.getElementById('verifyBtn').style.display = 'none';
       await query();
     } else {
@@ -1504,23 +1538,29 @@ document.getElementById('termInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendMessage();
 });
 
+// ── D1 quest restore ──
+async function restoreQuestFromD1() {
+  if (!connectedWallet) return;
+  try {
+    const res = await fetch(`/api/quest/status?wallet=${encodeURIComponent(connectedWallet)}`);
+    const data = await res.json();
+    if (data.quest) {
+      const { questId, startedAt } = data.quest;
+      const quest = QUESTS.find(q => q.id === questId);
+      if (quest) {
+        currentQuest = { ...quest, startedAt };
+        document.getElementById('verifyBtn').style.display = '';
+        const label = quest.type === 'time'
+          ? `H0LD ${quest.duration / 3600000}HR`
+          : `MC $${quest.mcTarget >= 1e6 ? quest.mcTarget/1e6+'M' : quest.mcTarget/1000+'K'}`;
+        addLine(`<span class="d">[ R3ST0R3 ]</span> <span class="d">4CT1V3 QU3ST R3C0V3R3D FR0M D1: ${label}. H1T V3R1FY WH3N R34DY.</span>`);
+      }
+    }
+  } catch {}
+}
+
 // ── Restore state across refreshes / redeploys ──
 async function restoreState() {
-  // Restore active quest from localStorage
-  const savedQuest = localStorage.getItem('currentQuest');
-  if (savedQuest) {
-    try {
-      currentQuest = JSON.parse(savedQuest);
-      document.getElementById('verifyBtn').style.display = '';
-      const questName = currentQuest.id.startsWith('hold_')
-        ? `H0LD ${currentQuest.duration / 3600000}HR`
-        : `MC $${currentQuest.mcTarget >= 1e6 ? currentQuest.mcTarget/1e6+'M' : currentQuest.mcTarget/1000+'K'}`;
-      addLine(`<span class="d">[ R3ST0R3 ]</span> <span class="d">4CT1V3 QU3ST R3L04D3D: ${questName}. H1T V3R1FY WH3N R34DY.</span>`);
-    } catch(e) {
-      localStorage.removeItem('currentQuest');
-    }
-  }
-
   // Silent wallet reconnect — no popup, only works if user previously authorized
   const provider = window.phantom?.solana || window.solana;
   if (provider) {
@@ -1529,7 +1569,9 @@ async function restoreState() {
       connectedWallet = resp.publicKey.toString();
       localStorage.setItem('walletAddress', connectedWallet);
       updateWalletUI();
-    } catch(e) {
+      // Restore quest from D1 after wallet reconnect
+      await restoreQuestFromD1();
+    } catch {
       // Not previously authorized — stay disconnected silently
     }
   }
