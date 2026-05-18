@@ -37,13 +37,13 @@ canvas{display:block;position:fixed;inset:0}
 .spec-emo-bar{width:80px;height:2px;background:#0d0d1a;position:relative;margin-left:4px}
 .spec-emo-fill{position:absolute;top:0;left:0;height:100%;opacity:.6;transition:width .7s ease}
 #spec-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:all}
-#spec-portfolio{background:rgba(0,0,6,.82);border:1px solid #111;padding:10px 14px;min-width:180px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
-.spec-ptitle{font-size:7px;letter-spacing:3px;color:#333;margin-bottom:2px}
-.spec-psol{font-size:9px;letter-spacing:2px;color:#aaa}
-.spec-prow{font-size:8px;letter-spacing:1px;color:#555}
+#spec-portfolio{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:180px;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.spec-ptitle{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:2px}
+.spec-psol{font-size:9px;letter-spacing:2px;color:#ddd}
+.spec-prow{font-size:8px;letter-spacing:1px;color:#bbb}
 .spec-ppnl-pos{color:#44ff88}
 .spec-ppnl-neg{color:#ff4444}
-.spec-plast{font-size:7px;letter-spacing:1px;color:#333;margin-top:2px;font-style:italic}
+.spec-plast{font-size:7px;letter-spacing:1px;color:#888;margin-top:2px;font-style:italic}
 #spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px;background:rgba(0,0,6,.82);border:1px solid #111;padding:12px 16px}
 #spec-thought{font-size:9px;letter-spacing:.4px;color:#999;line-height:1.9;font-style:italic;min-height:16px}
 #spec-cooldown{font-size:8px;letter-spacing:3px;color:#555}
@@ -57,13 +57,26 @@ canvas{display:block;position:fixed;inset:0}
 #spec-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
 #spec-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
 #spec-response{font-size:9px;letter-spacing:.3px;color:#888;line-height:1.9;min-height:0;max-width:480px}
-#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #111;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:3px;pointer-events:none;flex-shrink:0}
-.tl-title{font-size:7px;letter-spacing:3px;color:#333;margin-bottom:3px}
-.tl-row{font-size:7px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tl-agent{color:#555;margin-right:4px}
+#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:3px;pointer-events:all;flex-shrink:0}
+.tl-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:3px}
+.tl-row{font-size:7px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:2px 0;border-radius:2px;transition:background .1s}
+.tl-row:hover{background:rgba(255,255,255,.06)}
+.tl-agent{color:#aaa;margin-right:4px}
 .tl-pos{color:#44ff88}
 .tl-neg{color:#ff4444}
-.tl-time{color:#222;float:right}
+.tl-time{color:#555;float:right}
+.tl-empty{color:#444;font-size:7px}
+#trade-detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,8,.97);border:1px solid #2a2a4a;padding:22px 28px;min-width:320px;z-index:99;display:none;font-family:'Courier New',monospace;color:#ddd}
+.td-title{font-size:8px;letter-spacing:4px;color:#fff;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.td-close{cursor:pointer;color:#555;font-size:14px;line-height:1}
+.td-close:hover{color:#fff}
+.td-row{font-size:9px;letter-spacing:1px;margin:6px 0;display:flex;justify-content:space-between;gap:20px}
+.td-label{color:#555}
+.td-val{color:#ddd;text-align:right}
+.td-addr{font-size:7px;letter-spacing:.5px;color:#4488ff;word-break:break-all;margin:8px 0;cursor:pointer;text-decoration:underline}
+.td-addr:hover{color:#88aaff}
+.td-pnl-pos{color:#44ff88;font-size:11px;font-weight:bold}
+.td-pnl-neg{color:#ff4444;font-size:11px;font-weight:bold}
 #spec-join-cta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
 #spec-wallet-btn{padding:9px 22px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 #spec-wallet-btn:hover:not(:disabled){background:rgba(68,136,255,.12);color:#fff}
@@ -342,6 +355,20 @@ canvas{display:block;position:fixed;inset:0}
         <button id="spec-join-btn" onclick="tryJoin()">JOIN CRYPTONIX</button>
       </div>
     </div>
+  </div>
+  <!-- Trade detail pop-out -->
+  <div id="trade-detail">
+    <div class="td-title">◈ TRADE DETAIL<span class="td-close" onclick="closeTradeDetail()">✕</span></div>
+    <div class="td-row"><span class="td-label">AGENT</span><span class="td-val" id="td-agent"></span></div>
+    <div class="td-row"><span class="td-label">TOKEN</span><span class="td-val" id="td-symbol"></span></div>
+    <div class="td-row"><span class="td-label">TYPE</span><span class="td-val" id="td-type"></span></div>
+    <div class="td-row"><span class="td-label">ENTRY</span><span class="td-val" id="td-entry"></span></div>
+    <div class="td-row"><span class="td-label">EXIT/CURRENT</span><span class="td-val" id="td-exit"></span></div>
+    <div class="td-row"><span class="td-label">SIZE</span><span class="td-val" id="td-size"></span></div>
+    <div class="td-row"><span class="td-label">P&L</span><span id="td-pnl"></span></div>
+    <div class="td-label" style="margin-top:10px;font-size:7px;letter-spacing:2px">CONTRACT ADDRESS</div>
+    <div class="td-addr" id="td-addr" title="Click to copy" onclick="copyTradeAddr()"></div>
+    <div style="font-size:7px;color:#333;margin-top:4px" id="td-copied"></div>
   </div>
 </div>
 
@@ -999,7 +1026,7 @@ function spawnAgents(streetY){
       stepTimer:0,
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
-      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,tradeHistory:[]};
+      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[]};
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
@@ -1009,9 +1036,20 @@ function spawnAgents(streetY){
   });
 }
 
+var FORBIDDEN_ZONES=[{x:4,z:15.2,r:7}]; // truck interior at (4, 15.2)
 function randomWaypoint(){
-  var r=60; // stay within map boundary
-  return{x:(Math.random()-.5)*2*r,z:(Math.random()-.5)*2*r};
+  var r=44; // stay within city — was 60 (caused void walking)
+  var x,z,att=0;
+  do{
+    x=(Math.random()-.5)*2*r;
+    z=(Math.random()-.5)*2*r;
+    att++;
+    var inForbidden=FORBIDDEN_ZONES.some(function(fz){
+      var dx=x-fz.x,dz=z-fz.z;
+      return Math.sqrt(dx*dx+dz*dz)<fz.r;
+    });
+  }while(inForbidden&&att<15);
+  return{x:x,z:z};
 }
 
 // ── Memecoin trading system ───────────────────────────────────────────────────
@@ -1057,8 +1095,15 @@ function checkSell(ag,addr){
   var prof=TRADE_PROFILE[ag.def.id]||TRADE_PROFILE.epsilon;
   var holdSec=(Date.now()-pos.entryTime)/1000;
   var curPrice=getTokenCurrentPrice(addr);
-  if(curPrice!==null)pos.lastKnownPrice=curPrice;
-  else curPrice=pos.lastKnownPrice||pos.entryPrice;
+  if(curPrice!==null){
+    pos.lastKnownPrice=curPrice;pos.simMult=1;
+  }else{
+    // Simulate price drift when token falls out of feed (memecoin reality — mostly down)
+    if(!pos.simMult)pos.simMult=1;
+    pos.simMult*=(1+(Math.random()-0.54)*0.14); // ~-7.5% to +6.5% per check
+    pos.simMult=Math.max(0.05,pos.simMult);
+    curPrice=(pos.lastKnownPrice||pos.entryPrice)*pos.simMult;
+  }
   var pnl=(curPrice-pos.entryPrice)/pos.entryPrice;
   var tp=prof.tp,sl=prof.sl,maxHold=prof.maxHold;
   if(ag.def.id==='epsilon'){tp*=0.8+Math.random()*0.8;sl*=0.8+Math.random()*0.8;maxHold*=0.5+Math.random()*1.5;}
@@ -1075,7 +1120,7 @@ function checkSell(ag,addr){
   ag.tradeHistory.unshift((pnl>=0?'▲':'▼')+' $'+pos.symbol+' '+sign+pnlPct+'%');
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
   var glyph=pnl>=0?'▲':'▼';
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0,address:addr,symbol:pos.symbol,entryPrice:pos.entryPrice,exitPrice:curPrice,solSize:pos.solSize,pnl:pnlPct,reason:reason});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
@@ -1103,34 +1148,72 @@ function checkBuy(ag){
   showBubble(ag,'Entered $'+bestTok.symbol+' — '+(solSize).toFixed(3)+' SOL',3);
   ag.tradeHistory.unshift('▶ $'+bestTok.symbol+' @ $'+bestTok.priceUsd.toFixed(6));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(3)+' SOL',pos:true});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(3)+' SOL',pos:true,address:bestTok.address,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,solSize:solSize,pnl:null,reason:'BUY'});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
 function evaluateTrades(ag,dt){
   if(!agentsSpawned)return;
   checkSolTopup(ag);
+  // Sell checks every ~15s regardless of buy cooldown
+  ag.sellTimer-=dt;
+  if(ag.sellTimer<=0){
+    ag.sellTimer=12+Math.random()*8;
+    Object.keys(ag.portfolio).forEach(function(addr){checkSell(ag,addr);});
+  }
+  // Buy checks on longer cooldown
   ag.tradeCooldown-=dt;
   if(ag.tradeCooldown>0)return;
   ag.tradeCooldown=20+Math.random()*40;
-  Object.keys(ag.portfolio).forEach(function(addr){checkSell(ag,addr);});
   if(Object.keys(ag.portfolio).length<2&&cachedTokens[TRADE_PROFILE[ag.def.id]&&TRADE_PROFILE[ag.def.id].col||'new']){
     checkBuy(ag);
   }
+}
+
+function openTradeDetail(idx){
+  var entry=globalTradeLog[idx];if(!entry)return;
+  var el=document.getElementById('trade-detail');if(!el)return;
+  document.getElementById('td-agent').textContent=entry.agent;
+  document.getElementById('td-symbol').textContent='$'+(entry.symbol||'?');
+  document.getElementById('td-type').textContent=entry.reason||'?';
+  document.getElementById('td-entry').textContent=entry.entryPrice?('$'+entry.entryPrice.toFixed(8)):'—';
+  document.getElementById('td-exit').textContent=entry.exitPrice?('$'+entry.exitPrice.toFixed(8)):(entry.reason==='BUY'?'OPEN':'—');
+  document.getElementById('td-size').textContent=entry.solSize?(entry.solSize.toFixed(4)+' SOL'):'—';
+  var pnlEl=document.getElementById('td-pnl');
+  if(entry.pnl!==null&&entry.pnl!==undefined){
+    var sign=entry.pnl>=0?'+':'';
+    pnlEl.textContent=sign+entry.pnl+'%';
+    pnlEl.className=entry.pnl>=0?'td-pnl-pos':'td-pnl-neg';
+  }else{
+    pnlEl.textContent='OPEN';pnlEl.className='td-val';
+  }
+  document.getElementById('td-addr').textContent=entry.address||'N/A';
+  document.getElementById('td-copied').textContent='';
+  el.style.display='block';
+}
+function closeTradeDetail(){var el=document.getElementById('trade-detail');if(el)el.style.display='none';}
+function copyTradeAddr(){
+  var addr=document.getElementById('td-addr').textContent;
+  if(!addr||addr==='N/A')return;
+  navigator.clipboard.writeText(addr).then(function(){
+    document.getElementById('td-copied').textContent='✓ copied';
+  }).catch(function(){
+    document.getElementById('td-copied').textContent=addr;
+  });
 }
 
 function updateTradeLog(){
   var el=document.getElementById('trade-log-panel');if(!el)return;
   var html='<div class="tl-title">◈ TRADE FEED</div>';
   if(!globalTradeLog.length){
-    html+='<div class="tl-row" style="color:#222">awaiting trades...</div>';
+    html+='<div class="tl-empty">awaiting trades...</div>';
   }else{
     var show=globalTradeLog.slice(0,10);
-    show.forEach(function(entry){
+    show.forEach(function(entry,i){
       var ageS=Math.round((Date.now()-entry.time)/1000);
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
       var cls=entry.pos?'tl-pos':'tl-neg';
-      html+='<div class="tl-row"><span class="tl-agent">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
+      html+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
   }
   el.innerHTML=html;
@@ -1202,6 +1285,22 @@ function updateAgents(delta,t){
       if(ag.orbMode){var bob=Math.sin(t*1.4+idx*1.2)*0.18;ag.inner.position.y=1.6+bob;ag.shell.position.y=1.6+bob;ag.ptLight.position.y=1.6+bob;ag.ptLight.intensity=1.8+Math.sin(t*2.1+idx)*0.5;ag.shell.scale.setScalar(1+Math.sin(t*1.9+idx*0.7)*0.06);}
       return;
     }
+
+    // ── Map boundary + forbidden zone rescue ─────────────
+    if(pos.x<-47||pos.x>47||pos.z<-47||pos.z>47){
+      pos.x=Math.max(-44,Math.min(44,pos.x));pos.z=Math.max(-44,Math.min(44,pos.z));
+      ag.wp=randomWaypoint();ag.stuckTimer=0;
+    }
+    FORBIDDEN_ZONES.forEach(function(fz){
+      var fzDx=pos.x-fz.x,fzDz=pos.z-fz.z;
+      if(Math.sqrt(fzDx*fzDx+fzDz*fzDz)<fz.r){
+        // Eject agent away from zone centre
+        var ejAngle=Math.atan2(fzDz,fzDx)+Math.PI*(0.8+Math.random()*0.4);
+        pos.x=fz.x+Math.cos(ejAngle)*(fz.r+2);
+        pos.z=fz.z+Math.sin(ejAngle)*(fz.r+2);
+        ag.wp=randomWaypoint();ag.stuckTimer=0;
+      }
+    });
 
     var dx=ag.wp.x-pos.x,dz=ag.wp.z-pos.z,dist=Math.sqrt(dx*dx+dz*dz);
     var moving=dist>1.5;
@@ -1534,7 +1633,9 @@ function updateLabels(){
     var b=ag.balance||0;
     var col=b>5000?'#44ff88':b>2000?'#ffcc00':b>500?'#ff8844':'#ff3333';
     ag.balLabelEl.style.color=col;
-    ag.balLabelEl.textContent='$'+Math.floor(b).toLocaleString();
+    var solStr=ag.solBalance!=null?('<br><span style="color:#88ccff;font-size:8px">◎ '+(ag.solBalance).toFixed(3)+'</span>'):'';
+    ag.balLabelEl.style.textAlign='center';
+    ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+solStr;
   });
 
   SHOPS.forEach(function(sh){
@@ -2866,20 +2967,29 @@ async function spectateConnectWallet(){
     walletAddress=accs[0];
     btn.textContent='● '+walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
     btn.classList.add('ok');
+    // Fast path: localStorage identity check (no round-trip needed)
+    var lsKey='cnx_id_'+walletAddr.toLowerCase();
+    var lsSaved=null;
+    try{lsSaved=JSON.parse(localStorage.getItem(lsKey)||'null');}catch(e){}
+    if(lsSaved&&lsSaved.name){
+      if(lsSaved.balance!==undefined)playerBalance=lsSaved.balance;
+      var th=document.getElementById('spec-thought');
+      if(th){th.textContent='WELCOME BACK, '+lsSaved.name;th.style.opacity='1';}
+      setTimeout(function(){clearInterval(spectAutoFetch);enterWorld(lsSaved.name);},1200);
+      return;
+    }
     // Check Firebase for existing identity
     if(db){
       var safeKey=walletAddr.replace(/[.#$\[\]]/g,'_');
       db.ref('identities/'+safeKey).once('value',function(snap){
         var record=snap.val();
         if(record&&record.name){
-          // Returning user
+          // Returning user — also cache locally
           if(record.balance!==undefined)playerBalance=record.balance;
+          try{localStorage.setItem(lsKey,JSON.stringify({name:record.name,balance:playerBalance}));}catch(e){}
           var th=document.getElementById('spec-thought');
           if(th){th.textContent='WELCOME BACK, '+record.name;th.style.opacity='1';}
-          setTimeout(function(){
-            clearInterval(spectAutoFetch);
-            enterWorld(record.name);
-          },1500);
+          setTimeout(function(){clearInterval(spectAutoFetch);enterWorld(record.name);},1500);
         }else{
           // New user — show name input
           var joinDiv=document.getElementById('spec-join');
@@ -2936,6 +3046,8 @@ function tryJoin(){
 // ─── ENTER WORLD ───────────────────────────────────────
 function enterWorld(name){
   playerName=name||('Wanderer'+Math.random().toString(36).substr(2,4).toUpperCase());
+  // Cache identity locally so returning users skip the name prompt
+  if(walletAddr){try{localStorage.setItem('cnx_id_'+walletAddr.toLowerCase(),JSON.stringify({name:playerName,balance:playerBalance}));}catch(e){}}
   document.getElementById('spectate-ui').style.display='none';
   document.getElementById('hud').style.display='block';
   document.getElementById('xhair').style.display='block';
