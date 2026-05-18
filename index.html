@@ -27,44 +27,44 @@ canvas{display:block;position:fixed;inset:0}
 #enter-btn:hover{background:rgba(68,136,255,.12);color:#fff}
 
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
-#hud-tl{position:absolute;top:16px;left:16px;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.4)}
-#hud-tl .wt{font-size:12px;letter-spacing:5px;color:rgba(255,255,255,.65);margin-bottom:4px}
-#hud-tl .credits{font-size:10px;letter-spacing:3px;color:#f0cc44;margin-top:4px}
+#hud-tl{position:absolute;top:16px;left:16px;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.9)}
+#hud-tl .wt{font-size:12px;letter-spacing:5px;color:#fff;margin-bottom:4px;text-shadow:0 0 12px rgba(0,0,0,1)}
+#hud-tl .credits{font-size:10px;letter-spacing:3px;color:#f0cc44;margin-top:4px;text-shadow:0 0 8px rgba(0,0,0,1)}
 #hud-tr{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:all}
-#wallet-btn{padding:7px 14px;background:rgba(0,0,0,.6);border:1px solid #222;color:#444;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .15s}
-#wallet-btn:hover{border-color:#555;color:#aaa}
+#wallet-btn{padding:7px 14px;background:rgba(0,0,0,.75);border:1px solid #444;color:#aaa;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .15s}
+#wallet-btn:hover{border-color:#888;color:#fff}
 #wallet-btn.ok{border-color:#00cc66;color:#00cc66}
-#token-badge{display:none;font-size:9px;letter-spacing:2px;color:#888;background:rgba(0,0,0,.6);border:1px solid #222;padding:5px 10px}
+#token-badge{display:none;font-size:9px;letter-spacing:2px;color:#aaa;background:rgba(0,0,0,.75);border:1px solid #444;padding:5px 10px}
 #token-badge.governor{border-color:#f0cc44;color:#f0cc44}
 #token-badge.influencer{border-color:#cc44ff;color:#cc44ff}
 #token-badge.citizen{border-color:#4488ff;color:#4488ff}
-#tts-btn{padding:5px 10px;background:rgba(0,0,0,.6);border:1px solid #222;color:#444;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer}
+#tts-btn{padding:5px 10px;background:rgba(0,0,0,.75);border:1px solid #444;color:#aaa;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer}
 #tts-btn.on{border-color:#44ffaa;color:#44ffaa}
-#hud-bl{position:absolute;bottom:52px;left:16px;font-size:9px;color:rgba(255,255,255,.22);letter-spacing:2px;line-height:2;transition:opacity 1s}
-#online-count{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-50px;font-size:9px;color:rgba(255,255,255,.18);letter-spacing:3px;pointer-events:none}
-#lock-hint{position:absolute;bottom:50%;left:50%;transform:translate(-50%,50%);font-size:9px;color:rgba(255,255,255,.25);letter-spacing:3px;pointer-events:none;transition:opacity .5s}
+#hud-bl{position:absolute;bottom:52px;left:16px;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:2px;line-height:2;transition:opacity 1s;text-shadow:0 1px 6px rgba(0,0,0,1)}
+#online-count{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-50px;font-size:9px;color:rgba(255,255,255,.6);letter-spacing:3px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,1)}
+#lock-hint{position:absolute;bottom:50%;left:50%;transform:translate(-50%,50%);font-size:9px;color:rgba(255,255,255,.7);letter-spacing:3px;pointer-events:none;transition:opacity .5s;text-shadow:0 1px 6px rgba(0,0,0,1)}
 
 /* Objectives */
 #objectives{position:absolute;right:16px;bottom:52px;pointer-events:all}
-#obj-toggle{font-size:8px;letter-spacing:3px;color:#333;cursor:pointer;text-align:right;margin-bottom:6px}
-#obj-toggle:hover{color:#777}
-#obj-list{display:none;background:rgba(0,0,6,.8);border:1px solid #111;padding:10px 14px;min-width:200px}
+#obj-toggle{font-size:8px;letter-spacing:3px;color:#888;cursor:pointer;text-align:right;margin-bottom:6px;text-shadow:0 1px 6px rgba(0,0,0,1)}
+#obj-toggle:hover{color:#ddd}
+#obj-list{display:none;background:rgba(0,0,6,.92);border:1px solid #333;padding:10px 14px;min-width:200px}
 #obj-list.open{display:block}
-.obj-row{font-size:8px;letter-spacing:1px;color:#2a2a2a;padding:4px 0;display:flex;align-items:center;gap:8px}
+.obj-row{font-size:8px;letter-spacing:1px;color:#666;padding:4px 0;display:flex;align-items:center;gap:8px}
 .obj-row.done{color:#44ff88}
 .obj-row.done .obj-check{color:#44ff88}
-.obj-check{font-size:10px;color:#222;width:12px}
+.obj-check{font-size:10px;color:#444;width:12px}
 
 /* Timeline */
 #timeline{display:none;position:fixed;top:0;left:0;right:0;z-index:20;background:rgba(0,0,0,.78);border-bottom:1px solid #1a1a2a;padding:14px 24px 10px;pointer-events:all}
-#tl-header{font-size:8px;letter-spacing:4px;color:#333;margin-bottom:10px}
+#tl-header{font-size:8px;letter-spacing:4px;color:#888;margin-bottom:10px}
 #tl-header .tl-tier{color:#f0cc44}
 #tl-rail-wrap{position:relative;height:24px;display:flex;align-items:center}
 #tl-rail{width:100%;height:3px;background:#1a1a2a;position:relative;cursor:pointer;border-radius:2px}
 #tl-fill{height:100%;background:linear-gradient(to right,#4488ff,#ff4400);border-radius:2px}
 #tl-handle{position:absolute;top:50%;transform:translate(-50%,-50%);width:15px;height:15px;background:#fff;border-radius:50%;cursor:grab;box-shadow:0 0 10px rgba(255,255,255,.4)}
 #tl-handle:active{cursor:grabbing}
-#tl-days{display:flex;justify-content:space-between;margin-top:7px;font-size:8px;color:#222;letter-spacing:1px}
+#tl-days{display:flex;justify-content:space-between;margin-top:7px;font-size:8px;color:#555;letter-spacing:1px}
 .tl-d{cursor:pointer;padding:0 2px;transition:color .1s}
 .tl-d:hover{color:#555}
 .tl-d.cur{color:#fff}
@@ -155,7 +155,7 @@ canvas{display:block;position:fixed;inset:0}
 #chat-send:hover{color:#888}
 
 /* Ticker */
-#ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.72);border-top:1px solid #0a0a14;padding:5px 18px;font-size:8px;letter-spacing:2px;color:#1a1a1a;white-space:nowrap;overflow:hidden;pointer-events:none}
+#ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.82);border-top:1px solid #2a2a2a;padding:5px 18px;font-size:8px;letter-spacing:2px;color:#666;white-space:nowrap;overflow:hidden;pointer-events:none}
 /* Debug */
 #debug-hud{display:none;position:fixed;top:50px;left:16px;z-index:999;background:rgba(0,0,0,.88);border:1px solid #1a3a1a;padding:10px 14px;font-size:9px;letter-spacing:1px;color:#44ff88;white-space:pre;pointer-events:none;line-height:1.8}
 
@@ -176,8 +176,8 @@ canvas{display:block;position:fixed;inset:0}
 
 /* ── HUD PANEL BUTTONS ── */
 #hud-panels{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:all;flex-wrap:wrap;justify-content:center;max-width:96vw}
-.panel-btn{padding:4px 10px;background:rgba(0,0,0,.6);border:1px solid #111;color:#1a1a1a;font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;cursor:pointer;transition:all .15s;white-space:nowrap}
-.panel-btn:hover{border-color:#333;color:#555}
+.panel-btn{padding:5px 12px;background:rgba(0,0,0,.82);border:1px solid #444;color:#999;font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;cursor:pointer;transition:all .15s;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,1)}
+.panel-btn:hover{border-color:#888;color:#fff;background:rgba(0,0,0,.92)}
 
 /* ── BROADCAST FEED ── */
 #broadcast-feed{position:fixed;top:46%;left:50%;transform:translate(-50%,-50%);z-index:12;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;max-width:440px;width:90vw}
@@ -495,14 +495,24 @@ loader.load(CFG.CITY_MODEL,
     var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
     groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
-    // City done — now load all 5 agent models sequentially before showing spawn
-    setLoadBar(50,'LOADING AGENTS');
-    var agQ=AGENT_DEFS.slice(),agN=0;
+    // City done — enter immediately; agents load in background and swap orb→model when ready
+    setLoadBar(100,'READY');
+    document.getElementById('loading').style.display='none';
+    document.getElementById('spawn').style.display='flex';
+    previewAnimate();
+    var agQ=AGENT_DEFS.slice();
     (function nextAg(){
-      if(!agQ.length){setLoadBar(100,'READY');document.getElementById('loading').style.display='none';document.getElementById('spawn').style.display='flex';previewAnimate();return;}
+      if(!agQ.length)return;
       var def=agQ.shift();
-      setLoadBar(50+agN*10,'LOADING '+def.name);
-      loader.load(def.model,function(g2){agentModels[def.id]=g2;agN++;nextAg();},null,function(){agentModels[def.id]=null;agN++;nextAg();});
+      loader.load(def.model,
+        function(g2){
+          agentModels[def.id]=g2;
+          agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag,g2);});
+          nextAg();
+        },
+        null,
+        function(){agentModels[def.id]=null;nextAg();}
+      );
     })();
   },
   function(xhr){if(xhr.total)setLoadBar(Math.round(xhr.loaded/xhr.total*50),'LOADING CITY');},
@@ -843,6 +853,14 @@ if(window.speechSynthesis){
   window.speechSynthesis.addEventListener('voiceschanged',_loadVoices);
 }
 
+// Per-agent voice preference order — tries each name in sequence until one is found
+var TTS_VOICE_PREFS={
+  alpha:  ['Google UK English Male','Microsoft George','Microsoft Mark','Daniel'],
+  beta:   ['Microsoft David','Google UK English Male','Microsoft George','Alex'],
+  gamma:  ['Google UK English Female','Microsoft Hazel','Microsoft Zira','Samantha'],
+  delta:  ['Microsoft Mark','Google UK English Male','Microsoft George','Daniel'],
+  epsilon:['Microsoft Zira','Google US English','Microsoft Hazel','Karen']
+};
 function speakText(text,def){
   if(!ttsEnabled||!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
@@ -850,15 +868,17 @@ function speakText(text,def){
   var utter=new SpeechSynthesisUtterance(text);
   utter.rate=def.ttsRate||1.0;
   utter.pitch=def.ttsPitch||1.0;
-  // Prefer English voice; Mira gets female if available
   if(ttsVoices.length){
-    var preferFemale=def.id==='mira';
+    var prefs=TTS_VOICE_PREFS[def.id]||[];
     var pick=null;
-    for(var i=0;i<ttsVoices.length;i++){
-      var v=ttsVoices[i];
-      if(!v.lang.startsWith('en'))continue;
-      if(preferFemale&&(v.name.toLowerCase().includes('female')||v.name.toLowerCase().includes('zira')||v.name.toLowerCase().includes('hazel'))){pick=v;break;}
-      if(!preferFemale&&!pick)pick=v;
+    for(var p=0;p<prefs.length&&!pick;p++){
+      for(var i=0;i<ttsVoices.length;i++){
+        if(ttsVoices[i].name===prefs[p]){pick=ttsVoices[i];break;}
+      }
+    }
+    if(!pick){
+      // Fallback: first English voice
+      for(var i=0;i<ttsVoices.length;i++){if(ttsVoices[i].lang.startsWith('en')){pick=ttsVoices[i];break;}}
     }
     if(pick)utter.voice=pick;
   }
@@ -1580,7 +1600,7 @@ window.addEventListener('keydown',function(e){
 });
 window.addEventListener('keyup',function(e){keys[e.code]=false;});
 var debugMode=false;
-window.addEventListener('keydown',function(e){if(e.code==='Backquote'&&gameRunning){debugMode=!debugMode;document.getElementById('debug-hud').style.display=debugMode?'block':'none';}},true);
+window.addEventListener('keydown',function(e){if(e.code==='Backquote'&&gameRunning){debugMode=!debugMode;document.getElementById('debug-hud').style.display=debugMode?'block':'none';if(debugMode)showCornerMarkers();else hideCornerMarkers();}},true);
 window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 function updatePlayer(delta){
@@ -1595,9 +1615,9 @@ function updatePlayer(delta){
   if(keys['KeyA']||keys['ArrowLeft']) {mx-=rgtX;mz-=rgtZ;}
   if(keys['KeyD']||keys['ArrowRight']){mx+=rgtX;mz+=rgtZ;}
   if(mx!==0||mz!==0){var len=Math.sqrt(mx*mx+mz*mz);tryMove((mx/len)*speed*delta,(mz/len)*speed*delta);}
-  // 20-unit inset: bounding box edge is often empty void before city geometry ends
-  playerPos.x=Math.max(modelBounds.min.x+20,Math.min(modelBounds.max.x-20,playerPos.x));
-  playerPos.z=Math.max(modelBounds.min.z+20,Math.min(modelBounds.max.z-20,playerPos.z));
+  // 8-unit inset keeps player on solid city geometry
+  playerPos.x=Math.max(modelBounds.min.x+8,Math.min(modelBounds.max.x-8,playerPos.x));
+  playerPos.z=Math.max(modelBounds.min.z+8,Math.min(modelBounds.max.z-8,playerPos.z));
 
   groundY=getGroundY(playerPos.x,playerPos.z);
   // If standing over void, nudge toward city center until ground is found
@@ -1786,18 +1806,42 @@ function tickAutoDay(){
 }
 
 // ─── DEBUG ─────────────────────────────────────────────
+var cornerMarkers=[];
+function showCornerMarkers(){
+  hideCornerMarkers();
+  var INSET=8;
+  var corners=[
+    {x:modelBounds.min.x+INSET,z:modelBounds.min.z+INSET,col:0xff0000},
+    {x:modelBounds.max.x-INSET,z:modelBounds.min.z+INSET,col:0x00ff00},
+    {x:modelBounds.min.x+INSET,z:modelBounds.max.z-INSET,col:0x0088ff},
+    {x:modelBounds.max.x-INSET,z:modelBounds.max.z-INSET,col:0xffff00},
+  ];
+  corners.forEach(function(c){
+    var geo=new THREE.CylinderGeometry(0.3,0.3,20,6);
+    var mat=new THREE.MeshBasicMaterial({color:c.col});
+    var mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(c.x,10,c.z);
+    scene.add(mesh);cornerMarkers.push(mesh);
+    // Label
+    var top=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,8),new THREE.MeshBasicMaterial({color:c.col}));
+    top.position.set(c.x,21,c.z);scene.add(top);cornerMarkers.push(top);
+  });
+}
+function hideCornerMarkers(){
+  cornerMarkers.forEach(function(m){scene.remove(m);});cornerMarkers=[];
+}
 function updateDebug(){
   if(!debugMode)return;
   var inAir=isJumping||playerPos.y>(groundY+EYE_HEIGHT+0.4);
   var elapsed=worldStartTime?(Date.now()-worldStartTime)/1000:0;
+  var INSET=8;
   document.getElementById('debug-hud').textContent=[
     'POS   x:'+playerPos.x.toFixed(1)+'  y:'+playerPos.y.toFixed(1)+'  z:'+playerPos.z.toFixed(1),
     'GND   '+groundY.toFixed(2)+'   inAir:'+inAir,
-    'BNDX  '+modelBounds.min.x.toFixed(1)+' → '+modelBounds.max.x.toFixed(1),
-    'BNDZ  '+modelBounds.min.z.toFixed(1)+' → '+modelBounds.max.z.toFixed(1),
-    'BNDY  min:'+modelBounds.min.y.toFixed(1)+'  max:'+modelBounds.max.y.toFixed(1),
-    'DAY   '+currentDay+'/15   t:'+elapsed.toFixed(0)+'s',
-    '` = toggle this panel',
+    'BNDX  '+(modelBounds.min.x+INSET).toFixed(1)+' → '+(modelBounds.max.x-INSET).toFixed(1)+' (inset '+INSET+')',
+    'BNDZ  '+(modelBounds.min.z+INSET).toFixed(1)+' → '+(modelBounds.max.z-INSET).toFixed(1),
+    'DAY   '+currentDay+'   t:'+elapsed.toFixed(0)+'s',
+    '` = toggle · corners: RED=NW  GREEN=NE  BLUE=SW  YELLOW=SE',
   ].join('\n');
 }
 
