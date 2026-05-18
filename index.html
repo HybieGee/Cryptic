@@ -17,14 +17,26 @@ canvas{display:block;position:fixed;inset:0}
 #load-bar-inner{height:2px;background:#4488ff;width:0%;transition:width .15s}
 #load-pct{font-size:9px;color:#333;letter-spacing:3px}
 
-#spawn{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(4,6,14,.88);backdrop-filter:blur(4px)}
-#spawn h1{font-size:24px;letter-spacing:10px}
-#spawn p{font-size:9px;letter-spacing:4px;color:#444}
-#name-input{background:rgba(255,255,255,.92);border:1px solid #ccc;color:#000;font-family:'Courier New',monospace;font-size:13px;letter-spacing:2px;padding:10px 18px;width:220px;text-align:center;outline:none}
-#name-input:focus{border-color:#4488ff;background:#fff}
-#name-input::placeholder{color:#888}
-#enter-btn{padding:11px 36px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;cursor:pointer;transition:all .15s}
-#enter-btn:hover{background:rgba(68,136,255,.12);color:#fff}
+#spectate-ui{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(4,6,14,.72);backdrop-filter:blur(2px)}
+.spec-title{font-size:24px;letter-spacing:10px}
+.spec-sub{font-size:9px;letter-spacing:4px;color:#444}
+.spec-stats{display:flex;gap:20px;margin:4px 0;flex-wrap:wrap;justify-content:center}
+.spec-stat{font-size:9px;letter-spacing:3px;color:#555;border:1px solid #1a1a1a;padding:5px 12px}
+.spec-stat span{color:#888}
+.spec-mode{font-size:8px;letter-spacing:5px;color:#2a2a2a;margin-top:4px}
+#spec-wallet-btn{margin-top:8px;padding:11px 36px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;cursor:pointer;transition:all .15s}
+#spec-wallet-btn:hover:not(:disabled){background:rgba(68,136,255,.12);color:#fff}
+#spec-wallet-btn:disabled{opacity:.5;cursor:default}
+#spec-wallet-btn.ok{border-color:#00cc66;color:#00cc66}
+#spec-nw{display:none;font-size:9px;letter-spacing:2px;color:#553311;padding:8px 16px;border:1px solid #331100;max-width:320px;text-align:center;line-height:1.8}
+#spec-join{display:none;flex-direction:column;align-items:center;gap:10px;margin-top:4px}
+#spec-name-input{background:rgba(255,255,255,.92);border:1px solid #ccc;color:#000;font-family:'Courier New',monospace;font-size:13px;letter-spacing:2px;padding:10px 18px;width:220px;text-align:center;outline:none}
+#spec-name-input:focus{border-color:#4488ff;background:#fff}
+#spec-name-input::placeholder{color:#888}
+#spec-name-error{font-size:9px;letter-spacing:2px;color:#ff4444;min-height:14px;text-align:center;max-width:260px}
+#spec-join-btn{padding:11px 36px;background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;cursor:pointer;transition:all .15s}
+#spec-join-btn:hover:not(:disabled){background:rgba(68,255,136,.1);color:#fff}
+#spec-join-btn:disabled{opacity:.5;cursor:default}
 
 #hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none}
 #hud-tl{position:absolute;top:16px;left:16px;font-size:9px;letter-spacing:3px;color:rgba(255,255,255,.85);text-shadow:0 1px 6px rgba(0,0,0,.9)}
@@ -248,11 +260,22 @@ canvas{display:block;position:fixed;inset:0}
   <div id="load-pct">0%</div>
 </div>
 
-<div id="spawn">
-  <h1>EMERGENCE WORLD</h1>
-  <p>AI AGENT SIMULATION · MAY 2026</p>
-  <input id="name-input" type="text" maxlength="18" placeholder="ENTER YOUR NAME" autocomplete="off" spellcheck="false">
-  <button id="enter-btn" onclick="enterWorld()">ENTER WORLD</button>
+<div id="spectate-ui">
+  <div class="spec-title">EMERGENCE WORLD</div>
+  <div class="spec-sub">AI AGENT SIMULATION · MAY 2026</div>
+  <div class="spec-stats">
+    <div class="spec-stat">AGENTS <span>5 ACTIVE</span></div>
+    <div class="spec-stat">DAY <span id="spec-day">1</span></div>
+    <div class="spec-stat"><span id="spec-online">— ONLINE</span></div>
+  </div>
+  <div class="spec-mode">SPECTATING</div>
+  <button id="spec-wallet-btn" onclick="spectateConnectWallet()">◌ CONNECT WALLET TO JOIN</button>
+  <div id="spec-nw">No wallet detected. Install MetaMask to join.</div>
+  <div id="spec-join">
+    <input id="spec-name-input" type="text" maxlength="18" placeholder="CHOOSE A UNIQUE NAME" autocomplete="off" spellcheck="false">
+    <div id="spec-name-error"></div>
+    <button id="spec-join-btn" onclick="tryJoin()">JOIN WORLD</button>
+  </div>
 </div>
 
 <div id="hud">
@@ -417,11 +440,11 @@ var TIERS=[
 ];
 
 var AGENT_DEFS=[
-  {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'Man in Suit.glb',    ttsRate:0.95,ttsPitch:1.0},
-  {id:'beta',   personality:'beta',   name:'BETA',    colorHex:0xff8844,colorCSS:'#ff8844',model:'Business Man.glb',   ttsRate:1.0, ttsPitch:0.9},
-  {id:'gamma',  personality:'gamma',  name:'GAMMA',   colorHex:0x44ff88,colorCSS:'#44ff88',model:'Casual Character.glb',ttsRate:1.1,ttsPitch:1.1},
-  {id:'delta',  personality:'delta',  name:'DELTA',   colorHex:0xff4488,colorCSS:'#ff4488',model:'Hoodie Character.glb',ttsRate:1.05,ttsPitch:0.8},
-  {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'Suit.glb',           ttsRate:0.9, ttsPitch:1.05},
+  {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'Man in Suit.glb',ttsRate:0.95,ttsPitch:1.0},
+  {id:'beta',   personality:'beta',   name:'BETA',    colorHex:0xff8844,colorCSS:'#ff8844',model:'Man in Suit.glb',ttsRate:1.0, ttsPitch:0.9},
+  {id:'gamma',  personality:'gamma',  name:'GAMMA',   colorHex:0x44ff88,colorCSS:'#44ff88',model:'Man in Suit.glb',ttsRate:1.1, ttsPitch:1.1},
+  {id:'delta',  personality:'delta',  name:'DELTA',   colorHex:0xff4488,colorCSS:'#ff4488',model:'Man in Suit.glb',ttsRate:1.05,ttsPitch:0.8},
+  {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'Man in Suit.glb',ttsRate:0.9, ttsPitch:1.05},
 ];
 
 var SHOPS=[
@@ -495,34 +518,31 @@ loader.load(CFG.CITY_MODEL,
     var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
     groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
-    // City done — show spawn immediately; prepare agent models in background.
-    // prepareAgentModel() does all GPU work while user is on spawn screen (safe to stall there).
-    // By the time they hit ENTER WORLD, models are compiled and swap is instant.
+    // City done — show spectate screen; download ONE shared agent model (0.56 MB vs 6.7 MB).
+    // prepareAgentModel() clones + compiles per-agent during spectate (safe to stall there).
+    // By the time the player joins, all 5 models are GPU-compiled and swap is instant.
     setLoadBar(100,'READY');
     document.getElementById('loading').style.display='none';
-    document.getElementById('spawn').style.display='flex';
-    previewAnimate();
-    AGENT_DEFS.forEach(function(def){
-      loader.load(def.model,
-        function(g2){
-          agentModels[def.id]=g2;
+    startSpectate();
+    loader.load('Man in Suit.glb',
+      function(sharedGLTF){
+        AGENT_DEFS.forEach(function(def){
+          agentModels[def.id]=sharedGLTF;
           if(!gameRunning){
-            // Spawn screen: do all expensive prep now (user doesn't see frame stalls)
-            prepareAgentModel(def,g2);
+            prepareAgentModel(def,sharedGLTF);
           }else{
-            // Already in-game: prep + swap on idle time so frames aren't blocked
             function doPrepSwap(){
-              prepareAgentModel(def,g2);
+              prepareAgentModel(def,sharedGLTF);
               agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
             }
             if(window.requestIdleCallback)requestIdleCallback(doPrepSwap,{timeout:15000});
             else setTimeout(doPrepSwap,500);
           }
-        },
-        null,
-        function(){agentModels[def.id]=null;}
-      );
-    });
+        });
+      },
+      null,
+      function(){AGENT_DEFS.forEach(function(def){agentModels[def.id]=null;});}
+    );
   },
   function(xhr){if(xhr.total)setLoadBar(Math.round(xhr.loaded/xhr.total*50),'LOADING CITY');},
   function(e){console.error('City load error',e);}
@@ -633,11 +653,12 @@ var agents=[],agentsSpawned=false,streetLevel=0;
 var agentModels={};    // raw loaded GLTF per agent id
 var agentPrepared={};  // pre-processed, GPU-ready data per agent id
 
-// Run all expensive work (clone-less scale/material setup + GPU compile)
-// while user is on spawn screen so in-world swap costs nothing
+// Run all expensive work (clone + scale/material setup + GPU compile)
+// while user is on spectate screen so in-world swap costs nothing.
+// SkeletonUtils_clone gives each agent its own skeleton for independent animation.
 function prepareAgentModel(def, gltf){
-  var sc3=gltf.scene;
-  // Scale to ~2 units tall in-place (no clone — each agent has unique GLB)
+  var sc3=SkeletonUtils_clone(gltf.scene);
+  // Scale to ~2 units tall
   var box=new THREE.Box3().setFromObject(sc3);
   var h=box.max.y-box.min.y;
   sc3.scale.setScalar(h>0?2.0/h:1);
@@ -1773,7 +1794,7 @@ var db=null,myRef=null;
 function initFirebase(name){
   if(!CFG.FIREBASE)return;
   try{
-    firebase.initializeApp(CFG.FIREBASE);db=firebase.database();
+    if(!db){try{firebase.initializeApp(CFG.FIREBASE);}catch(e){}db=firebase.database();}
     myRef=db.ref('players/'+playerId);
     myRef.set({x:playerPos.x,z:playerPos.z,yaw:0,color:myColorCSS,name:name});
     myRef.onDisconnect().remove();
@@ -1801,11 +1822,79 @@ function initFirebase(name){
   }catch(e){console.warn('Firebase:',e);}
 }
 
+// ─── SPECTATE / JOIN ───────────────────────────────────
+function startSpectate(){
+  document.getElementById('spectate-ui').style.display='flex';
+  previewAnimate();
+  if(CFG.FIREBASE&&!db){
+    try{
+      firebase.initializeApp(CFG.FIREBASE);
+      db=firebase.database();
+      db.ref('world/day').on('value',function(s){
+        var d=s.val();if(d){var el=document.getElementById('spec-day');if(el)el.textContent=d;}
+      });
+      db.ref('players').on('value',function(s){
+        var count=Object.keys(s.val()||{}).length;
+        var el=document.getElementById('spec-online');if(el)el.textContent=count+' ONLINE';
+      });
+    }catch(e){}
+  }
+}
+
+async function spectateConnectWallet(){
+  var btn=document.getElementById('spec-wallet-btn');
+  if(!window.ethereum){
+    btn.textContent='✕ NO WALLET DETECTED';
+    document.getElementById('spec-nw').style.display='block';
+    return;
+  }
+  btn.textContent='CONNECTING...';btn.disabled=true;
+  try{
+    var accs=await window.ethereum.request({method:'eth_requestAccounts'});
+    walletAddr=accs[0];
+    btn.textContent='● '+walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
+    btn.classList.add('ok');
+    var joinDiv=document.getElementById('spec-join');
+    joinDiv.style.display='flex';
+    setTimeout(function(){document.getElementById('spec-name-input').focus();},80);
+  }catch(e){
+    btn.textContent='◌ CONNECT WALLET TO JOIN';btn.disabled=false;
+  }
+}
+
+function showSpecError(msg){
+  var el=document.getElementById('spec-name-error');
+  el.textContent=msg;
+  setTimeout(function(){el.textContent='';},3200);
+}
+
+function tryJoin(){
+  var raw=document.getElementById('spec-name-input').value.trim();
+  if(!raw||raw.length<2){showSpecError('Name must be at least 2 characters.');return;}
+  var name=raw.slice(0,18);
+  var key=name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+  if(!key){showSpecError('Invalid name — letters and numbers only.');return;}
+  var btn=document.getElementById('spec-join-btn');
+  btn.textContent='CHECKING...';btn.disabled=true;
+  if(db){
+    db.ref('names/'+key).once('value',function(snap){
+      if(snap.val()){
+        showSpecError('NAME TAKEN — choose another');
+        btn.textContent='JOIN WORLD';btn.disabled=false;
+      }else{
+        db.ref('names/'+key).set({ts:Date.now()});
+        enterWorld(name);
+      }
+    });
+  }else{
+    enterWorld(name);
+  }
+}
+
 // ─── ENTER WORLD ───────────────────────────────────────
-function enterWorld(){
-  var raw=document.getElementById('name-input').value.trim();
-  playerName=raw||('Wanderer'+Math.random().toString(36).substr(2,4).toUpperCase());
-  document.getElementById('spawn').style.display='none';
+function enterWorld(name){
+  playerName=name||('Wanderer'+Math.random().toString(36).substr(2,4).toUpperCase());
+  document.getElementById('spectate-ui').style.display='none';
   document.getElementById('hud').style.display='block';
   document.getElementById('xhair').style.display='block';
   document.getElementById('tl-lock').style.display='none';
@@ -1818,7 +1907,7 @@ function enterWorld(){
   setTimeout(function(){loadJournalFromDB();loadAnomaliesFromDB();},1500);
   setTimeout(function(){awardCredits(20,'Welcome to Emergence World');},2000);
 }
-document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')enterWorld();});
+document.getElementById('spec-name-input').addEventListener('keydown',function(e){if(e.key==='Enter')tryJoin();});
 document.getElementById('dialog-prompt-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendCustomPrompt();});
 
 // ─── WORLD CLOCK (1 min = 1 day) ───────────────────────
