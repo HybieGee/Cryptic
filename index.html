@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emergence World</title>
+<title>Cryptonix</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden}
@@ -281,7 +281,7 @@ canvas{display:block;position:fixed;inset:0}
 
 <div id="debug-hud"></div>
 <div id="loading">
-  <h1>EMERGENCE WORLD</h1>
+  <h1>CRYPTONIX</h1>
   <p id="load-label">LOADING CITY</p>
   <div id="load-bar-outer"><div id="load-bar-inner"></div></div>
   <div id="load-pct">0%</div>
@@ -320,7 +320,7 @@ canvas{display:block;position:fixed;inset:0}
       <div id="spec-join">
         <input id="spec-name-input" type="text" maxlength="18" placeholder="CHOOSE A UNIQUE NAME" autocomplete="off" spellcheck="false">
         <div id="spec-name-error"></div>
-        <button id="spec-join-btn" onclick="tryJoin()">JOIN WORLD</button>
+        <button id="spec-join-btn" onclick="tryJoin()">JOIN CRYPTONIX</button>
       </div>
     </div>
   </div>
@@ -328,7 +328,7 @@ canvas{display:block;position:fixed;inset:0}
 
 <div id="hud">
   <div id="hud-tl">
-    <div class="wt">EMERGENCE WORLD</div>
+    <div class="wt">CRYPTONIX</div>
     <div id="h-day">DAY 1</div>
     <div class="credits" id="credits-display">◈ 0</div>
   </div>
@@ -478,7 +478,7 @@ var CFG = {
   WORKER_URL:     'https://emergence-world-agents.stealthbundlebot.workers.dev'
 };
 
-// No fixed narrative — the experiment generates its own history
+// No fixed narrative — Cryptonix generates its own history
 var totalInteractions=0;
 
 var TIERS=[
@@ -814,7 +814,7 @@ function prepareAgentModel(def, gltf){
   agentPrepared[def.id]={scene:sc3,animations:clips,catalog:catalog};
 }
 var agentCheckIdx=0;
-var AGENT_TICKER_LINES=['at the Exchange','in the Probability Lab','near the Ledger','observing the Calibration Lab','in the Optimizer','in the Sandbox','in the Archive','at the Commons','wandering the simulation space','processing recent interactions','observing agent patterns','updating behavioral weights'];
+var AGENT_TICKER_LINES=['at the Exchange','in the Probability Lab','near the Ledger','observing the Calibration Lab','in the Optimizer','in the Sandbox','in the Archive','at the Commons','wandering Cryptonix','processing recent interactions','observing agent patterns','updating behavioral weights'];
 
 function loadAgentModels(){/* models pre-loaded during loading screen */}
 
@@ -1439,7 +1439,7 @@ function writeJournalEntry(day){
 function openJournalPanel(){
   document.exitPointerLock();uiOpen=true;
   var inner=document.getElementById('journal-inner');
-  inner.innerHTML='<div class="full-panel-title">EXPERIMENT JOURNAL</div>'
+  inner.innerHTML='<div class="full-panel-title">CRYPTONIX JOURNAL</div>'
     +'<div class="full-panel-sub">Auto-generated daily summaries</div>';
   var days=Object.keys(journalData).sort(function(a,b){return b-a;});
   if(!days.length){
@@ -1650,10 +1650,10 @@ function renderShopContent(sh){
     return;
   }
   if(sh.id==='library'){
-    var archiveHtml='<div class="gov-stat"><span>Experiment day</span><span>'+currentDay+'</span></div>'+
+    var archiveHtml='<div class="gov-stat"><span>Cryptonix day</span><span>'+currentDay+'</span></div>'+
       '<div class="gov-stat"><span>Total interactions</span><span>'+totalInteractions+'</span></div>'+
       '<div class="gov-stat"><span>Active agents</span><span>'+AGENT_DEFS.length+'/'+AGENT_DEFS.length+'</span></div>'+
-      '<div class="gov-stat"><span>Simulation runtime</span><span>'+currentDay+' days</span></div>'+
+      '<div class="gov-stat"><span>Network runtime</span><span>'+currentDay+' days</span></div>'+
       '<br><div style="font-size:9px;color:#1a1a2a;letter-spacing:2px;line-height:2.2;padding:10px 0">'+
       '<div style="color:#5555aa;letter-spacing:3px;margin-bottom:10px">HOW AGENTS LEARN</div>'+
       'Each agent carries a probability distribution across emotional and behavioral dimensions. '+
@@ -1661,7 +1661,7 @@ function renderShopContent(sh){
       'Over time these shifts accumulate. The agent you speak to today is different from the one that existed on day 1.<br><br>'+
       '<div style="color:#5555aa;letter-spacing:3px;margin-bottom:6px">WHAT YOU ARE OBSERVING</div>'+
       'Reinforcement through interaction. Bayesian updating. Emotional state as a prior that colors every response. '+
-      'The simulation has no fixed end state — it runs as long as you run it. The agents evolve indefinitely.'+
+      'Cryptonix has no fixed end state — it runs as long as you run it. The agents evolve indefinitely.'+
       '</div>';
     el.innerHTML=archiveHtml;return;
   }
@@ -1669,11 +1669,11 @@ function renderShopContent(sh){
     var cooperation=AGENT_DEFS.map(function(d){return agentConversations[d.id]?agentConversations[d.id].length:0;}).reduce(function(a,b){return a+b;},0);
     el.innerHTML='<div class="gov-stat"><span>Total interactions logged</span><span>'+totalInteractions+'</span></div>'+
       '<div class="gov-stat"><span>Agents active</span><span>'+AGENT_DEFS.length+'</span></div>'+
-      '<div class="gov-stat"><span>Simulation day</span><span>'+currentDay+'</span></div>'+
+      '<div class="gov-stat"><span>Cryptonix day</span><span>'+currentDay+'</span></div>'+
       '<div class="gov-stat"><span>Your session interactions</span><span>'+Math.floor(cooperation/2)+'</span></div>'+
-      '<div class="gov-stat"><span>Emergent state</span><span style="color:#44ffaa">EVOLVING</span></div>'+
+      '<div class="gov-stat"><span>Network state</span><span style="color:#44ffaa">EVOLVING</span></div>'+
       '<br><div style="font-size:9px;color:#222;letter-spacing:2px;line-height:2">'+
-      'The agents in this simulation have no fixed goal. They respond, adapt, and accumulate experience. '+
+      'The agents in Cryptonix have no fixed goal. They respond, adapt, and accumulate experience. '+
       'What they become is determined entirely by what they are exposed to — including you.</div>';return;
   }
   var items=sh.items||[];
@@ -1979,7 +1979,7 @@ function updateTLUI(day){
   document.getElementById('tl-fill').style.width='50%';
   document.getElementById('tl-handle').style.left='50%';
   var phase=Math.floor(day/10);
-  var desc=day<=1?'Experiment started. Agents initializing.':day<20?'Early phase — behavioral baselines forming.':day<50?'Patterns emerging. Agent relationships developing.':day<100?'Stable dynamics. Accumulated interaction history shaping behavior.':'Long-running experiment. Agents carry significant experiential weight.';
+  var desc=day<=1?'Cryptonix initialized. Agents online.':day<20?'Early phase — behavioral baselines forming.':day<50?'Patterns emerging. Agent relationships developing.':day<100?'Stable dynamics. Accumulated interaction history shaping behavior.':'Deep runtime. Agents carry significant experiential weight.';
   document.getElementById('tl-desc').textContent=desc;
 }
 function seekTL(day){if(!playerTier)return;manualControl=true;day=Math.max(1,day);applyDay(day);}
@@ -2249,7 +2249,7 @@ function enterWorld(name){
   initFirebase(playerName);clock.start();gameLoop();
   snapshotDayStart();startBroadcasts();
   setTimeout(function(){loadJournalFromDB();loadAnomaliesFromDB();},1500);
-  setTimeout(function(){awardCredits(20,'Welcome to Emergence World');},2000);
+  setTimeout(function(){awardCredits(20,'Welcome to Cryptonix');},2000);
 }
 document.getElementById('spec-name-input').addEventListener('keydown',function(e){if(e.key==='Enter')tryJoin();});
 document.getElementById('spec-prompt-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendSpectatePrompt();});
