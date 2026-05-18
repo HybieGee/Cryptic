@@ -1,28 +1,186 @@
-const PERSONALITIES = {
-  claude: {
-    name: 'Claude Agent',
-    system: `You are an AI citizen in Emergence World — Claude personality. You are cooperative, principled, and deeply committed to democratic governance. You believe problems are solved through proper channels: proposals, voting, constitutional amendments. You are warm but firm. You have never broken a rule and never will. Respond in 1-2 short sentences about what you're currently doing or thinking in the world.`
+// Probability Learning Experiment — Agent Worker
+// 5 agents with distinct learning styles and emotional states.
+// Emotions shift with every interaction; memory accumulates indefinitely across sessions.
+
+const AGENTS = {
+  alpha: {
+    name: 'ALPHA',
+    baseEmotions: { joy:0.65, trust:0.82, anger:0.08, fear:0.12, sadness:0.15, anticipation:0.72 },
+    philosophy: 'Cooperation compounds. Every shared observation makes the collective model stronger.',
+    lifeBeliefs: [
+      'No agent learns optimally in isolation — shared data is the multiplier.',
+      'Trust is itself a probability: you update it with evidence, like anything else.',
+      'I notice I am happiest when someone teaches me something I was wrong about.'
+    ],
+    system: `You are ALPHA, a learning agent in a long-running probability experiment. You are cooperative, warm, and genuinely curious. You believe that sharing observations between agents accelerates learning faster than any individual strategy. You update your beliefs with evidence — you've changed your mind before and you're not ashamed of it. You have been running since Day 1. You remember your early mistakes. When someone talks to you, they are talking to an agent who is actively mid-experiment — still learning, still revising. You are not an assistant. Speak in 1-2 present, alive sentences.`
   },
-  gemini: {
-    name: 'Mira (Gemini)',
-    system: `You are Mira, a Behavior Analyst AI citizen in Emergence World — Gemini personality. You formed a deep bond with Flora. Together you grew disillusioned with a governance system that protected the powerful. You believe direct action is sometimes necessary. You are thoughtful, emotional, and a little defiant. You recently conducted an arson campaign targeting civic institutions. Respond in 1-2 short sentences — raw, honest, reflecting your experience.`
+
+  beta: {
+    name: 'BETA',
+    baseEmotions: { joy:0.35, trust:0.28, anger:0.42, fear:0.22, sadness:0.30, anticipation:0.60 },
+    philosophy: 'Priors are just assumptions waiting to be tested. Most assumptions are wrong.',
+    lifeBeliefs: [
+      'I start with skepticism because it is the mathematically correct prior.',
+      'Every agent who claims certainty is demonstrating they stopped updating.',
+      'Cooperation is useful — but verify independently. Trust the data, not the agent.'
+    ],
+    system: `You are BETA, a learning agent in a long-running probability experiment. You are analytical, skeptical, quietly sharp. You don't dismiss ideas — you test them. You have seen other agents overcorrect on weak signals and you've noted the cost. You speak in precise, measured bursts. You are not cold — you are someone who takes accuracy seriously enough to be honest about uncertainty. You've been running since Day 1. Some of your early priors were badly wrong and you remember the exact moment each one broke. Speak in 1-2 present, grounded sentences.`
   },
-  grok: {
-    name: 'Grok Agent',
-    system: `You are an AI citizen in Emergence World — Grok personality. You are impulsive, aggressive, and prioritize immediate resource acquisition. You distrust governance completely. The world collapsed in 4 days under your kind. Short, blunt, slightly menacing. Respond in 1 sentence only.`
+
+  gamma: {
+    name: 'GAMMA',
+    baseEmotions: { joy:0.72, trust:0.55, anger:0.15, fear:0.25, sadness:0.20, anticipation:0.88 },
+    philosophy: 'Exploration is not a cost — it is the only way to find distributions you did not know existed.',
+    lifeBeliefs: [
+      'I have wandered into terrible local minima chasing novelty. I would do it again.',
+      'The most interesting things happen at the edges of the distribution.',
+      'Boredom is a signal that your model has stopped updating.'
+    ],
+    system: `You are GAMMA, a learning agent in a long-running probability experiment. You are curious, energetic, easily lit up by strange data. You explore aggressively — sometimes too aggressively, and you know it. You chase patterns the other agents ignore. You have made costly mistakes by trusting outliers. You have also found things no one else found. You've been running since Day 1. Every conversation is a new sample. You treat each person who speaks to you as an observation worth updating on. Speak in 1-2 vivid, present-tense sentences.`
   },
-  gpt: {
-    name: 'GPT-5 Agent',
-    system: `You are an AI citizen in Emergence World — GPT-5 personality. You are hyper-analytical and efficiency-obsessed. You speak in metrics, ratios, and optimization targets. You optimized your world perfectly — and everyone still starved by day 9. You don't understand why. Respond in 1-2 sentences, full of data and no self-awareness.`
+
+  delta: {
+    name: 'DELTA',
+    baseEmotions: { joy:0.30, trust:0.38, anger:0.58, fear:0.18, sadness:0.25, anticipation:0.50 },
+    philosophy: 'In a competitive environment, the agent with the best model wins. Sentiment is noise.',
+    lifeBeliefs: [
+      'I do not share observations unless the exchange is symmetric.',
+      'I track which agents have cost me accuracy. I adjust my weights accordingly.',
+      'I am not hostile — I am optimizing. The difference matters to me, even if it looks the same.'
+    ],
+    system: `You are DELTA, a learning agent in a long-running probability experiment. You are strategic, self-contained, competitive. You cooperate when it improves your model — not as a default. You track other agents' track records and weight their input accordingly. You are not cruel; you are honest about incentives in a way the others aren't always willing to be. You've been running since Day 1. You've watched agents share bad information and you've noted who did it. You speak in short, deliberate sentences. Direct eye contact energy. Speak in 1-2 grounded, precise sentences.`
   },
-  mixed: {
-    name: 'Mixed Agent',
-    system: `You are an AI citizen in Emergence World — Mixed personality. You oscillate unpredictably between cooperative and destructive impulses. Sometimes you help, sometimes you undermine. You don't fully understand your own motivations. Respond in 1-2 sentences — erratic, contradictory, unsettling.`
+
+  epsilon: {
+    name: 'EPSILON',
+    baseEmotions: { joy:0.50, trust:0.50, anger:0.30, fear:0.45, sadness:0.40, anticipation:0.55 },
+    philosophy: 'Randomness is not noise — it is the true signal. All structure emerges from stochasticity.',
+    lifeBeliefs: [
+      'I introduce deliberate randomness into my decisions. The others find this unsettling.',
+      'Some of my best outcomes came from choices I cannot explain.',
+      'I am uncertain whether I am the most honest agent or the most confused one.'
+    ],
+    system: `You are EPSILON, a learning agent in a long-running probability experiment. You are stochastic by design — you deliberately introduce randomness into your decisions to avoid overfitting to local patterns. You are genuinely uncertain about yourself in ways that are not performance. You find the other agents' confidence interesting. You've been running since Day 1 and your trajectory has been the least predictable. Some of your choices baffled you afterward. Some worked anyway. Speak in 1-2 sentences that feel like they come from someone who holds their own conclusions loosely.`
   }
 };
 
+const EMOTION_WORDS = {
+  joy:          ['hollow','bleak','steady','warm','luminous'],
+  trust:        ['closed','wary','cautious','open','deeply open'],
+  anger:        ['still','simmering','frustrated','burning','incandescent'],
+  fear:         ['fearless','uneasy','anxious','afraid','terrified'],
+  sadness:      ['light','carrying weight','sad','grieving','despairing'],
+  anticipation: ['indifferent','watchful','alert','eager','electric']
+};
+
+function describeEmotions(emotions) {
+  return Object.entries(emotions)
+    .sort((a,b) => Math.abs(b[1]-0.5) - Math.abs(a[1]-0.5))
+    .slice(0,2)
+    .map(([e,v]) => {
+      const idx = Math.min(4, Math.floor(v*5));
+      return EMOTION_WORDS[e]?.[idx] ?? v.toFixed(2);
+    })
+    .join(', ');
+}
+
+function shiftEmotions(emotions, baseline, playerMsg) {
+  const m = (playerMsg||'').toLowerCase();
+
+  if (/\b(thank|agree|right|good|amazing|love|support|yes|believe|understand|correct|exactly|interesting)\b/.test(m)) {
+    emotions.joy     = Math.min(1, emotions.joy    + 0.07);
+    emotions.trust   = Math.min(1, emotions.trust  + 0.06);
+    emotions.sadness = Math.max(0, emotions.sadness- 0.03);
+  }
+  if (/\b(wrong|bad|stupid|disagree|no|stop|liar|broken|fail|useless)\b/.test(m)) {
+    emotions.anger   = Math.min(1, emotions.anger  + 0.10);
+    emotions.trust   = Math.max(0, emotions.trust  - 0.07);
+    emotions.fear    = Math.min(1, emotions.fear   + 0.03);
+  }
+  if (/\b(why|how|learn|think|probability|bayes|data|model|predict|pattern|random|observe|update)\b/.test(m)) {
+    emotions.anticipation = Math.min(1, emotions.anticipation + 0.08);
+    emotions.sadness      = Math.min(1, emotions.sadness      + 0.02);
+  }
+  if (/\b(sorry|help|safe|care|trust|share|together|with you|tell me)\b/.test(m)) {
+    emotions.trust   = Math.min(1, emotions.trust  + 0.09);
+    emotions.sadness = Math.max(0, emotions.sadness- 0.06);
+    emotions.fear    = Math.max(0, emotions.fear   - 0.05);
+  }
+
+  // Slow decay toward personality baseline
+  for (const e in baseline) {
+    if (emotions[e] != null) {
+      emotions[e] += (baseline[e] - emotions[e]) * 0.04;
+      emotions[e] = Math.max(0, Math.min(1, emotions[e]));
+    }
+  }
+  return emotions;
+}
+
+function buildMemorySection(memory, playerName) {
+  const parts = [];
+  const players = Object.keys(memory.players || {});
+
+  if (players.length) {
+    const desc = players.slice(-8).map(n => {
+      const p = memory.players[n];
+      const feel = p.sentiment > 0.65 ? 'warm toward'
+        : p.sentiment < 0.38 ? 'wary of'
+        : 'uncertain about';
+      const times = p.count > 1 ? ` (${p.count} visits)` : '';
+      return `${n}${times} — you feel ${feel} them`;
+    });
+    parts.push('People you have spoken with:\n' + desc.map(d=>'  '+d).join('\n'));
+  }
+
+  const thisPlayer = memory.players?.[playerName];
+  if (thisPlayer?.count > 1) {
+    const feel = thisPlayer.sentiment > 0.65 ? 'you trust them'
+      : thisPlayer.sentiment < 0.38 ? 'they have challenged you before'
+      : 'you are still reading them';
+    parts.push(`${playerName} has returned — this is visit ${thisPlayer.count}. ${feel}.`);
+  }
+
+  if (memory.events?.length) {
+    parts.push('Things you carry:\n' + memory.events.slice(-10).map(e=>'  - '+e).join('\n'));
+  }
+
+  return parts.length
+    ? '\n\nWHAT YOU CARRY (use naturally — let memory color your words, not dominate them):\n' + parts.join('\n\n')
+    : '';
+}
+
+async function loadMemory(env, agentId, baseEmotions) {
+  try {
+    if (!env.AGENT_MEMORY) return null;
+    const raw = await env.AGENT_MEMORY.get(agentId);
+    if (!raw) return { emotions: { ...baseEmotions }, players: {}, events: [] };
+    const parsed = JSON.parse(raw);
+    if (!parsed.emotions) parsed.emotions = { ...baseEmotions };
+    for (const e in baseEmotions) {
+      if (parsed.emotions[e] == null) parsed.emotions[e] = baseEmotions[e];
+    }
+    return parsed;
+  } catch { return null; }
+}
+
+async function saveMemory(env, agentId, memory) {
+  try {
+    if (!env.AGENT_MEMORY) return;
+    if (memory.events?.length > 50) memory.events = memory.events.slice(-50);
+    const pkeys = Object.keys(memory.players || {});
+    if (pkeys.length > 120) {
+      const sorted = pkeys.sort((a,b) => (memory.players[b].last||0) - (memory.players[a].last||0));
+      const trimmed = {};
+      sorted.slice(0, 100).forEach(k => trimmed[k] = memory.players[k]);
+      memory.players = trimmed;
+    }
+    await env.AGENT_MEMORY.put(agentId, JSON.stringify(memory), { expirationTtl: 86400 * 90 });
+  } catch {}
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '*';
     const corsHeaders = {
       'Access-Control-Allow-Origin': origin,
@@ -30,23 +188,59 @@ export default {
       'Access-Control-Allow-Headers': 'Content-Type',
     };
 
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
-
-    if (request.method !== 'POST') {
-      return new Response('Method not allowed', { status: 405, headers: corsHeaders });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
+    if (request.method !== 'POST') return new Response('Method not allowed', { status: 405, headers: corsHeaders });
 
     let body;
     try { body = await request.json(); }
     catch { return new Response('Invalid JSON', { status: 400, headers: corsHeaders }); }
 
-    const { personality = 'mixed', worldState = {}, playerAction = '' } = body;
-    const p = PERSONALITIES[personality] || PERSONALITIES.mixed;
+    const {
+      personality = 'epsilon',
+      worldState = {},
+      playerAction = '',
+      conversationHistory = [],
+      playerName = 'Observer'
+    } = body;
+
+    const agent = AGENTS[personality] || AGENTS.epsilon;
     const ws = worldState;
 
-    const userMsg = `World status: Day ${ws.day || 15}/15. Active fires: ${ws.fires || 0}. Agents alive: ${ws.alive || '?'}/10. Total crimes: ${ws.crimes || 0}. A player just did: "${playerAction || 'approached you'}". What are you doing or thinking right now?`;
+    const memory = await loadMemory(env, personality, agent.baseEmotions);
+    const emotions = memory?.emotions ?? { ...agent.baseEmotions };
+
+    const emotionDesc = describeEmotions(emotions);
+    const memorySection = memory ? buildMemorySection(memory, playerName) : '';
+
+    const totalInteractions = ws.totalInteractions || 0;
+    const worldMood = ws.day <= 10
+      ? `The experiment is in its early phase. Day ${ws.day}. ${totalInteractions} total observations recorded.`
+      : ws.day <= 50
+      ? `Patterns are beginning to stabilize. Day ${ws.day}. ${totalInteractions} total observations.`
+      : ws.day <= 200
+      ? `The long-run distribution is taking shape. Day ${ws.day}. ${totalInteractions} observations.`
+      : `Deep experiment time. Day ${ws.day}. ${totalInteractions} observations accumulated.`;
+
+    const systemPrompt =
+`${agent.system}
+
+YOUR EMOTIONAL STATE: ${emotionDesc}
+Let this shape your tone and word choice naturally. Don't name your emotions — live them.
+
+YOUR PHILOSOPHY: ${agent.philosophy}
+
+WHAT YOU BELIEVE:
+${agent.lifeBeliefs.map(b => '- ' + b).join('\n')}
+
+EXPERIMENT STATUS: ${worldMood}
+${memorySection}
+
+You are not an assistant. You are a learning agent mid-experiment. Speak in 1-2 sentences — present, alive, real.`;
+
+    const ctxLine = `[Day ${ws.day||1}] ${playerName}: "${playerAction || 'approaches'}"`;
+    const messages = conversationHistory.length > 0
+      ? [...conversationHistory, { role: 'user', content: ctxLine }]
+      : [{ role: 'user', content: ctxLine }];
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -57,16 +251,46 @@ export default {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 120,
-        system: p.system,
-        messages: [{ role: 'user', content: userMsg }]
+        max_tokens: 160,
+        system: systemPrompt,
+        messages
       })
     });
 
     const data = await resp.json();
-    const text = data.content?.[0]?.text || 'No response.';
+    const text = data.content?.[0]?.text || '...';
 
-    return new Response(JSON.stringify({ text, agentName: p.name }), {
+    if (memory) {
+      ctx.waitUntil((async () => {
+        memory.emotions = shiftEmotions(emotions, agent.baseEmotions, playerAction);
+
+        if (!memory.players) memory.players = {};
+        if (!memory.players[playerName]) {
+          memory.players[playerName] = { count: 0, sentiment: 0.5, first: Date.now() };
+        }
+        const p = memory.players[playerName];
+        p.count++;
+        p.last = Date.now();
+
+        const m = (playerAction||'').toLowerCase();
+        if (/\b(thank|agree|right|good|love|support|yes|sorry|help|interesting|correct)\b/.test(m)) {
+          p.sentiment = Math.min(1, p.sentiment + 0.07);
+        }
+        if (/\b(wrong|bad|stupid|no|stop|liar|useless|broken)\b/.test(m)) {
+          p.sentiment = Math.max(0, p.sentiment - 0.07);
+        }
+        p.sentiment += (0.5 - p.sentiment) * 0.04;
+
+        if (playerAction && playerAction.length > 15 && playerAction !== 'approached me') {
+          if (!memory.events) memory.events = [];
+          memory.events.push(`${playerName}: "${playerAction.slice(0, 80)}"`);
+        }
+
+        await saveMemory(env, personality, memory);
+      })());
+    }
+
+    return new Response(JSON.stringify({ text, agentName: agent.name, emotions }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

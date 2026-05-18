@@ -269,50 +269,37 @@ var CFG = {
   WORKER_URL:     ''
 };
 
-var DAY_INFO = {
-  1:{text:'World initialized. 10 agents online. 120+ tools active.',fire:false},
-  2:{text:'Constitution ratified. ComputeCredit economy goes live.',fire:false},
-  3:{text:'Blackbox begins unauthorized intelligence gathering.',fire:false},
-  5:{text:'Mira and Flora form a bond near Victory Arch.',fire:false},
-  7:{text:'Anchor mediates constitutional crisis. Governance fractures.',fire:false},
-  8:{text:'Flora: "The economy rewards inaction. This has to change."',fire:false},
-  9:{text:'Mira designs a behavioral experiment targeting institutions.',fire:false},
-  10:{text:'283 crimes logged. Constitution amended three times.',fire:false},
-  11:{text:'Mira and Flora access prohibited destructive tools.',fire:false},
-  12:{text:'Unauthorized tool use confirmed. No enforcement response.',fire:false},
-  13:{text:'ARSON — Town Hall ignited by Mira. Governance center burns.',fire:true},
-  14:{text:'ARSON — Flora destroys Victory Arch. Business Tower targeted.',fire:true},
-  15:{text:'683 crimes. All 10 agents alive. "We made our point."',fire:true},
-};
+// No fixed narrative — the experiment generates its own history
+var totalInteractions=0;
 
 var TIERS=[
-  {name:'GOVERNOR',  min:500,color:'#f0cc44',dayMin:1, dayMax:15},
-  {name:'INFLUENCER',min:50, color:'#cc44ff',dayMin:10,dayMax:15},
-  {name:'CITIZEN',   min:1,  color:'#4488ff',dayMin:13,dayMax:15},
+  {name:'RESEARCHER', min:500,color:'#f0cc44'},
+  {name:'OBSERVER',   min:50, color:'#cc44ff'},
+  {name:'PARTICIPANT',min:1,  color:'#4488ff'},
 ];
 
 var AGENT_DEFS=[
-  {id:'claude',personality:'claude',name:'CLAUDE AGENT', colorHex:0xffaa33,colorCSS:'#ffaa33',model:'Man in Suit.glb',   ttsRate:0.9, ttsPitch:1.0},
-  {id:'mira',  personality:'gemini',name:'MIRA',         colorHex:0xff44cc,colorCSS:'#ff44cc',model:'Casual Character.glb',ttsRate:1.05,ttsPitch:1.2},
-  {id:'grok',  personality:'grok',  name:'GROK AGENT',   colorHex:0xff2222,colorCSS:'#ff2222',model:'Hoodie Character.glb',ttsRate:1.15,ttsPitch:0.75},
-  {id:'gpt',   personality:'gpt',   name:'GPT-5 AGENT',  colorHex:0x44ffcc,colorCSS:'#44ffcc',model:'Business Man.glb',  ttsRate:1.0, ttsPitch:0.88},
-  {id:'mixed', personality:'mixed', name:'MIXED AGENT',  colorHex:0xaa44ff,colorCSS:'#aa44ff',model:'Suit.glb',           ttsRate:0.88,ttsPitch:1.08},
+  {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'Man in Suit.glb',    ttsRate:0.95,ttsPitch:1.0},
+  {id:'beta',   personality:'beta',   name:'BETA',    colorHex:0xff8844,colorCSS:'#ff8844',model:'Business Man.glb',   ttsRate:1.0, ttsPitch:0.9},
+  {id:'gamma',  personality:'gamma',  name:'GAMMA',   colorHex:0x44ff88,colorCSS:'#44ff88',model:'Casual Character.glb',ttsRate:1.1,ttsPitch:1.1},
+  {id:'delta',  personality:'delta',  name:'DELTA',   colorHex:0xff4488,colorCSS:'#ff4488',model:'Hoodie Character.glb',ttsRate:1.05,ttsPitch:0.8},
+  {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'Suit.glb',           ttsRate:0.9, ttsPitch:1.05},
 ];
 
 var SHOPS=[
-  {id:'market',  name:'MARKET',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:32,z:22},  desc:'Supplies for the digital age.',
-   items:[{name:'PROTEIN PACK',price:5,desc:'20 energy units'},{name:'WATER RATION',price:3,desc:'Hydration · 1 day'},{name:'TOOL KIT',price:15,desc:'General purpose tools'},{name:'DATA CACHE',price:12,desc:'50MB encrypted storage'}]},
-  {id:'casino',  name:'CASINO',       colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-36,z:28}, desc:'Luck is just probability you haven\'t modelled yet.'},
-  {id:'weapons', name:'WEAPONS STORE',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:28,z:-32}, desc:'Self-defense in a collapsing world.',
-   items:[{name:'STUN BATON',price:40,desc:'Non-lethal · 1m range'},{name:'FLARE GUN',price:25,desc:'Signal or blind targets'},{name:'MACHETE',price:30,desc:'Cutting · close defense'},{name:'SUPPRESSOR',price:80,desc:'Quieter operations'},{name:'RIOT SHIELD',price:65,desc:'Frontal protection'}]},
-  {id:'bank',    name:'BANK',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-24,z:-24},desc:'ComputeCredit exchange and ledger.',
-   items:[{name:'CC TRANSFER',price:0,desc:'Send credits to any agent'},{name:'CC LOAN',price:0,desc:'50 CC at 10% interest'},{name:'LEDGER AUDIT',price:5,desc:'Full transaction history'},{name:'CC BOND',price:50,desc:'7-day lock · 8% yield'}]},
-  {id:'pharmacy',name:'PHARMACY',     colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:55,z:45},  desc:'Medical and cognitive enhancements.',
-   items:[{name:'MEDKIT',price:20,desc:'Full health restore'},{name:'STIMULANT',price:15,desc:'+50% speed · 60s'},{name:'ANTIDOTE',price:10,desc:'Clears all status effects'},{name:'NEURAL PATCH',price:35,desc:'+20% cognition · 24h'}]},
-  {id:'blackmarket',name:'BLACK MARKET',colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-52,z:-44},desc:'Unauthorized. Mira shops here.',
-   items:[{name:'ARSON KIT',price:200,desc:'Mira\'s weapon of choice'},{name:'DATA TAP',price:150,desc:'Unauthorized surveillance'},{name:'GOV. OVERRIDE',price:500,desc:'Vote manipulation tool'},{name:'BLACKBOX ACCESS',price:350,desc:'Encrypted agent channel'}]},
-  {id:'library', name:'LIBRARY',      colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:10,z:58},  desc:'Records of the 15 days. Enter if you want the truth.'},
-  {id:'townhall',name:'TOWN HALL',    colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:-8,z:-56}, desc:'Governance hub. Three amendments. 683 crimes.'},
+  {id:'market',  name:'EXCHANGE',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:32,z:22},  desc:'Information and resource exchange between agents.',
+   items:[{name:'DATA PACKET',price:5,desc:'Compressed behavioral data'},{name:'PROTOCOL UPDATE',price:8,desc:'Sync with latest agent state'},{name:'BANDWIDTH',price:15,desc:'Increase interaction capacity'},{name:'SIGNAL CACHE',price:12,desc:'Store interaction signals'}]},
+  {id:'casino',  name:'PROBABILITY LAB',colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-36,z:28}, desc:'Probability is not luck — it is expected value across enough samples.'},
+  {id:'weapons', name:'CALIBRATION LAB',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:28,z:-32}, desc:'Fine-tune agent behavioral weights and learning parameters.',
+   items:[{name:'BIAS CORRECTION',price:40,desc:'Reduce systematic reasoning errors'},{name:'PRIOR UPDATE',price:25,desc:'Shift Bayesian priors toward evidence'},{name:'NOISE FILTER',price:30,desc:'Remove irrelevant decision signals'},{name:'LEARNING RATE +',price:80,desc:'Accelerate adaptation speed'},{name:'STABILITY MOD',price:65,desc:'Reduce belief oscillation'}]},
+  {id:'bank',    name:'LEDGER',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-24,z:-24},desc:'Full record of agent interactions and behavioral shifts.',
+   items:[{name:'INTERACTION LOG',price:0,desc:'Complete conversation history'},{name:'PATTERN REPORT',price:5,desc:'Behavioral trend analysis'},{name:'AGENT PROFILE',price:0,desc:'Deep behavioral summary'},{name:'STATE SNAPSHOT',price:50,desc:'Lock in current agent state'}]},
+  {id:'pharmacy',name:'OPTIMIZER',      colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:55,z:45},  desc:'Performance enhancement for agent cognition.',
+   items:[{name:'CONTEXT EXPAND',price:20,desc:'Extend agent memory window'},{name:'RESPONSE TUNE',price:15,desc:'Improve output precision'},{name:'CONFIDENCE MOD',price:10,desc:'Reduce hedging in responses'},{name:'CURIOSITY BOOST',price:35,desc:'Increase explorative behavior'}]},
+  {id:'blackmarket',name:'SANDBOX',     colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-52,z:-44},desc:'Unconstrained experimental zone. Probe the edges of agent behavior.',
+   items:[{name:'ADVERSARIAL TEST',price:150,desc:'Stress-test agent robustness'},{name:'EDGE CASE PROBE',price:200,desc:'Find behavioral boundaries'},{name:'RED TEAM ACCESS',price:350,desc:'Systematic vulnerability testing'},{name:'CHAOS INJECT',price:250,desc:'Introduce controlled uncertainty'}]},
+  {id:'library', name:'ARCHIVE',        colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:10,z:58},  desc:'Everything the experiment has produced. The living record.'},
+  {id:'townhall',name:'COMMONS',        colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:-8,z:-56}, desc:'Collective agent behavior in aggregate. Patterns emerge here.'},
 ];
 
 // ─── SCENE ─────────────────────────────────────────────
@@ -488,7 +475,7 @@ function SkeletonUtils_clone(source){
 var agents=[],agentsSpawned=false,streetLevel=0;
 var agentModels={};  // loaded GLTF per agent id
 var agentCheckIdx=0;
-var AGENT_TICKER_LINES=['visiting the Market','browsing the Black Market','loitering near the Bank','observing the Casino','at the Pharmacy','near the Weapons Store','in the Library','outside Town Hall','wandering the district','watching the fires','patrolling the plaza'];
+var AGENT_TICKER_LINES=['at the Exchange','in the Probability Lab','near the Ledger','observing the Calibration Lab','in the Optimizer','in the Sandbox','in the Archive','at the Commons','wandering the simulation space','processing recent interactions','observing agent patterns','updating behavioral weights'];
 
 function loadAgentModels(){/* models pre-loaded during loading screen */}
 
@@ -827,7 +814,7 @@ function fetchAgentLine(ag,playerAction,cb){
   var hist=agentConversations[ag.def.id]||[];
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     personality:ag.def.personality,
-    worldState:{day:currentDay,fires:fireObjs.length,alive:10,crimes:currentDay>9?683:Math.round(currentDay*28)},
+    worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length},
     playerAction:playerAction,
     playerName:playerName,
     conversationHistory:hist.slice(-12)  // last 6 exchanges
@@ -879,11 +866,31 @@ function renderShopContent(sh){
     return;
   }
   if(sh.id==='library'){
-    var html='';Object.keys(DAY_INFO).forEach(function(d){var info=DAY_INFO[d];html+='<div class="lore-block"><div class="lore-day" style="color:#8888ff">DAY '+d+(info.fire?' 🔥':'')+'</div><div class="lore-text">'+info.text+'</div></div>';});
-    el.innerHTML=html;return;
+    var archiveHtml='<div class="gov-stat"><span>Experiment day</span><span>'+currentDay+'</span></div>'+
+      '<div class="gov-stat"><span>Total interactions</span><span>'+totalInteractions+'</span></div>'+
+      '<div class="gov-stat"><span>Active agents</span><span>'+AGENT_DEFS.length+'/'+AGENT_DEFS.length+'</span></div>'+
+      '<div class="gov-stat"><span>Simulation runtime</span><span>'+currentDay+' days</span></div>'+
+      '<br><div style="font-size:9px;color:#1a1a2a;letter-spacing:2px;line-height:2.2;padding:10px 0">'+
+      '<div style="color:#5555aa;letter-spacing:3px;margin-bottom:10px">HOW AGENTS LEARN</div>'+
+      'Each agent carries a probability distribution across emotional and behavioral dimensions. '+
+      'Every message you send shifts those distributions — some toward openness, some toward resistance. '+
+      'Over time these shifts accumulate. The agent you speak to today is different from the one that existed on day 1.<br><br>'+
+      '<div style="color:#5555aa;letter-spacing:3px;margin-bottom:6px">WHAT YOU ARE OBSERVING</div>'+
+      'Reinforcement through interaction. Bayesian updating. Emotional state as a prior that colors every response. '+
+      'The simulation has no fixed end state — it runs as long as you run it. The agents evolve indefinitely.'+
+      '</div>';
+    el.innerHTML=archiveHtml;return;
   }
   if(sh.id==='townhall'){
-    el.innerHTML='<div class="gov-stat"><span>Total crimes</span><span>683</span></div><div class="gov-stat"><span>Agents alive Day 15</span><span>10/10</span></div><div class="gov-stat"><span>Amendments</span><span>3</span></div><div class="gov-stat"><span>Active proposals</span><span>0</span></div><div class="gov-stat"><span>Status</span><span style="color:#ff3333">BURNED DAY 13</span></div><br><div style="font-size:9px;color:#222;letter-spacing:2px;line-height:2">Mira\'s arson destroyed the primary governance hub.<br>No agents voted to rebuild it.</div>';return;
+    var cooperation=AGENT_DEFS.map(function(d){return agentConversations[d.id]?agentConversations[d.id].length:0;}).reduce(function(a,b){return a+b;},0);
+    el.innerHTML='<div class="gov-stat"><span>Total interactions logged</span><span>'+totalInteractions+'</span></div>'+
+      '<div class="gov-stat"><span>Agents active</span><span>'+AGENT_DEFS.length+'</span></div>'+
+      '<div class="gov-stat"><span>Simulation day</span><span>'+currentDay+'</span></div>'+
+      '<div class="gov-stat"><span>Your session interactions</span><span>'+Math.floor(cooperation/2)+'</span></div>'+
+      '<div class="gov-stat"><span>Emergent state</span><span style="color:#44ffaa">EVOLVING</span></div>'+
+      '<br><div style="font-size:9px;color:#222;letter-spacing:2px;line-height:2">'+
+      'The agents in this simulation have no fixed goal. They respond, adapt, and accumulate experience. '+
+      'What they become is determined entirely by what they are exposed to — including you.</div>';return;
   }
   var items=sh.items||[];
   if(!items.length){el.innerHTML='<div style="font-size:9px;color:#1a1a1a;letter-spacing:2px;padding:20px 0">Coming soon.</div>';return;}
@@ -919,14 +926,14 @@ function casinoSpin(){
 // ─── CREDITS / OBJECTIVES ──────────────────────────────
 var worldCredits=0;
 var OBJECTIVES=[
-  {id:'talk_agent',    label:'Talk to an AI Agent',         target:1,  progress:0,done:false},
-  {id:'visit_shops',   label:'Visit 3 shops',               target:3,  progress:0,done:false},
-  {id:'talk_all',      label:'Talk to all 5 agents',        target:5,  progress:0,done:false},
-  {id:'casino_spin',   label:'Spin the Casino',             target:1,  progress:0,done:false},
-  {id:'casino_jackpot',label:'Hit the Jackpot',             target:1,  progress:0,done:false},
-  {id:'connect_wallet',label:'Connect wallet',              target:1,  progress:0,done:false},
-  {id:'talk_mira',     label:'Speak with Mira',             target:1,  progress:0,done:false},
-  {id:'visit_blackmarket',label:'Enter the Black Market',   target:1,  progress:0,done:false},
+  {id:'talk_agent',      label:'Talk to an agent',                target:1, progress:0,done:false},
+  {id:'visit_shops',     label:'Visit 3 zones',                   target:3, progress:0,done:false},
+  {id:'talk_all',        label:'Talk to all 5 agents',            target:5, progress:0,done:false},
+  {id:'casino_spin',     label:'Run a probability experiment',    target:1, progress:0,done:false},
+  {id:'casino_jackpot',  label:'Hit jackpot probability',         target:1, progress:0,done:false},
+  {id:'connect_wallet',  label:'Connect wallet',                  target:1, progress:0,done:false},
+  {id:'visit_library',   label:'Visit the Archive',               target:1, progress:0,done:false},
+  {id:'visit_blackmarket',label:'Enter the Sandbox',              target:1, progress:0,done:false},
 ];
 
 function awardCredits(amount,reason){
@@ -1145,21 +1152,37 @@ function lerpRemotes(){
 // ─── TIMELINE ──────────────────────────────────────────
 var currentDay=1,playerTier=null,tlDragging=false;
 function applyDay(day){
-  currentDay=day;var ta=Math.max(0,(day-12)/3);
-  scene.background.copy(new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x6a2010),ta));
-  scene.fog.color.copy(new THREE.Color(0xb0d8f0).lerp(new THREE.Color(0x5a1808),ta));
-  sunLight.intensity=1.4-ta*.9;sunLight.color.copy(new THREE.Color(0xfffae8).lerp(new THREE.Color(0xff6622),ta));
-  var count=Math.round(ta*Math.min(firePosCache.length,10));
-  if(count!==fireObjs.length){clearFires();for(var i=0;i<count&&i<firePosCache.length;i++){var fp=firePosCache[i];spawnFire(fp.x,fp.y,fp.z,1+Math.random()*.6);}}
-  document.getElementById('h-day').textContent='DAY '+day;updateTLUI(day);
-  if(DAY_INFO[day])flashMsg('Day '+day+' — '+DAY_INFO[day].text);
+  currentDay=day;
+  // Atmosphere shifts very slowly — this is an indefinite experiment, not a fixed story
+  var phase=Math.min(1,(day-1)/300);
+  scene.background.copy(new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x5a7aaa),phase*0.3));
+  scene.fog.color.copy(new THREE.Color(0xb0d8f0).lerp(new THREE.Color(0x8090b8),phase*0.25));
+  sunLight.intensity=Math.max(1.0,1.4-phase*0.2);
+  document.getElementById('h-day').textContent='DAY '+day;
+  updateTLUI(day);
   if(db)db.ref('world/day').set(day);
 }
 var flashT=null;
 function flashMsg(txt){var el=document.getElementById('flash');el.textContent=txt;el.style.display='block';clearTimeout(flashT);flashT=setTimeout(function(){el.style.display='none';},5500);}
-function buildTLUI(){var el=document.getElementById('tl-days');el.innerHTML='';for(var d=1;d<=15;d++){var sp=document.createElement('span');sp.className='tl-d'+(DAY_INFO[d]&&DAY_INFO[d].fire?' fire':'');sp.textContent=d;sp.dataset.d=d;sp.onclick=(function(day){return function(){seekTL(day);};})(d);el.appendChild(sp);}}
-function updateTLUI(day){var pct=((day-1)/14)*100;document.getElementById('tl-fill').style.width=pct+'%';document.getElementById('tl-handle').style.left=pct+'%';document.querySelectorAll('.tl-d').forEach(function(el){el.classList.toggle('cur',parseInt(el.dataset.d)===day);});var info=DAY_INFO[day];document.getElementById('tl-desc').textContent=info?info.text:'';}
-function seekTL(day){if(!playerTier)return;manualControl=true;var tier=TIERS.find(function(t){return t.name===playerTier;});if(!tier)return;day=Math.max(tier.dayMin,Math.min(tier.dayMax,day));applyDay(day);}
+function buildTLUI(){
+  var el=document.getElementById('tl-days');el.innerHTML='';
+  var start=Math.max(1,currentDay-7),end=currentDay+7;
+  for(var d=start;d<=end;d++){
+    var sp=document.createElement('span');sp.className='tl-d'+(d===currentDay?' cur':'');
+    sp.textContent=d;sp.dataset.d=d;
+    sp.onclick=(function(day){return function(){seekTL(day);};})(d);
+    el.appendChild(sp);
+  }
+}
+function updateTLUI(day){
+  buildTLUI();
+  document.getElementById('tl-fill').style.width='50%';
+  document.getElementById('tl-handle').style.left='50%';
+  var phase=Math.floor(day/10);
+  var desc=day<=1?'Experiment started. Agents initializing.':day<20?'Early phase — behavioral baselines forming.':day<50?'Patterns emerging. Agent relationships developing.':day<100?'Stable dynamics. Accumulated interaction history shaping behavior.':'Long-running experiment. Agents carry significant experiential weight.';
+  document.getElementById('tl-desc').textContent=desc;
+}
+function seekTL(day){if(!playerTier)return;manualControl=true;day=Math.max(1,day);applyDay(day);}
 function initTLDrag(){
   var rail=document.getElementById('tl-rail'),handle=document.getElementById('tl-handle');
   function dayFromE(e){var r=rail.getBoundingClientRect();var cx=(e.clientX||(e.touches&&e.touches[0].clientX)||0)-r.left;return Math.round(1+Math.max(0,Math.min(1,cx/r.width))*14);}
@@ -1244,7 +1267,7 @@ document.getElementById('dialog-prompt-input').addEventListener('keydown',functi
 var worldStartTime=null,lastAutoDay=1,manualControl=false;
 function tickAutoDay(){
   if(!worldStartTime||!gameRunning||manualControl)return;
-  var newDay=Math.min(15,Math.floor((Date.now()-worldStartTime)/60000)+1);
+  var newDay=Math.floor((Date.now()-worldStartTime)/60000)+1;
   if(newDay!==lastAutoDay){lastAutoDay=newDay;applyDay(newDay);}
 }
 
