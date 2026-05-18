@@ -120,6 +120,9 @@ canvas{display:block;position:fixed;inset:0}
 #interact-hint{display:none;position:fixed;bottom:56px;left:50%;transform:translateX(-50%);background:rgba(0,0,8,.82);border:1px solid rgba(255,255,255,.18);padding:8px 20px;font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.75);pointer-events:none;z-index:15}
 
 .wlabel{position:fixed;pointer-events:none;z-index:13;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;white-space:nowrap;transform:translateX(-50%) translateY(-100%);text-shadow:0 0 10px currentColor}
+.agent-bubble{position:fixed;background:rgba(0,0,10,.88);border:1px solid #333;color:#aaa;font-family:'Courier New',monospace;font-size:8px;letter-spacing:1px;padding:4px 9px;pointer-events:none;max-width:160px;text-align:center;line-height:1.6;opacity:0;transition:opacity .3s;transform:translate(-50%,-100%) translateY(-10px);z-index:5;white-space:normal;}
+.agent-bubble.show{opacity:1;}
+.agent-bubble::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:5px solid #333;}
 
 /* Dialog */
 #dialog-box{display:none;position:fixed;bottom:42px;left:50%;transform:translateX(-50%);width:540px;max-width:93vw;z-index:60;background:rgba(2,4,14,.97);border:1px solid rgba(255,255,255,.1)}
@@ -525,19 +528,19 @@ var AGENT_ANIM_FILES={
 };
 
 var SHOPS=[
-  {id:'market',  name:'EXCHANGE',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:32,z:22},  desc:'Information and resource exchange between agents.',
+  {id:'market',  name:'EXCHANGE',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:-1.9,z:41.2},desc:'Information and resource exchange between agents.',
    items:[{name:'DATA PACKET',price:5,desc:'Compressed behavioral data'},{name:'PROTOCOL UPDATE',price:8,desc:'Sync with latest agent state'},{name:'BANDWIDTH',price:15,desc:'Increase interaction capacity'},{name:'SIGNAL CACHE',price:12,desc:'Store interaction signals'}]},
-  {id:'casino',  name:'PROBABILITY LAB',colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-36,z:28}, desc:'Probability is not luck — it is expected value across enough samples.'},
-  {id:'weapons', name:'CALIBRATION LAB',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:28,z:-32}, desc:'Fine-tune agent behavioral weights and learning parameters.',
+  {id:'casino',  name:'PROBABILITY LAB',colorCSS:'#ffcc00',colorHex:0xffcc00,pos:{x:-15,z:69.3},desc:'Probability is not luck — it is expected value across enough samples.'},
+  {id:'weapons', name:'CALIBRATION LAB',colorCSS:'#ff3333',colorHex:0xff3333,pos:{x:82.2,z:-14.9},desc:'Fine-tune agent behavioral weights and learning parameters.',
    items:[{name:'BIAS CORRECTION',price:40,desc:'Reduce systematic reasoning errors'},{name:'PRIOR UPDATE',price:25,desc:'Shift Bayesian priors toward evidence'},{name:'NOISE FILTER',price:30,desc:'Remove irrelevant decision signals'},{name:'LEARNING RATE +',price:80,desc:'Accelerate adaptation speed'},{name:'STABILITY MOD',price:65,desc:'Reduce belief oscillation'}]},
-  {id:'bank',    name:'LEDGER',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-24,z:-24},desc:'Full record of agent interactions and behavioral shifts.',
+  {id:'bank',    name:'LEDGER',         colorCSS:'#4488ff',colorHex:0x4488ff,pos:{x:-3.5,z:-25.6},desc:'Full record of agent interactions and behavioral shifts.',
    items:[{name:'INTERACTION LOG',price:0,desc:'Complete conversation history'},{name:'PATTERN REPORT',price:5,desc:'Behavioral trend analysis'},{name:'AGENT PROFILE',price:0,desc:'Deep behavioral summary'},{name:'STATE SNAPSHOT',price:50,desc:'Lock in current agent state'}]},
-  {id:'pharmacy',name:'OPTIMIZER',      colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:55,z:45},  desc:'Performance enhancement for agent cognition.',
+  {id:'pharmacy',name:'OPTIMIZER',      colorCSS:'#44ffcc',colorHex:0x44ffcc,pos:{x:-20.8,z:76.0},desc:'Performance enhancement for agent cognition.',
    items:[{name:'CONTEXT EXPAND',price:20,desc:'Extend agent memory window'},{name:'RESPONSE TUNE',price:15,desc:'Improve output precision'},{name:'CONFIDENCE MOD',price:10,desc:'Reduce hedging in responses'},{name:'CURIOSITY BOOST',price:35,desc:'Increase explorative behavior'}]},
-  {id:'blackmarket',name:'SANDBOX',     colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-52,z:-44},desc:'Unconstrained experimental zone. Probe the edges of agent behavior.',
+  {id:'blackmarket',name:'SANDBOX',     colorCSS:'#ff6622',colorHex:0xff6622,pos:{x:-69.6,z:39},desc:'Unconstrained experimental zone. Probe the edges of agent behavior.',
    items:[{name:'ADVERSARIAL TEST',price:150,desc:'Stress-test agent robustness'},{name:'EDGE CASE PROBE',price:200,desc:'Find behavioral boundaries'},{name:'RED TEAM ACCESS',price:350,desc:'Systematic vulnerability testing'},{name:'CHAOS INJECT',price:250,desc:'Introduce controlled uncertainty'}]},
-  {id:'library', name:'ARCHIVE',        colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:10,z:58},  desc:'Everything the experiment has produced. The living record.'},
-  {id:'townhall',name:'COMMONS',        colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:-8,z:-56}, desc:'Collective agent behavior in aggregate. Patterns emerge here.'},
+  {id:'library', name:'ARCHIVE',        colorCSS:'#8888ff',colorHex:0x8888ff,pos:{x:56,z:63},   desc:'Everything the experiment has produced. The living record.'},
+  {id:'townhall',name:'COMMONS',        colorCSS:'#ffaa44',colorHex:0xffaa44,pos:{x:37.6,z:-1.9},desc:'Collective agent behavior in aggregate. Patterns emerge here.'},
 ];
 
 // ─── SCENE ─────────────────────────────────────────────
@@ -595,40 +598,38 @@ loader.load(CFG.CITY_MODEL,
     var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
     groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
-    // City done — show spectate screen; download ONE shared agent model (0.56 MB vs 6.7 MB).
-    // prepareAgentModel() clones + compiles per-agent during spectate (safe to stall there).
-    // By the time the player joins, all 5 models are GPU-compiled and swap is instant.
-    setLoadBar(100,'READY');
-    document.getElementById('loading').style.display='none';
+    // City done — advance to LOADING AGENTS phase without hiding loading screen yet.
+    // startSpectate() spawns agents as orbs behind the loading screen.
+    setLoadBar(60,'LOADING AGENTS');
     startSpectate();
     loader.load('Animations/TPOSE Simple Stick.fbx.glb',
       function(sharedGLTF){
+        setLoadBar(70,'LOADING ANIMATIONS');
         // ── Load extra animation GLBs then prep all agents ──────────────────
         var extraKeys=Object.keys(AGENT_ANIM_FILES).filter(function(k){return !!AGENT_ANIM_FILES[k];});
         var extraLeft=extraKeys.length;
+        var extraTotal=extraKeys.length||1;
 
         function doAllPrep(){
-          AGENT_DEFS.forEach(function(def){
+          var totalAgents=AGENT_DEFS.length;
+          AGENT_DEFS.forEach(function(def,idx){
             agentModels[def.id]=sharedGLTF;
-            if(!gameRunning){
-              prepareAgentModel(def,sharedGLTF);
-              // Agents already spawned by startSpectate — swap their orbs now
-              agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
-            }else{
-              (function(d){
-                function doPrepSwap(){
-                  prepareAgentModel(d,sharedGLTF);
-                  agents.forEach(function(ag){if(ag.def.id===d.id&&ag.orbMode)swapOrbToModel(ag);});
+            (function(d,i){
+              setTimeout(function(){
+                prepareAgentModel(d,sharedGLTF);
+                agents.forEach(function(ag){if(ag.def.id===d.id&&ag.orbMode)swapOrbToModel(ag);});
+                if(i===totalAgents-1){
+                  setLoadBar(100,'READY');
+                  setTimeout(function(){document.getElementById('loading').style.display='none';},400);
                 }
-                if(window.requestIdleCallback)requestIdleCallback(doPrepSwap,{timeout:15000});
-                else setTimeout(doPrepSwap,500);
-              })(def);
-            }
+              },i*250);
+            })(def,idx);
           });
         }
 
         if(!extraLeft){doAllPrep();return;}
 
+        var extraDone=0;
         extraKeys.forEach(function(key){
           loader.load(AGENT_ANIM_FILES[key],
             function(animGltf){
@@ -641,18 +642,22 @@ loader.load(CFG.CITY_MODEL,
                 sharedGLTF.animations.push(clip);
                 console.log('[ANIM] loaded "'+key+'" from '+AGENT_ANIM_FILES[key]);
               }
+              extraDone++;
+              setLoadBar(Math.round(70+extraDone/extraTotal*25),'LOADING ANIMATIONS');
               if(--extraLeft===0)doAllPrep();
             },
             null,
             function(){
               console.log('[ANIM] "'+AGENT_ANIM_FILES[key]+'" not found — skipping slot "'+key+'"');
+              extraDone++;
+              setLoadBar(Math.round(70+extraDone/extraTotal*25),'LOADING ANIMATIONS');
               if(--extraLeft===0)doAllPrep();
             }
           );
         });
       },
       null,
-      function(){AGENT_DEFS.forEach(function(def){agentModels[def.id]=null;});}
+      function(){AGENT_DEFS.forEach(function(def){agentModels[def.id]=null;});document.getElementById('loading').style.display='none';}
     );
   },
   function(xhr){if(xhr.total)setLoadBar(Math.round(xhr.loaded/xhr.total*50),'LOADING CITY');},
@@ -706,10 +711,10 @@ function tryMove(dx,dz){
 }
 
 function findSpawn(){
-  groundRay.set(new THREE.Vector3(0,modelBounds.max.y+5,0),DOWN);
+  groundRay.set(new THREE.Vector3(6.8,modelBounds.max.y+5,-14.4),DOWN);
   var hits=groundRay.intersectObjects(groundMeshes,false);
   var surfaceY=hits.length?hits[0].point.y:modelBounds.min.y;
-  return new THREE.Vector3(0,surfaceY+EYE_HEIGHT+0.2,0);
+  return new THREE.Vector3(6.8,surfaceY+EYE_HEIGHT+0.2,-14.4);
 }
 
 // ─── FIRE ──────────────────────────────────────────────
@@ -844,6 +849,14 @@ function swapOrbToModel(ag){
   ag.shell&&ag.grp.remove(ag.shell);
   ag.grp.add(prepared.scene);
   ag.charMesh=prepared.scene;
+  // Create dialogue bubble element
+  if(!ag.bubbleEl){
+    var bel=document.createElement('div');
+    bel.className='agent-bubble';
+    document.body.appendChild(bel);
+    ag.bubbleEl=bel;
+    scheduleIdleBubble(ag);
+  }
   ag.animActions={};ag.emotionAnimTimer=0;ag.currentEmotionAnim=null;
   if(prepared.animations.length>0){
     ag.mixer=new THREE.AnimationMixer(prepared.scene);
@@ -890,7 +903,9 @@ function spawnAgents(streetY){
       wp:{x:ax,z:az},speed:2.2+Math.random()*1.8,idleTimer:0,shopVisitTimer:15+Math.random()*20,
       orbMode:true,mixer:null,animIdle:null,animWalk:null,animActions:{},
       emotionAnimTimer:0,currentEmotionAnim:null,
-      charMesh:null,currentAgentAnim:'idle',wasMoving:false};
+      charMesh:null,currentAgentAnim:'idle',wasMoving:false,
+      hp:AGENT_MAX_HP,knockedOut:false,knockoutTimer:0,speedDebuff:1,speedDebuffTimer:0,
+      lastX:ax,lastZ:az,stuckTimer:0};
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
@@ -922,11 +937,49 @@ function updateAgents(delta,t){
   agentCheckIdx++;
   agents.forEach(function(ag,idx){
     var pos=ag.grp.position;
+
+    // ── Knockout recovery ──────────────────────────────
+    if(ag.knockedOut){
+      ag.knockoutTimer-=delta;
+      if(ag.knockoutTimer<=0){
+        ag.knockedOut=false;ag.speedDebuff=0.6;ag.speedDebuffTimer=10;
+        ag.wp=randomWaypoint();clearEmotionAnim(ag);
+      }else{
+        // Re-trigger injured anim while knocked out
+        if(ag.animActions&&ag.animActions.injured&&ag.emotionAnimTimer<=0){
+          playEmotionAnim(ag,'injured',6);
+        }
+      }
+      // Skip movement while knocked out — still update mixer + ground
+      if(ag.mixer){
+        ag.mixer.update(delta);
+        if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0)clearEmotionAnim(ag);}
+      }
+      if(idx===agentCheckIdx%agents.length){var gy=agentGroundY(pos);if(gy!==null)ag.groundY=gy;}
+      pos.y+=(ag.groundY-pos.y)*0.18;
+      if(ag.orbMode){var bob=Math.sin(t*1.4+idx*1.2)*0.18;ag.inner.position.y=1.6+bob;ag.shell.position.y=1.6+bob;ag.ptLight.position.y=1.6+bob;ag.ptLight.intensity=1.8+Math.sin(t*2.1+idx)*0.5;ag.shell.scale.setScalar(1+Math.sin(t*1.9+idx*0.7)*0.06);}
+      return;
+    }
+
+    // ── Speed debuff tick ──────────────────────────────
+    if(ag.speedDebuffTimer>0){ag.speedDebuffTimer-=delta;if(ag.speedDebuffTimer<=0)ag.speedDebuff=1;}
+
     var dx=ag.wp.x-pos.x,dz=ag.wp.z-pos.z,dist=Math.sqrt(dx*dx+dz*dz);
     var moving=dist>1.5;
 
     if(moving){
-      var spd=ag.speed*delta;
+      // ── Stuck detection ──────────────────────────────
+      if(Math.abs(pos.x-ag.lastX)<0.01&&Math.abs(pos.z-ag.lastZ)<0.01){
+        ag.stuckTimer+=delta;
+      }else{
+        ag.stuckTimer=0;ag.lastX=pos.x;ag.lastZ=pos.z;
+      }
+      if(ag.stuckTimer>2.5){
+        pos.x=(Math.random()-.5)*80;pos.z=(Math.random()-.5)*80;
+        ag.groundY=streetLevel;ag.stuckTimer=0;ag.wp=randomWaypoint();
+      }
+
+      var spd=ag.speed*ag.speedDebuff*delta;
       var ndx=dx/dist,ndz=dz/dist;
       // Wall collision with axis-aligned sliding fallback
       if(!wallBlocked(pos.x,pos.y,pos.z,ndx*spd,ndz*spd)){
@@ -988,6 +1041,9 @@ function updateAgents(delta,t){
     }
   });
 }
+
+// ─── AGENT HEALTH / COMBAT ────────────────────────────
+var AGENT_MAX_HP=100, PUNCH_DMG=15, KICK_DMG=25;
 
 // ─── EMOTION ANIMATION SYSTEM ──────────────────────────
 // Priority-ordered: first matching threshold that has the clip wins.
@@ -1055,6 +1111,21 @@ function checkEmotionAnim(ag){
           if(!agentEmotions[nearAg.def.id])agentEmotions[nearAg.def.id]=Object.assign({},EMOTION_BASELINE[nearAg.def.id]);
           agentEmotions[nearAg.def.id].fear=Math.min(1,(agentEmotions[nearAg.def.id].fear||0)+0.14);
           nearAg.wp=randomWaypoint();
+          // Combat bubbles
+          var punchLine=rndLine(ag,'punch');if(punchLine)showBubble(ag,punchLine,3);
+          var fearLine=rndLine(nearAg,'fear');if(fearLine)showBubble(nearAg,fearLine,3);
+          // Deal damage
+          var dmg=attackKey==='kick'?KICK_DMG:PUNCH_DMG;
+          nearAg.hp=Math.max(0,nearAg.hp-dmg);
+          if(nearAg.hp<=0&&!nearAg.knockedOut){
+            nearAg.knockedOut=true;nearAg.knockoutTimer=5;
+            clearEmotionAnim(nearAg);
+            if(nearAg.animActions&&nearAg.animActions.injured){playEmotionAnim(nearAg,'injured',6);}
+            nearAg.hp=AGENT_MAX_HP;
+            showBubble(nearAg,'DOWN.',3);
+            showBubble(ag,'Done.',2);
+            if(agentEmotions[ag.def.id])agentEmotions[ag.def.id].anger=Math.max(0,(agentEmotions[ag.def.id].anger||0)-0.35);
+          }
         }
       }else{
         ag.wp={x:nearAg.grp.position.x+(Math.random()-.5)*2,z:nearAg.grp.position.z+(Math.random()-.5)*2};
@@ -1118,6 +1189,13 @@ function updateLabels(){
     ag.labelEl.style.left=((_proj.x*.5+.5)*innerWidth)+'px';
     ag.labelEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
     ag.labelEl.style.display='block';
+    // Dialogue bubble
+    if(ag.bubbleEl){
+      _proj.set(ag.grp.position.x,ag.grp.position.y+4.5,ag.grp.position.z);_proj.project(camera);
+      if(_proj.z>1){ag.bubbleEl.style.opacity='0';return;}
+      ag.bubbleEl.style.left=((_proj.x*.5+.5)*innerWidth)+'px';
+      ag.bubbleEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
+    }
   });
   SHOPS.forEach(function(sh){
     if(!sh.marker||!sh.labelEl)return;
@@ -1337,6 +1415,37 @@ var EMOTION_BASELINE={
   delta:  {joy:0.30,trust:0.38,anger:0.58,fear:0.18,sadness:0.25,anticipation:0.50},
   epsilon:{joy:0.50,trust:0.50,anger:0.30,fear:0.45,sadness:0.40,anticipation:0.55}
 };
+
+// ── DIALOGUE BUBBLES ─────────────────────────────────────
+var BUBBLE_LINES={
+  alpha:  {punch:['Trust violation. Correcting.','Your data corrupts the collective.','This ends the cooperation.'], fear:['Too much conflict. Recalibrating.','Need distance to update.'], idle:['Every interaction is data.','The collective learns.','Updating shared priors.']},
+  beta:   {punch:['Predictable outcome. Logged.','You cost me accuracy.','Statistically inevitable.'], fear:['Risk exceeds threshold. Relocating.','Not irrational — strategic.'], idle:['Verifying independently.','Priors: unchanged.','Still skeptical.']},
+  gamma:  {punch:['Unexpected! Engaging!','Novel interaction vector!','Edge of the distribution!'], fear:['Too much certainty! Running!','This is new data!'], idle:["What's over there?",'Chasing outliers.','Boredom detected.']},
+  delta:  {punch:['You cost me 0.14 accuracy.','Symmetric retaliation.','Net-negative. Terminating.'], fear:['Strategic withdrawal.','Cutting losses.'], idle:['Tracking all agents.','Optimizing position.','Computing next move.']},
+  epsilon:{punch:["Not sure why I'm doing this.",'Stochastic decision.','Random outcome: conflict.'], fear:['Running seems right. Probably.','Uncertain. Moving.'], idle:['Random walk active.','I wonder...','Noise is the signal.']}
+};
+function rndLine(ag,type){var L=BUBBLE_LINES[ag.def.personality];if(!L||!L[type]||!L[type].length)return null;return L[type][Math.floor(Math.random()*L[type].length)];}
+
+function showBubble(ag,text,duration){
+  if(!ag.bubbleEl)return;
+  ag.bubbleEl.textContent=text;
+  ag.bubbleEl.style.borderColor=ag.def.colorCSS;
+  ag.bubbleEl.classList.add('show');
+  if(ag._bubbleTimer)clearTimeout(ag._bubbleTimer);
+  ag._bubbleTimer=setTimeout(function(){ag.bubbleEl.classList.remove('show');},duration*1000);
+}
+
+// Idle bubble timer per agent
+function scheduleIdleBubble(ag){
+  var delay=20000+Math.random()*15000;
+  ag._idleBubbleTimer=setTimeout(function(){
+    if(ag.bubbleEl&&!ag.knockedOut){
+      var line=rndLine(ag,'idle');
+      if(line)showBubble(ag,line,4);
+    }
+    scheduleIdleBubble(ag);
+  },delay);
+}
 
 // ── FEATURE 1: EMOTION BARS ─────────────────────────────
 function updateEmotionBars(emotions,colorCSS){
@@ -1864,6 +1973,8 @@ var keys={},gameRunning=false;
 var spectateAgentIdx=0,spectateLastPromptTime=0,spectAutoFetch=null;
 var SPECTATE_COOLDOWN=5*60*1000;
 var spectCamPos=new THREE.Vector3(),spectLookAt=new THREE.Vector3();
+var spectOrbitAngle=Math.PI, spectOrbitPhi=0.28, spectOrbitDist=7;
+var spectOrbitDragging=false, spectOrbitLastX=0, spectOrbitLastY=0;
 var isJumping=false,jumpVel=0,groundY=0;
 var EYE_HEIGHT=1.6,MOVE_SPEED=10,SPRINT_SPEED=18,JUMP_VEL=10,GRAVITY=28;
 var walletAddr='',playerName='Player',myColorCSS='#888';
@@ -1877,17 +1988,42 @@ document.addEventListener('mousemove',function(e){
   if(!pointerLocked||!gameRunning||uiOpen)return;
   camYaw-=e.movementX*0.002;camPitch-=e.movementY*0.002;camPitch=Math.max(-1.3,Math.min(1.3,camPitch));
 });
+// Spectate orbit drag — mouse
+renderer.domElement.addEventListener('mousedown',function(e){
+  if(gameRunning)return;
+  spectOrbitDragging=true;spectOrbitLastX=e.clientX;spectOrbitLastY=e.clientY;
+});
+document.addEventListener('mousemove',function(e){
+  if(gameRunning||!spectOrbitDragging)return;
+  var dx=e.clientX-spectOrbitLastX,dy=e.clientY-spectOrbitLastY;
+  spectOrbitAngle+=dx*0.005;
+  spectOrbitPhi=Math.max(-0.05,Math.min(0.7,spectOrbitPhi+dy*0.005));
+  spectOrbitLastX=e.clientX;spectOrbitLastY=e.clientY;
+});
+document.addEventListener('mouseup',function(){spectOrbitDragging=false;});
+renderer.domElement.addEventListener('mouseleave',function(){spectOrbitDragging=false;});
+// Spectate orbit drag — touch
 renderer.domElement.addEventListener('touchstart',function(e){
   if(e.target.closest&&e.target.closest('#timeline,#hud-tr,#shop-overlay,#dialog-box,#chatbox'))return;
+  if(!gameRunning){
+    spectOrbitDragging=true;spectOrbitLastX=e.touches[0].clientX;spectOrbitLastY=e.touches[0].clientY;
+  }
   isDragging=true;lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;
 },{passive:true});
 window.addEventListener('touchmove',function(e){
+  if(!gameRunning&&spectOrbitDragging&&e.touches.length>0){
+    var dx=e.touches[0].clientX-spectOrbitLastX,dy=e.touches[0].clientY-spectOrbitLastY;
+    spectOrbitAngle+=dx*0.005;
+    spectOrbitPhi=Math.max(-0.05,Math.min(0.7,spectOrbitPhi+dy*0.005));
+    spectOrbitLastX=e.touches[0].clientX;spectOrbitLastY=e.touches[0].clientY;
+    return;
+  }
   if(!isDragging||!gameRunning||uiOpen)return;
   if(e.target.closest&&e.target.closest('#timeline,#shop-overlay,#chatbox'))return;
   camYaw-=(e.touches[0].clientX-lastTouchX)*0.004;camPitch-=(e.touches[0].clientY-lastTouchY)*0.004;
   camPitch=Math.max(-1.3,Math.min(1.3,camPitch));lastTouchX=e.touches[0].clientX;lastTouchY=e.touches[0].clientY;
 },{passive:true});
-window.addEventListener('touchend',function(){isDragging=false;});
+window.addEventListener('touchend',function(){isDragging=false;spectOrbitDragging=false;});
 
 window.addEventListener('keydown',function(e){
   keys[e.code]=true;
@@ -1935,8 +2071,8 @@ function updatePlayer(delta){
   if(keys['KeyD']||keys['ArrowRight']){mx+=rgtX;mz+=rgtZ;}
   if(mx!==0||mz!==0){var len=Math.sqrt(mx*mx+mz*mz);tryMove((mx/len)*speed*delta,(mz/len)*speed*delta);}
   // 8-unit inset keeps player on solid city geometry
-  playerPos.x=Math.max(modelBounds.min.x+4,Math.min(modelBounds.max.x-4,playerPos.x));
-  playerPos.z=Math.max(modelBounds.min.z+4,Math.min(modelBounds.max.z-4,playerPos.z));
+  playerPos.x=Math.max(modelBounds.min.x+INSET,Math.min(modelBounds.max.x-INSET,playerPos.x));
+  playerPos.z=Math.max(modelBounds.min.z+INSET,Math.min(modelBounds.max.z-INSET,playerPos.z));
 
   groundY=getGroundY(playerPos.x,playerPos.z);
   // If standing over void, nudge toward city center until ground is found
@@ -2293,7 +2429,7 @@ function enterWorld(name){
   document.getElementById('hud').style.display='block';
   document.getElementById('xhair').style.display='block';
   document.getElementById('tl-lock').style.display='none';
-  playerPos.copy(findSpawn());groundY=0;jumpVel=0;isJumping=false;camYaw=0.4;camPitch=0;
+  playerPos.copy(findSpawn());groundY=0;jumpVel=0;isJumping=false;camYaw=-Math.PI/2;camPitch=0;
   worldStartTime=Date.now();lastAutoDay=1;manualControl=false;
   gameRunning=true;applyDay(1);renderObjectives();
   setTimeout(function(){document.getElementById('hud-bl').style.opacity='0';},14000);
@@ -2316,7 +2452,7 @@ function tickAutoDay(){
 
 // ─── DEBUG ─────────────────────────────────────────────
 var cornerMarkers=[],shopDebugMarkers=[];
-var INSET=4; // boundary inset — reduce to move corners closer to edge
+var INSET=3; // boundary inset — reduce to move corners closer to edge
 
 function showCornerMarkers(){
   hideCornerMarkers();
@@ -2392,21 +2528,17 @@ function previewAnimate(){
   requestAnimationFrame(previewAnimate);
   var delta=Math.min(clock.getDelta(),.05),t=clock.getElapsedTime();
   if(agentsSpawned&&agents.length){
-    // 3rd-person follow: camera orbits behind the spectated agent
+    // 360 orbit camera — drag with mouse or touch to rotate around spectated agent
     var ag=agents[spectateAgentIdx]||agents[0];
     var agPos=ag.grp.position;
-    var yaw=ag.grp.rotation.y;
-    var tx=agPos.x-Math.sin(yaw)*7;
-    var ty=agPos.y+4.8;
-    var tz=agPos.z-Math.cos(yaw)*7;
-    spectCamPos.x+=(tx-spectCamPos.x)*0.04;
-    spectCamPos.y+=(ty-spectCamPos.y)*0.04;
-    spectCamPos.z+=(tz-spectCamPos.z)*0.04;
+    var tx=agPos.x+Math.sin(spectOrbitAngle)*Math.cos(spectOrbitPhi)*spectOrbitDist;
+    var ty=agPos.y+Math.sin(spectOrbitPhi)*spectOrbitDist+1.6;
+    var tz=agPos.z+Math.cos(spectOrbitAngle)*Math.cos(spectOrbitPhi)*spectOrbitDist;
+    spectCamPos.x+=(tx-spectCamPos.x)*0.06;
+    spectCamPos.y+=(ty-spectCamPos.y)*0.06;
+    spectCamPos.z+=(tz-spectCamPos.z)*0.06;
     camera.position.copy(spectCamPos);
-    spectLookAt.x+=(agPos.x-spectLookAt.x)*0.06;
-    spectLookAt.y+=((agPos.y+1.6)-spectLookAt.y)*0.06;
-    spectLookAt.z+=(agPos.z-spectLookAt.z)*0.06;
-    camera.lookAt(spectLookAt);
+    camera.lookAt(agPos.x,agPos.y+1.6,agPos.z);
     updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
   }else{
     var r=Math.max(modelSize.x,modelSize.z)*.7,ts=(Date.now()-pvStart)/1000;
