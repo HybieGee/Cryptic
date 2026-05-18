@@ -3121,6 +3121,7 @@ function fetchSpectateThought(){
   fetchAgentLine({def:def},'thinking aloud — no one nearby',function(text,emotions){
     if(gameRunning)return;
     if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
+    speakText(text,def);
     if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
   });
 }
@@ -3139,6 +3140,7 @@ function sendSpectatePrompt(){
     if(respEl){respEl.textContent=def.name+': "'+text+'"';respEl.style.opacity='1';}
     var th=document.getElementById('spec-thought');
     if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
+    speakText(text,def);
     if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
   });
 }
