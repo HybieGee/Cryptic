@@ -179,6 +179,178 @@ async function saveMemory(env, agentId, memory) {
   } catch {}
 }
 
+// ── Bitquery token fetching ───────────────────────────────────────────────────
+
+const BITQUERY_URL  = 'https://streaming.bitquery.io/graphql';
+const PUMP_PROGRAM  = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+const RAYDIUM_AMM   = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
+const PUMPSWAP_AMM  = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';
+const SOL_MINT      = 'So11111111111111111111111111111111111111112';
+const PUMP_SUPPLY   = 1000000000; // pump.fun default token supply
+const PUMP_FEE_RATE = 0.01;       // 1% fee on each pump.fun trade
+const RAY_FEE_RATE  = 0.0025;     // 0.25% Raydium fee
+
+function isoAgo(ms) {
+  return new Date(Date.now() - ms).toISOString().slice(0, 19) + 'Z';
+}
+
+async function bqQuery(query, apiKey) {
+  const r = await fetch(BITQUERY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey,
+    },
+    body: JSON.stringify({ query }),
+  });
+  if (!r.ok) throw new Error('Bitquery HTTP ' + r.status);
+  return r.json();
+}
+
+async function fetchSolPrice(env) {
+  try {
+    const cached = await env.AGENT_MEMORY.get('sol_price');
+    if (cached) return parseFloat(cached);
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const d = await r.json();
+    const price = d?.solana?.usd || 150;
+    await env.AGENT_MEMORY.put('sol_price', String(price), { expirationTtl: 300 });
+    return price;
+  } catch { return 150; }
+}
+
+function buildPumpQuery(since) {
+  return `{
+    Solana {
+      DEXTradeByTokens(
+        where: {
+          Trade: {
+            Dex: { ProgramAddress: { is: "${PUMP_PROGRAM}" } }
+            Side: { Currency: { MintAddress: { is: "${SOL_MINT}" } } }
+          }
+          Transaction: { Result: { Success: true } }
+          Block: { Time: { after: "${since}" } }
+        }
+        orderBy: { descendingByField: "volUsd" }
+        limit: { count: 100 }
+      ) {
+        Trade {
+          Currency { MintAddress Name Symbol }
+          Price(maximum: Block_Slot)
+        }
+        volUsd: sum(of: Trade_Side_AmountInUSD)
+        trades: count
+        Block { firstTime: Time(minimum: Block_Time) }
+      }
+    }
+  }`;
+}
+
+function buildMigratedQuery(since) {
+  return `{
+    Solana {
+      DEXTradeByTokens(
+        where: {
+          Trade: {
+            Dex: { ProgramAddress: { in: ["${RAYDIUM_AMM}", "${PUMPSWAP_AMM}"] } }
+            Side: { Currency: { MintAddress: { is: "${SOL_MINT}" } } }
+          }
+          Transaction: { Result: { Success: true } }
+          Block: { Time: { after: "${since}" } }
+        }
+        orderBy: { descendingByField: "volUsd" }
+        limit: { count: 50 }
+      ) {
+        Trade {
+          Currency { MintAddress Name Symbol }
+          Price(maximum: Block_Slot)
+        }
+        volUsd: sum(of: Trade_Side_AmountInUSD)
+        trades: count
+        Block { firstTime: Time(minimum: Block_Time) }
+      }
+    }
+  }`;
+}
+
+async function fetchTokenColumns(env) {
+  // Serve from KV cache if fresh (60s TTL)
+  const cached = await env.AGENT_MEMORY.get('token_columns');
+  if (cached) return JSON.parse(cached);
+
+  const apiKey   = env.BITQUERY_API_KEY;
+  const solPrice = await fetchSolPrice(env);
+
+  const since5m  = isoAgo(5  * 60 * 1000);
+  const since30m = isoAgo(30 * 60 * 1000);
+  const since6h  = isoAgo(6  * 60 * 60 * 1000);
+
+  // Three parallel queries: pump 5min window, pump 30min window, migrated 6h window
+  const [r5m, r30m, rMig] = await Promise.all([
+    bqQuery(buildPumpQuery(since5m),      apiKey),
+    bqQuery(buildPumpQuery(since30m),     apiKey),
+    bqQuery(buildMigratedQuery(since6h),  apiKey),
+  ]);
+
+  // Index 5min volumes by mint address for threshold checks
+  const vol5mByAddr = {};
+  for (const t of (r5m?.data?.Solana?.DEXTradeByTokens || [])) {
+    const addr = t.Trade?.Currency?.MintAddress;
+    if (addr) vol5mByAddr[addr] = parseFloat(t.volUsd || 0);
+  }
+
+  function enrichPump(rows) {
+    return rows.map(t => {
+      const addr    = t.Trade?.Currency?.MintAddress;
+      const price   = parseFloat(t.Trade?.Price || 0);
+      const vol5m   = vol5mByAddr[addr] || 0;
+      const vol30m  = parseFloat(t.volUsd || 0);
+      const ageMin  = t.Block?.firstTime
+        ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
+        : 9999;
+      const mcap      = price * PUMP_SUPPLY;
+      const fees5mSol = solPrice > 0 ? (vol5m / solPrice) * PUMP_FEE_RATE : 0;
+      return { address: addr, symbol: t.Trade?.Currency?.Symbol || '?', name: t.Trade?.Currency?.Name || '', priceUsd: price, vol5m, vol30m, ageMin, mcap, fees5mSol };
+    }).filter(t => t.address && t.priceUsd > 0);
+  }
+
+  const pumpTokens = enrichPump(r30m?.data?.Solana?.DEXTradeByTokens || []);
+
+  // Column 1: New Pairs — appeared in last 30 min, fees5m ≥ 1 SOL
+  const newCol = pumpTokens
+    .filter(t => t.ageMin <= 30 && t.fees5mSol >= 1)
+    .sort((a, b) => b.vol5m - a.vol5m)
+    .slice(0, 5);
+
+  // Column 2: Final Stretch — vol5m ≥ $5k, fees5m ≥ 2 SOL, mcap ≤ $69k (pre-graduation)
+  const stretchCol = pumpTokens
+    .filter(t => t.vol5m >= 5000 && t.fees5mSol >= 2 && t.mcap > 0 && t.mcap <= 69000)
+    .sort((a, b) => b.vol5m - a.vol5m)
+    .slice(0, 5);
+
+  // Column 3: Migrated — Raydium/PumpSwap, volTotal ≥ $100k, appeared within last 6h
+  const migratedCol = (rMig?.data?.Solana?.DEXTradeByTokens || []).map(t => {
+    const addr     = t.Trade?.Currency?.MintAddress;
+    const price    = parseFloat(t.Trade?.Price || 0);
+    const volTotal = parseFloat(t.volUsd || 0);
+    const ageMin   = t.Block?.firstTime
+      ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
+      : 9999;
+    const vol5m      = vol5mByAddr[addr] || 0;
+    const fees5mSol  = solPrice > 0 ? (vol5m / solPrice) * RAY_FEE_RATE : 0;
+    return { address: addr, symbol: t.Trade?.Currency?.Symbol || '?', name: t.Trade?.Currency?.Name || '', priceUsd: price, volTotal, vol5m, ageMin, fees5mSol };
+  })
+  .filter(t => t.address && t.volTotal >= 100000 && t.ageMin <= 360)
+  .sort((a, b) => b.volTotal - a.volTotal)
+  .slice(0, 5);
+
+  const result = { new: newCol, stretch: stretchCol, migrated: migratedCol, solPrice, fetchedAt: Date.now() };
+  await env.AGENT_MEMORY.put('token_columns', JSON.stringify(result), { expirationTtl: 60 });
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default {
   async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '*';
@@ -195,6 +367,22 @@ export default {
     try { body = await request.json(); }
     catch { return new Response('Invalid JSON', { status: 400, headers: corsHeaders }); }
 
+    // ── Token feed route ──────────────────────────────────────────────────────
+    if (body.type === 'tokens') {
+      try {
+        const columns = await fetchTokenColumns(env);
+        return new Response(JSON.stringify(columns), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: e.message }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // ── Agent chat route (existing) ───────────────────────────────────────────
     const {
       personality = 'epsilon',
       worldState = {},
@@ -221,6 +409,11 @@ export default {
       ? `The long-run distribution is taking shape. Day ${ws.day}. ${totalInteractions} observations.`
       : `Deep experiment time. Day ${ws.day}. ${totalInteractions} observations accumulated.`;
 
+    // Trade context injected if agent has open positions
+    const tradeCtx = ws.agentTrade
+      ? `\nTRADING: ${ws.agentTrade}`
+      : '';
+
     const systemPrompt =
 `${agent.system}
 
@@ -233,7 +426,7 @@ WHAT YOU BELIEVE:
 ${agent.lifeBeliefs.map(b => '- ' + b).join('\n')}
 
 EXPERIMENT STATUS: ${worldMood}
-ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.
+ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.${tradeCtx}
 ${memorySection}
 
 You are not an assistant. You are a learning agent mid-experiment. Speak in 1-2 sentences — present, alive, real.`;
