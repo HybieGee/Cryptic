@@ -204,7 +204,9 @@ async function bqQuery(query, apiKey) {
     body: JSON.stringify({ query }),
   });
   if (!r.ok) throw new Error('Bitquery HTTP ' + r.status);
-  return r.json();
+  const json = await r.json();
+  if (json.errors) throw new Error('Bitquery GQL: ' + JSON.stringify(json.errors[0]?.message || json.errors));
+  return json;
 }
 
 async function fetchSolPrice(env) {
@@ -225,8 +227,7 @@ function buildPumpQuery(since) {
       DEXTradeByTokens(
         where: {
           Trade: {
-            Dex: { ProgramAddress: { is: "${PUMP_PROGRAM}" } }
-            Side: { Currency: { MintAddress: { is: "${SOL_MINT}" } } }
+            Dex: { ProtocolName: { is: "pump" } }
           }
           Transaction: { Result: { Success: true } }
           Block: { Time: { after: "${since}" } }
@@ -240,7 +241,7 @@ function buildPumpQuery(since) {
         }
         volUsd: sum(of: Trade_Side_AmountInUSD)
         trades: count
-        Block { firstTime: Time(minimum: Block_Time) }
+        Block { Time(minimum: Block_Time) }
       }
     }
   }`;
@@ -253,7 +254,6 @@ function buildMigratedQuery(since) {
         where: {
           Trade: {
             Dex: { ProgramAddress: { in: ["${RAYDIUM_AMM}", "${PUMPSWAP_AMM}"] } }
-            Side: { Currency: { MintAddress: { is: "${SOL_MINT}" } } }
           }
           Transaction: { Result: { Success: true } }
           Block: { Time: { after: "${since}" } }
@@ -267,7 +267,7 @@ function buildMigratedQuery(since) {
         }
         volUsd: sum(of: Trade_Side_AmountInUSD)
         trades: count
-        Block { firstTime: Time(minimum: Block_Time) }
+        Block { Time(minimum: Block_Time) }
       }
     }
   }`;
@@ -305,7 +305,7 @@ async function fetchTokenColumns(env) {
       const price   = parseFloat(t.Trade?.Price || 0);
       const vol5m   = vol5mByAddr[addr] || 0;
       const vol30m  = parseFloat(t.volUsd || 0);
-      const ageMin  = t.Block?.firstTime
+      const ageMin  = t.Block?.Time
         ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
         : 9999;
       const mcap      = price * PUMP_SUPPLY;
@@ -333,7 +333,7 @@ async function fetchTokenColumns(env) {
     const addr     = t.Trade?.Currency?.MintAddress;
     const price    = parseFloat(t.Trade?.Price || 0);
     const volTotal = parseFloat(t.volUsd || 0);
-    const ageMin   = t.Block?.firstTime
+    const ageMin   = t.Block?.Time
       ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
       : 9999;
     const vol5m      = vol5mByAddr[addr] || 0;

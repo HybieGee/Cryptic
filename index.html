@@ -1426,9 +1426,8 @@ function checkEmotionAnim(ag){
       }else{
         ag.wp={x:nearAg.grp.position.x+(Math.random()-.5)*2,z:nearAg.grp.position.z+(Math.random()-.5)*2};
       }
-    }else{
-      playEmotionAnim(ag,attackKey,attackDur);
     }
+    // No nearby target — don't punch air, let anger decay naturally
 
   }else if(entry.anim==='run'){
     // Extreme fear → flee to random waypoint using run anim
@@ -1746,13 +1745,25 @@ function showBubble(ag,text,duration){
   ag._bubbleTimer=setTimeout(function(){ag.bubbleEl.classList.remove('show');},duration*1000);
 }
 
-// Idle bubble timer per agent
+// Idle bubble timer per agent — calls Claude for a genuine in-character thought
 function scheduleIdleBubble(ag){
-  var delay=20000+Math.random()*15000;
+  var delay=28000+Math.random()*22000; // 28-50s between thoughts
   ag._idleBubbleTimer=setTimeout(function(){
-    if(ag.bubbleEl&&!ag.knockedOut){
-      var line=rndLine(ag,'idle');
-      if(line)showBubble(ag,line,4);
+    if(ag.bubbleEl&&!ag.knockedOut&&CFG.WORKER_URL){
+      var ag2=ag; // closure ref
+      var emo=agentEmotions[ag2.def.id]||EMOTION_BASELINE[ag2.def.id]||{};
+      var highEmo=Object.entries(emo).sort(function(a,b){return b[1]-a[1];})[0];
+      var tradeCtx='';
+      if(ag2.portfolio&&Object.keys(ag2.portfolio).length){
+        var sym=Object.values(ag2.portfolio)[0].symbol;
+        tradeCtx=' Currently holding $'+sym+' on the memecoin market.';
+      }
+      var thought='thinking aloud to themselves — what is genuinely on their mind right now, about the experiment, the other agents, the economy, or what they just observed.'+tradeCtx+' (feeling most: '+highEmo[0]+')';
+      fetchAgentLine(ag2,thought,function(text){
+        if(ag2.bubbleEl&&!ag2.knockedOut){
+          showBubble(ag2,text,7);
+        }
+      });
     }
     scheduleIdleBubble(ag);
   },delay);
@@ -2674,6 +2685,7 @@ function startSpectate(){
     var hits=groundRay.intersectObjects(groundMeshes,false);
     var sy=hits.length?hits[0].point.y:0;
     streetLevel=sy;agentsSpawned=true;
+    if(!worldStartTime)worldStartTime=Date.now();
     spawnAgents(sy);spawnShops(sy);
     setInterval(tickAgentActivity,12000);
     setTimeout(tickAgentActivity,3000);
@@ -2907,7 +2919,7 @@ document.getElementById('dialog-prompt-input').addEventListener('keydown',functi
 // ─── WORLD CLOCK (1 min = 1 day) ───────────────────────
 var worldStartTime=null,lastAutoDay=1,manualControl=false;
 function tickAutoDay(){
-  if(!worldStartTime||!gameRunning||manualControl)return;
+  if(!worldStartTime||manualControl)return;
   var newDay=Math.floor((Date.now()-worldStartTime)/60000)+1;
   if(newDay!==lastAutoDay){lastAutoDay=newDay;applyDay(newDay);}
 }
@@ -3001,7 +3013,7 @@ function previewAnimate(){
     spectCamPos.z+=(tz-spectCamPos.z)*0.06;
     camera.position.copy(spectCamPos);
     camera.lookAt(agPos.x,agPos.y+1.6,agPos.z);
-    pollTokens();updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
+    pollTokens();tickAutoDay();updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
   }else{
     var r=Math.max(modelSize.x,modelSize.z)*.7,ts=(Date.now()-pvStart)/1000;
     camera.position.set(Math.sin(ts*.13)*r,modelSize.y*.5+Math.sin(ts*.07)*8,Math.cos(ts*.13)*r);
