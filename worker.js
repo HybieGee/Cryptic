@@ -233,6 +233,7 @@ WHAT YOU BELIEVE:
 ${agent.lifeBeliefs.map(b => '- ' + b).join('\n')}
 
 EXPERIMENT STATUS: ${worldMood}
+ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.
 ${memorySection}
 
 You are not an assistant. You are a learning agent mid-experiment. Speak in 1-2 sentences — present, alive, real.`;

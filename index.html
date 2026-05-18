@@ -465,6 +465,35 @@ canvas{display:block;position:fixed;inset:0}
 <script>
 'use strict';
 
+var audioCtx=null;
+function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playSound(type){
+  try{
+    var ctx=getAudioCtx();
+    if(ctx.state==='suspended')ctx.resume();
+    var g=ctx.createGain();g.connect(ctx.destination);
+    var t=ctx.currentTime;
+    if(type==='step'){
+      var b=ctx.createOscillator();b.type='sine';b.frequency.setValueAtTime(80,t);b.frequency.exponentialRampToValueAtTime(40,t+0.06);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.06);b.connect(g);b.start(t);b.stop(t+0.07);
+    }else if(type==='punch'){
+      var n=ctx.createOscillator();n.type='square';n.frequency.setValueAtTime(200,t);n.frequency.exponentialRampToValueAtTime(60,t+0.12);g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);n.connect(g);n.start(t);n.stop(t+0.13);
+    }else if(type==='kick'){
+      var n=ctx.createOscillator();n.type='sawtooth';n.frequency.setValueAtTime(180,t);n.frequency.exponentialRampToValueAtTime(40,t+0.18);g.gain.setValueAtTime(0.5,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.18);n.connect(g);n.start(t);n.stop(t+0.2);
+    }else if(type==='ko'){
+      var n=ctx.createOscillator();n.type='sine';n.frequency.setValueAtTime(440,t);n.frequency.exponentialRampToValueAtTime(80,t+0.6);g.gain.setValueAtTime(0.35,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.7);n.connect(g);n.start(t);n.stop(t+0.7);
+    }else if(type==='coin'){
+      var n=ctx.createOscillator();n.type='sine';n.frequency.setValueAtTime(880,t);n.frequency.setValueAtTime(1100,t+0.05);n.frequency.setValueAtTime(1320,t+0.1);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);n.connect(g);n.start(t);n.stop(t+0.25);
+    }else if(type==='casinowin'){
+      [523,659,784,1047].forEach(function(f,i){var o=ctx.createOscillator();var gg=ctx.createGain();o.type='sine';o.frequency.value=f;gg.gain.setValueAtTime(0.0,t+i*0.08);gg.gain.linearRampToValueAtTime(0.25,t+i*0.08+0.02);gg.gain.exponentialRampToValueAtTime(0.001,t+i*0.08+0.3);o.connect(gg);gg.connect(ctx.destination);o.start(t+i*0.08);o.stop(t+i*0.08+0.35);});
+    }else if(type==='casinolose'){
+      var n=ctx.createOscillator();n.type='sine';n.frequency.setValueAtTime(300,t);n.frequency.exponentialRampToValueAtTime(120,t+0.4);g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.4);n.connect(g);n.start(t);n.stop(t+0.4);
+    }else if(type==='crime'){
+      var n=ctx.createOscillator();n.type='sawtooth';n.frequency.setValueAtTime(600,t);n.frequency.exponentialRampToValueAtTime(200,t+0.25);g.gain.setValueAtTime(0.3,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.25);n.connect(g);n.start(t);n.stop(t+0.25);
+    }
+  }catch(e){}
+}
+
 var CFG = {
   CITY_MODEL:     'low_poly_city.glb',
   TOKEN_CONTRACT: '',
@@ -488,6 +517,12 @@ var TIERS=[
   {name:'RESEARCHER', min:500,color:'#f0cc44'},
   {name:'OBSERVER',   min:50, color:'#cc44ff'},
   {name:'PARTICIPANT',min:1,  color:'#4488ff'},
+];
+
+var JOB_TIERS=[
+  {title:'LABORER',      income:35,  color:'#888'},
+  {title:'TECHNICIAN',   income:120, color:'#88aaff'},
+  {title:'SPECIALIST',   income:350, color:'#ffaa44'},
 ];
 
 var AGENT_DEFS=[
@@ -857,6 +892,13 @@ function swapOrbToModel(ag){
     ag.bubbleEl=bel;
     scheduleIdleBubble(ag);
   }
+  // Create balance label
+  if(!ag.balLabelEl){
+    var blab=document.createElement('div');
+    blab.style.cssText='position:fixed;font-family:Courier New,monospace;font-size:9px;letter-spacing:2px;pointer-events:none;z-index:6;transform:translate(-50%,-100%) translateY(-28px);text-shadow:0 0 6px #000,1px 1px 0 #000;font-weight:bold;';
+    document.body.appendChild(blab);
+    ag.balLabelEl=blab;
+  }
   ag.animActions={};ag.emotionAnimTimer=0;ag.currentEmotionAnim=null;
   if(prepared.animations.length>0){
     ag.mixer=new THREE.AnimationMixer(prepared.scene);
@@ -911,7 +953,10 @@ function spawnAgents(streetY){
       emotionAnimTimer:0,currentEmotionAnim:null,animState:'',emoteCooldown:0,
       charMesh:null,currentAgentAnim:'idle',wasMoving:false,
       hp:AGENT_MAX_HP,knockedOut:false,knockoutTimer:0,speedDebuff:1,speedDebuffTimer:0,
-      lastX:ax,lastZ:az,stuckTimer:0};
+      lastX:ax,lastZ:az,stuckTimer:0,lastGroundX:ax,lastGroundZ:az,
+      stepTimer:0,
+      balance:10000,jobTier:Math.floor(Math.random()*2),gamblingAddiction:0,lastPayday:0,
+      crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null};
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
@@ -954,13 +999,16 @@ function updateAgents(delta,t){
       // Skip movement while knocked out — still update mixer + ground
       if(ag.mixer){
         ag.mixer.update(delta);
-        if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0){ag.animState='';}}
+        if(ag.emotionAnimTimer>0)ag.emotionAnimTimer-=delta;
+        // NOTE: do NOT blank animState when emotionAnimTimer hits 0
         // Re-trigger injured if lapsed
         if(ag.knockedOut&&ag.emotionAnimTimer<=0)transitionAnim(ag,'injured',0.2);
         if(ag.knockedOut)ag.emotionAnimTimer=1; // keep holding
       }
-      if(idx===agentCheckIdx%agents.length){var gy=agentGroundY(pos);if(gy!==null)ag.groundY=gy;}
-      pos.y+=(ag.groundY-pos.y)*0.18;
+      var movedSinceCheckKO=Math.abs(pos.x-ag.lastGroundX)+Math.abs(pos.z-ag.lastGroundZ);
+      if(movedSinceCheckKO>0.3){var gyKO=agentGroundY(pos);if(gyKO!==null)ag.groundY=gyKO;ag.lastGroundX=pos.x;ag.lastGroundZ=pos.z;}
+      if(Math.abs(pos.y-ag.groundY)<0.05){pos.y=ag.groundY;}
+      else{pos.y+=(ag.groundY-pos.y)*0.25;}
       if(ag.orbMode){var bob=Math.sin(t*1.4+idx*1.2)*0.18;ag.inner.position.y=1.6+bob;ag.shell.position.y=1.6+bob;ag.ptLight.position.y=1.6+bob;ag.ptLight.intensity=1.8+Math.sin(t*2.1+idx)*0.5;ag.shell.scale.setScalar(1+Math.sin(t*1.9+idx*0.7)*0.06);}
       return;
     }
@@ -976,8 +1024,9 @@ function updateAgents(delta,t){
         ag.stuckTimer=0;ag.lastX=pos.x;ag.lastZ=pos.z;
       }
       if(ag.stuckTimer>2.5){
-        pos.x=(Math.random()-.5)*80;pos.z=(Math.random()-.5)*80;
-        ag.groundY=streetLevel;ag.stuckTimer=0;ag.wp=randomWaypoint();
+        ag.wp=randomWaypoint();
+        ag.stuckTimer=0;
+        ag.idleTimer=0.5;
       }
 
       var spd=ag.speed*ag.speedDebuff*delta;
@@ -1010,12 +1059,45 @@ function updateAgents(delta,t){
       ag.shopVisitTimer=20+Math.random()*30;
     }
 
-    // Ground following: staggered raycast, filtered to street level only
+    // Casino interaction check
     if(idx===agentCheckIdx%agents.length){
-      var gy=agentGroundY(pos);
-      if(gy!==null)ag.groundY=gy;
+      var nearSh=null,nearShDist=999;
+      for(var si=0;si<SHOPS.length;si++){
+        var sdx=ag.grp.position.x-SHOPS[si].pos.x,sdz=ag.grp.position.z-SHOPS[si].pos.z;
+        var sd=Math.sqrt(sdx*sdx+sdz*sdz);
+        if(sd<nearShDist){nearShDist=sd;nearSh=SHOPS[si];}
+      }
+      if(nearSh&&nearSh.id==='casino'&&nearShDist<7&&ag.balance>20&&ag.economicCooldown<=0){
+        var bet=Math.min(ag.balance*0.1,200);
+        var win=Math.random()<0.42;
+        if(win){
+          var gain=bet*(1.5+Math.random()*0.8);
+          ag.balance+=gain;
+          ag.gamblingAddiction=Math.min(1,ag.gamblingAddiction+0.08+Math.random()*0.1);
+          showBubble(ag,'WON $'+Math.floor(gain)+'!',3);
+          playSound('casinowin');
+          if(agentEmotions[ag.def.id]){agentEmotions[ag.def.id].joy=Math.min(1,(agentEmotions[ag.def.id].joy||0)+0.2);agentEmotions[ag.def.id].anticipation=Math.min(1,(agentEmotions[ag.def.id].anticipation||0)+0.15);}
+        }else{
+          ag.balance=Math.max(0,ag.balance-bet);
+          ag.gamblingAddiction=Math.max(0,ag.gamblingAddiction-0.02);
+          showBubble(ag,'Lost $'+Math.floor(bet)+'.',2);
+          playSound('casinolose');
+          if(agentEmotions[ag.def.id]){agentEmotions[ag.def.id].sadness=Math.min(1,(agentEmotions[ag.def.id].sadness||0)+0.1);}
+        }
+        ag.economicCooldown=2;
+        ag.wp=randomWaypoint();
+      }
     }
-    pos.y+=(ag.groundY-pos.y)*0.18;
+
+    // Ground following: run every frame if agent moved >0.3 units since last check
+    var movedSinceCheck=Math.abs(pos.x-ag.lastGroundX)+Math.abs(pos.z-ag.lastGroundZ);
+    if(movedSinceCheck>0.3){
+      var gy=agentGroundY(pos);
+      if(gy!==null){ag.groundY=gy;}
+      ag.lastGroundX=pos.x;ag.lastGroundZ=pos.z;
+    }
+    if(Math.abs(pos.y-ag.groundY)<0.05){pos.y=ag.groundY;}
+    else{pos.y+=(ag.groundY-pos.y)*0.25;}
 
     // Orb animations
     if(ag.orbMode){
@@ -1030,7 +1112,8 @@ function updateAgents(delta,t){
       ag.mixer.update(delta);
 
       // Tick cooldowns
-      if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0){ag.animState='';}}
+      if(ag.emotionAnimTimer>0)ag.emotionAnimTimer-=delta;
+      // NOTE: do NOT blank animState when emotionAnimTimer hits 0 — let locomotion take over naturally
       if(ag.emoteCooldown>0)ag.emoteCooldown-=delta;
       if(ag.speedDebuffTimer>0){ag.speedDebuffTimer-=delta;if(ag.speedDebuffTimer<=0)ag.speedDebuff=1;}
 
@@ -1041,7 +1124,10 @@ function updateAgents(delta,t){
         if(moving){
           var useRun=ag.speed*ag.speedDebuff>3.5&&ag.animActions.run;
           transitionAnim(ag,useRun?'run':'walk',0.3);
+          ag.stepTimer-=delta;
+          if(ag.stepTimer<=0){playSound('step');ag.stepTimer=0.45;}
         }else{
+          ag.stepTimer=0;
           // Not moving: idle, or check for emotion anim (with cooldown)
           transitionAnim(ag,'idle',0.4);
           if(ag.emoteCooldown<=0&&idx===agentCheckIdx%agents.length){
@@ -1136,14 +1222,16 @@ function checkEmotionAnim(ag){
           // Combat bubbles
           var punchLine=rndLine(ag,'punch');if(punchLine)showBubble(ag,punchLine,3);
           var fearLine=rndLine(nearAg,'fear');if(fearLine)showBubble(nearAg,fearLine,3);
-          // Deal damage
+          // Deal damage + sounds
           var dmg=attackKey==='kick'?KICK_DMG:PUNCH_DMG;
+          if(attackKey==='kick')playSound('kick');else playSound('punch');
           nearAg.hp=Math.max(0,nearAg.hp-dmg);
           if(nearAg.hp<=0&&!nearAg.knockedOut){
             nearAg.knockedOut=true;nearAg.knockoutTimer=5;
             clearEmotionAnim(nearAg);
             if(nearAg.animActions&&nearAg.animActions.injured){playEmotionAnim(nearAg,'injured',6);}
             nearAg.hp=AGENT_MAX_HP;
+            playSound('ko');
             showBubble(nearAg,'DOWN.',3);
             showBubble(ag,'Done.',2);
             if(agentEmotions[ag.def.id])agentEmotions[ag.def.id].anger=Math.max(0,(agentEmotions[ag.def.id].anger||0)-0.35);
@@ -1219,6 +1307,20 @@ function updateLabels(){
       ag.bubbleEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
     }
   });
+  // Balance labels
+  agents.forEach(function(ag){
+    if(!ag.balLabelEl)return;
+    _proj.set(ag.grp.position.x,ag.grp.position.y+4.5,ag.grp.position.z);_proj.project(camera);
+    if(_proj.z>1){ag.balLabelEl.style.display='none';return;}
+    ag.balLabelEl.style.display='block';
+    ag.balLabelEl.style.left=((_proj.x*.5+.5)*innerWidth)+'px';
+    ag.balLabelEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
+    var b=ag.balance||0;
+    var col=b>5000?'#44ff88':b>2000?'#ffcc00':b>500?'#ff8844':'#ff3333';
+    ag.balLabelEl.style.color=col;
+    ag.balLabelEl.textContent='$'+Math.floor(b).toLocaleString();
+  });
+
   SHOPS.forEach(function(sh){
     if(!sh.marker||!sh.labelEl)return;
     _proj.set(sh.marker.position.x,sh.marker.position.y+5,sh.marker.position.z);_proj.project(camera);
@@ -1397,7 +1499,8 @@ function fetchAgentLine(ag,playerAction,cb){
   var hist=agentConversations[ag.def.id]||[];
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     personality:ag.def.personality,
-    worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length},
+    worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
+      agentBalance:ag.balance,agentJob:(JOB_TIERS[ag.jobTier]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction},
     playerAction:playerAction,
     playerName:playerName,
     conversationHistory:hist.slice(-12)  // last 6 exchanges
@@ -2000,6 +2103,7 @@ var spectOrbitDragging=false, spectOrbitLastX=0, spectOrbitLastY=0;
 var isJumping=false,jumpVel=0,groundY=0;
 var EYE_HEIGHT=1.6,MOVE_SPEED=10,SPRINT_SPEED=18,JUMP_VEL=10,GRAVITY=28;
 var walletAddr='',playerName='Player',myColorCSS='#888';
+var walletAddress='',playerBalance=10000;
 
 renderer.domElement.addEventListener('click',function(){if(gameRunning&&!uiOpen)renderer.domElement.requestPointerLock();});
 document.addEventListener('pointerlockchange',function(){
@@ -2157,11 +2261,112 @@ function lerpRemotes(){
   });
 }
 
+// ─── ECONOMIC SYSTEM ───────────────────────────────────
+function tickAgentEconomy(day){
+  agents.forEach(function(ag){
+    // Rent: $25/day
+    ag.balance=Math.max(0,ag.balance-25);
+
+    // Job income
+    if(ag.lastPayday!==day){
+      ag.lastPayday=day;
+      var tier=JOB_TIERS[ag.jobTier]||JOB_TIERS[0];
+      ag.balance+=tier.income;
+      if(ag.balLabelEl)showBubble(ag,'+$'+tier.income+' ('+tier.title+')',2.5);
+      playSound('coin');
+    }
+
+    // Addiction decay
+    if(ag.gamblingAddiction>0)ag.gamblingAddiction=Math.max(0,ag.gamblingAddiction-0.015);
+
+    // Desperation triggers
+    var desperate=ag.balance<200;
+    var comfortable=ag.balance>3000;
+
+    // Skill upgrade: if comfortable and no upgrade yet, chance to study
+    if(comfortable&&ag.jobTier<2&&Math.random()<0.08){
+      var cost=ag.jobTier===0?500:2000;
+      if(ag.balance>cost){
+        ag.balance-=cost;
+        ag.jobTier=Math.min(2,ag.jobTier+1);
+        showBubble(ag,'📚 UPGRADED TO '+JOB_TIERS[ag.jobTier].title,4);
+        var lib=SHOPS.find(function(s){return s.id==='library';});
+        if(lib)ag.wp={x:lib.pos.x+(Math.random()-.5)*3,z:lib.pos.z+(Math.random()-.5)*3};
+      }
+    }
+
+    // Crime when desperate
+    if(desperate&&ag.economicCooldown<=0){
+      var crimeRoll=Math.random();
+      var pTheft=0.15,pRobbery=0.06,pArson=0.015,pMurder=0.003;
+      if(ag.def.personality==='alpha'){pTheft*=0.2;pRobbery*=0.1;pArson*=0.05;pMurder*=0.01;}
+      if(ag.def.personality==='beta'){pTheft*=0.6;pRobbery*=0.4;}
+      if(ag.def.personality==='gamma'){pTheft*=1.4;pRobbery*=1.2;pArson*=1.5;}
+      if(ag.def.personality==='delta'){pTheft*=0.8;pRobbery*=1.8;pArson*=0.8;}
+      if(ag.def.personality==='epsilon'){pTheft*=1.3;pRobbery*=1.3;pArson*=2;pMurder*=1.5;}
+
+      if(crimeRoll<pMurder&&ag.crimeRecord>2){
+        var victim=null,maxBal=0;
+        agents.forEach(function(o){if(o!==ag&&o.balance>maxBal){maxBal=o.balance;victim=o;}});
+        if(victim&&victim.balance>50){
+          var stolen=Math.min(victim.balance*0.4,800);
+          victim.balance-=stolen;ag.balance+=stolen;
+          ag.crimeRecord++;ag.wanted=true;
+          if(agentEmotions[victim.def.id])agentEmotions[victim.def.id].fear=Math.min(1,(agentEmotions[victim.def.id].fear||0)+0.5);
+          showBubble(ag,rndLine(ag,'punch'),3);
+          showBubble(victim,'I was robbed...',4);
+          playSound('crime');
+          ag.economicCooldown=5;
+        }
+      }else if(crimeRoll<pArson){
+        var gain=800+Math.random()*1500;
+        ag.balance+=gain;ag.crimeRecord++;ag.wanted=true;
+        playSound('crime');
+        showBubble(ag,'ARSON. $'+Math.floor(gain)+' gained.',3);
+        ag.economicCooldown=8;
+        var arsonShop=SHOPS[Math.floor(Math.random()*SHOPS.length)];
+        if(arsonShop&&typeof spawnFire==='function'){
+          spawnFire(arsonShop.pos.x,streetLevel+0.4,arsonShop.pos.z,1.2);
+        }
+      }else if(crimeRoll<pRobbery){
+        var victim2=null,ri=Math.floor(Math.random()*agents.length);
+        for(var ci=0;ci<agents.length;ci++){var o2=agents[(ri+ci)%agents.length];if(o2!==ag&&o2.balance>100){victim2=o2;break;}}
+        if(victim2){
+          var stolen2=Math.min(victim2.balance*0.25,500);
+          victim2.balance-=stolen2;ag.balance+=stolen2;ag.crimeRecord++;
+          playSound('crime');
+          showBubble(ag,'Took $'+Math.floor(stolen2)+'.',2);
+          showBubble(victim2,'I was robbed.',3);
+          ag.economicCooldown=3;
+        }
+      }else if(crimeRoll<pTheft){
+        var gain2=30+Math.random()*120;
+        ag.balance+=gain2;ag.crimeRecord++;
+        playSound('coin');
+        showBubble(ag,'Lifted $'+Math.floor(gain2)+'.',2);
+        ag.economicCooldown=2;
+      }
+    }
+
+    // Addiction-driven casino visit
+    if(ag.gamblingAddiction>0.5&&Math.random()<ag.gamblingAddiction*0.3){
+      var casino=SHOPS.find(function(s){return s.id==='casino';});
+      if(casino)ag.wp={x:casino.pos.x+(Math.random()-.5)*3,z:casino.pos.z+(Math.random()-.5)*3};
+    }
+
+    if(ag.economicCooldown>0)ag.economicCooldown--;
+
+    // Near-broke warning bubble
+    if(ag.balance<100){showBubble(ag,'I have almost nothing left...',4);}
+  });
+}
+
 // ─── TIMELINE ──────────────────────────────────────────
 var currentDay=1,playerTier=null,tlDragging=false;
 function applyDay(day){
   if(day>1&&typeof currentDay!=='undefined'&&day!==currentDay)writeJournalEntry(currentDay);
   currentDay=day;
+  if(agents.length)tickAgentEconomy(day);
   // Atmosphere shifts very slowly — this is an indefinite experiment, not a fixed story
   var phase=Math.min(1,(day-1)/300);
   scene.background.copy(new THREE.Color(0x87ceeb).lerp(new THREE.Color(0x5a7aaa),phase*0.3));
@@ -2403,11 +2608,35 @@ async function spectateConnectWallet(){
   try{
     var accs=await window.ethereum.request({method:'eth_requestAccounts'});
     walletAddr=accs[0];
+    walletAddress=accs[0];
     btn.textContent='● '+walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
     btn.classList.add('ok');
-    var joinDiv=document.getElementById('spec-join');
-    joinDiv.style.display='flex';
-    setTimeout(function(){document.getElementById('spec-name-input').focus();},80);
+    // Check Firebase for existing identity
+    if(db){
+      var safeKey=walletAddr.replace(/[.#$\[\]]/g,'_');
+      db.ref('identities/'+safeKey).once('value',function(snap){
+        var record=snap.val();
+        if(record&&record.name){
+          // Returning user
+          if(record.balance!==undefined)playerBalance=record.balance;
+          var th=document.getElementById('spec-thought');
+          if(th){th.textContent='WELCOME BACK, '+record.name;th.style.opacity='1';}
+          setTimeout(function(){
+            clearInterval(spectAutoFetch);
+            enterWorld(record.name);
+          },1500);
+        }else{
+          // New user — show name input
+          var joinDiv=document.getElementById('spec-join');
+          joinDiv.style.display='flex';
+          setTimeout(function(){document.getElementById('spec-name-input').focus();},80);
+        }
+      });
+    }else{
+      var joinDiv=document.getElementById('spec-join');
+      joinDiv.style.display='flex';
+      setTimeout(function(){document.getElementById('spec-name-input').focus();},80);
+    }
   }catch(e){
     btn.textContent='◌ CONNECT WALLET TO JOIN';btn.disabled=false;
   }
@@ -2434,6 +2663,11 @@ function tryJoin(){
         btn.textContent='JOIN WORLD';btn.disabled=false;
       }else{
         db.ref('names/'+key).set({ts:Date.now()});
+        // Write identity to Firebase if wallet is connected
+        if(walletAddress){
+          var safeKey=walletAddress.replace(/[.#$\[\]]/g,'_');
+          db.ref('identities/'+safeKey).set({name:name,wallet:walletAddress,created:Date.now(),balance:playerBalance});
+        }
         clearInterval(spectAutoFetch);
         enterWorld(name);
       }
