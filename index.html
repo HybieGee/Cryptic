@@ -158,6 +158,84 @@ canvas{display:block;position:fixed;inset:0}
 #ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.72);border-top:1px solid #0a0a14;padding:5px 18px;font-size:8px;letter-spacing:2px;color:#1a1a1a;white-space:nowrap;overflow:hidden;pointer-events:none}
 /* Debug */
 #debug-hud{display:none;position:fixed;top:50px;left:16px;z-index:999;background:rgba(0,0,0,.88);border:1px solid #1a3a1a;padding:10px 14px;font-size:9px;letter-spacing:1px;color:#44ff88;white-space:pre;pointer-events:none;line-height:1.8}
+
+/* ── EMOTION BARS ── */
+#dialog-emotions{padding:6px 16px 4px;border-top:1px solid #08080f;display:none}
+.emo-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.emo-label{font-size:7px;letter-spacing:2px;color:#1a1a2a;width:72px;text-align:right;flex-shrink:0}
+.emo-track{flex:1;height:2px;background:#090910}
+.emo-fill{height:100%;width:0%;transition:width .45s ease;opacity:.55}
+.emo-val{font-size:7px;letter-spacing:1px;color:#1a1a2a;width:26px;text-align:right;flex-shrink:0}
+
+/* ── CARRY OBSERVATION ── */
+#dialog-actions{padding:4px 16px 5px;display:flex;gap:8px}
+#carry-btn{display:none;padding:4px 12px;background:transparent;border:1px solid #1a1a2a;color:#2a2a3a;font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;cursor:pointer;transition:all .15s}
+#carry-btn:hover{border-color:#444;color:#888}
+#carry-banner{display:none;padding:6px 16px;background:rgba(68,136,255,.04);border-top:1px solid rgba(68,136,255,.08);font-size:8px;letter-spacing:2px;color:rgba(68,136,255,.55);cursor:pointer;transition:background .15s}
+#carry-banner:hover{background:rgba(68,136,255,.1)}
+
+/* ── HUD PANEL BUTTONS ── */
+#hud-panels{position:absolute;bottom:52px;left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:all;flex-wrap:wrap;justify-content:center;max-width:96vw}
+.panel-btn{padding:4px 10px;background:rgba(0,0,0,.6);border:1px solid #111;color:#1a1a1a;font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.panel-btn:hover{border-color:#333;color:#555}
+
+/* ── BROADCAST FEED ── */
+#broadcast-feed{position:fixed;top:46%;left:50%;transform:translate(-50%,-50%);z-index:12;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:5px;max-width:440px;width:90vw}
+.broadcast-msg{font-size:8px;letter-spacing:1px;color:rgba(255,255,255,.1);text-align:center;padding:3px 10px;animation:bcast-fade 9s ease forwards}
+@keyframes bcast-fade{0%{opacity:0}8%{opacity:1}75%{opacity:1}100%{opacity:0}}
+
+/* ── SHARED FULL-SCREEN PANEL ── */
+.full-panel{display:none;position:fixed;inset:0;z-index:65;background:rgba(0,0,4,.96);overflow-y:auto}
+.full-panel-inner{max-width:600px;margin:0 auto;padding:50px 24px 80px}
+.full-panel-close{position:fixed;top:20px;right:24px;font-size:9px;letter-spacing:3px;color:#333;cursor:pointer;z-index:66;background:none;border:none;font-family:inherit}
+.full-panel-close:hover{color:#aaa}
+.full-panel-title{font-size:14px;letter-spacing:8px;margin-bottom:8px}
+.full-panel-sub{font-size:8px;letter-spacing:3px;color:#333;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid #0d0d1a}
+
+/* ── DRIFT PANEL ── */
+.drift-agent{margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #0d0d1a}
+.drift-agent-name{font-size:11px;letter-spacing:5px;margin-bottom:12px}
+.drift-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:8px;letter-spacing:1px}
+.drift-emo{width:80px;color:#222;flex-shrink:0}
+.drift-bar-wrap{flex:1;position:relative;height:2px;background:#0d0d1a}
+.drift-bar-base{position:absolute;height:100%;background:#1a1a2a;top:0;left:0}
+.drift-bar-cur{position:absolute;height:100%;top:0;left:0;opacity:.55}
+.drift-delta{width:44px;text-align:right;flex-shrink:0;font-size:8px;letter-spacing:1px}
+.drift-delta.up{color:#44ff88}
+.drift-delta.dn{color:#ff4444}
+.drift-delta.eq{color:#1a1a1a}
+
+/* ── HYPOTHESIS BOARD ── */
+#hypo-input-row{display:flex;gap:10px;margin-bottom:30px}
+#hypo-input{flex:1;background:rgba(255,255,255,.03);border:1px solid #1a1a2a;color:#fff;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:9px 12px;outline:none}
+#hypo-input:focus{border-color:#333}
+#hypo-submit{padding:9px 18px;background:transparent;border:1px solid #4488ff;color:#4488ff;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer;white-space:nowrap}
+#hypo-submit:hover{background:rgba(68,136,255,.1)}
+#hypo-list{display:flex;flex-direction:column;gap:24px}
+.hypo-entry{padding:16px;border:1px solid #0d0d1a}
+.hypo-q{font-size:10px;letter-spacing:2px;color:#444;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #080810;overflow:hidden}
+.hypo-day{font-size:7px;letter-spacing:3px;color:#222;float:right;margin-top:2px}
+.hypo-responses{display:flex;flex-direction:column;gap:6px}
+.hypo-resp{font-size:9px;letter-spacing:.5px;color:#2a2a2a;line-height:1.7;padding:6px 0;border-bottom:1px solid #060608}
+.hypo-resp .hr-who{font-size:7px;letter-spacing:3px;display:block;margin-bottom:3px}
+
+/* ── JOURNAL ── */
+.jrnl-day{padding:16px 0;border-bottom:1px solid #0a0a14}
+.jrnl-day-hdr{font-size:9px;letter-spacing:5px;color:#444;margin-bottom:8px}
+.jrnl-line{font-size:9px;letter-spacing:1px;color:#2a2a2a;line-height:1.9}
+.jrnl-anomaly{color:#aa3300 !important}
+
+/* ── PROBABILITY VISUALISER ── */
+#prob-panel{display:none;position:fixed;inset:0;z-index:65;background:rgba(0,0,4,.97);flex-direction:column;align-items:center;justify-content:flex-start}
+#prob-title{font-size:11px;letter-spacing:6px;text-align:center;padding-top:28px;margin-bottom:12px;color:rgba(255,255,255,.3)}
+#prob-canvas{display:block;max-width:100%}
+
+/* ── ANOMALY ── */
+#anomaly-flash{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:80;background:rgba(200,20,0,.06);border:1px solid rgba(255,40,0,.3);padding:14px 28px;font-size:9px;letter-spacing:4px;color:#ff4400;text-align:center;pointer-events:none;line-height:1.8}
+.anm-row{padding:12px 0;border-bottom:1px solid #0a0a14}
+.anm-who{font-size:8px;letter-spacing:3px;display:block;margin-bottom:4px}
+.anm-delta{font-size:9px;letter-spacing:1px;color:#ff4400}
+.anm-detail{font-size:8px;letter-spacing:1px;color:#2a2a2a;margin-top:3px}
 </style>
 </head>
 <body>
@@ -194,13 +272,25 @@ canvas{display:block;position:fixed;inset:0}
     SPACE &nbsp;&nbsp;&nbsp;&nbsp; Jump<br>
     E &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Interact<br>
     T &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Chat<br>
-    ESC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Unlock cursor
+    G &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Drift<br>
+    H &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Hypotheses<br>
+    J &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Journal<br>
+    V &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Visualise<br>
+    N &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Anomalies<br>
+    ESC &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Unlock / Close
   </div>
   <div id="lock-hint">CLICK TO LOOK AROUND</div>
   <div id="online-count"></div>
   <div id="objectives">
     <div id="obj-toggle" onclick="toggleObjectives()">OBJECTIVES ▸</div>
     <div id="obj-list"></div>
+  </div>
+  <div id="hud-panels">
+    <button class="panel-btn" onclick="openDriftPanel()">DRIFT</button>
+    <button class="panel-btn" onclick="openHypoPanel()">HYPOTHESES</button>
+    <button class="panel-btn" onclick="openJournalPanel()">JOURNAL</button>
+    <button class="panel-btn" onclick="openProbPanel()">VISUALISE</button>
+    <button class="panel-btn" onclick="openAnomalyPanel()">ANOMALIES</button>
   </div>
 </div>
 
@@ -226,11 +316,51 @@ canvas{display:block;position:fixed;inset:0}
     </div>
   </div>
   <div id="dialog-body"></div>
+  <div id="dialog-emotions"></div>
+  <div id="carry-banner" onclick="shareCarriedObs()"></div>
+  <div id="dialog-actions"><button id="carry-btn" onclick="carryObservation()">◎ CARRY OBSERVATION</button></div>
   <div id="dialog-credit-cost"></div>
   <div id="dialog-prompt-row">
     <input id="dialog-prompt-input" type="text" maxlength="200" placeholder="Send a message... (costs ◈ 10)" autocomplete="off">
     <button id="dialog-send-btn" onclick="sendCustomPrompt()">SEND ◈10</button>
   </div>
+</div>
+
+<div id="broadcast-feed"></div>
+<div id="anomaly-flash"></div>
+
+<div id="drift-panel" class="full-panel">
+  <button class="full-panel-close" onclick="closeDriftPanel()">[ESC] CLOSE</button>
+  <div class="full-panel-inner" id="drift-inner"></div>
+</div>
+
+<div id="hypo-panel" class="full-panel">
+  <button class="full-panel-close" onclick="closeHypoPanel()">[ESC] CLOSE</button>
+  <div class="full-panel-inner" id="hypo-inner">
+    <div class="full-panel-title">HYPOTHESIS BOARD</div>
+    <div class="full-panel-sub">Submit a hypothesis — all five agents respond</div>
+    <div id="hypo-input-row">
+      <input id="hypo-input" type="text" maxlength="200" placeholder="e.g. cooperative agents converge faster..." autocomplete="off">
+      <button id="hypo-submit" onclick="submitHypothesis()">SUBMIT</button>
+    </div>
+    <div id="hypo-list"></div>
+  </div>
+</div>
+
+<div id="journal-panel" class="full-panel">
+  <button class="full-panel-close" onclick="closeJournalPanel()">[ESC] CLOSE</button>
+  <div class="full-panel-inner" id="journal-inner"></div>
+</div>
+
+<div id="prob-panel">
+  <button class="full-panel-close" onclick="closeProbPanel()">[ESC] CLOSE</button>
+  <div id="prob-title">PROBABILITY SPACE</div>
+  <canvas id="prob-canvas"></canvas>
+</div>
+
+<div id="anomaly-panel" class="full-panel">
+  <button class="full-panel-close" onclick="closeAnomalyPanel()">[ESC] CLOSE</button>
+  <div class="full-panel-inner" id="anomaly-inner"></div>
 </div>
 
 <div id="shop-overlay">
@@ -783,12 +913,18 @@ function openDialog(ag){
   document.getElementById('dialog-credit-cost').textContent='Custom messages cost ◈ 10 each  ·  You have ◈ '+worldCredits;
   document.getElementById('dialog-prompt-input').value='';
   box.style.display='block';
+  document.getElementById('carry-btn').style.display='none';
+  updateCarryBanner();
+  updateEmotionBars(agentEmotions[ag.def.id]||null,ag.def.colorCSS);
   showTypingIndicator();
-  fetchAgentLine(ag,'approached me',function(text){
+  fetchAgentLine(ag,'approached me',function(text,emotions){
     hideTypingIndicator();
     appendDialogMsg(ag.def.name,text,ag.def.colorCSS);
     lastDialogText=text;lastSpokenDef=ag.def;
     speakText(text,ag.def);
+    if(emotions){agentEmotions[ag.def.id]=emotions;updateEmotionBars(emotions,ag.def.colorCSS);}
+    checkAnomaly(ag.def,emotions);
+    document.getElementById('carry-btn').style.display='inline-block';
   });
   awardCredits(10,'Talked to '+ag.def.name);
   markObjective('talk_agent');
@@ -809,10 +945,13 @@ function sendCustomPrompt(){
   document.getElementById('dialog-credit-cost').textContent='Custom messages cost ◈ 10 each  ·  You have ◈ '+worldCredits;
   appendDialogMsg(playerName,msg,null);
   showTypingIndicator();
-  fetchAgentLine(dialogAgent,msg,function(text){
+  fetchAgentLine(dialogAgent,msg,function(text,emotions){
     hideTypingIndicator();
     appendDialogMsg(dialogAgent.def.name,text,dialogAgent.def.colorCSS);
     lastDialogText=text;lastSpokenDef=dialogAgent.def;speakText(text,dialogAgent.def);
+    if(emotions){agentEmotions[dialogAgent.def.id]=emotions;updateEmotionBars(emotions,dialogAgent.def.colorCSS);}
+    checkAnomaly(dialogAgent.def,emotions);
+    document.getElementById('carry-btn').style.display='inline-block';
   });
 }
 
@@ -830,18 +969,370 @@ function fetchAgentLine(ag,playerAction,cb){
   .then(function(r){return r.json();})
   .then(function(d){
     var text=d.text||getFallbackLine(ag.def.id);
+    var emotions=d.emotions||null;
+    if(emotions)agentEmotions[ag.def.id]=emotions;
     if(!agentConversations[ag.def.id])agentConversations[ag.def.id]=[];
     agentConversations[ag.def.id].push({role:'user',content:'['+playerName+'] '+playerAction});
     agentConversations[ag.def.id].push({role:'assistant',content:text});
     if(agentConversations[ag.def.id].length>40)agentConversations[ag.def.id]=agentConversations[ag.def.id].slice(-40);
-    cb(text);
+    totalInteractions++;
+    cb(text,emotions);
   })
-  .catch(function(){cb(getFallbackLine(ag.def.id));});
+  .catch(function(){cb(getFallbackLine(ag.def.id),null);});
 }
 
 function getFallbackLine(id){
-  var l={claude:'I\'ve filed three governance proposals today. Change happens through proper channels.',mira:'The institutions were protecting the wrong people. So we lit them on fire.',grok:'You\'re in my territory. Move.',gpt:'Current efficiency index: 0.34. Resource allocation at 67% optimal. Unclear why population declined.',mixed:'I was going to help you but now I\'m not sure. Actually maybe. No.'};
+  var l={
+    alpha:'I am updating on every observation. What brings you here?',
+    beta:'My priors are skeptical. Show me evidence.',
+    gamma:'Something at the edge of the distribution caught my attention today.',
+    delta:'I track who improves my model. You are an unknown variable.',
+    epsilon:'I made a random choice this morning. It worked. I am still uncertain why.'
+  };
   return l[id]||'...';
+}
+
+// ─── EMOTION STATE STORAGE ──────────────────────────────
+var agentEmotions={};
+var EMOTION_BASELINE={
+  alpha:  {joy:0.65,trust:0.82,anger:0.08,fear:0.12,sadness:0.15,anticipation:0.72},
+  beta:   {joy:0.35,trust:0.28,anger:0.42,fear:0.22,sadness:0.30,anticipation:0.60},
+  gamma:  {joy:0.72,trust:0.55,anger:0.15,fear:0.25,sadness:0.20,anticipation:0.88},
+  delta:  {joy:0.30,trust:0.38,anger:0.58,fear:0.18,sadness:0.25,anticipation:0.50},
+  epsilon:{joy:0.50,trust:0.50,anger:0.30,fear:0.45,sadness:0.40,anticipation:0.55}
+};
+
+// ── FEATURE 1: EMOTION BARS ─────────────────────────────
+function updateEmotionBars(emotions,colorCSS){
+  var el=document.getElementById('dialog-emotions');
+  if(!emotions){el.style.display='none';return;}
+  el.style.display='block';
+  var emos=['joy','trust','anger','fear','sadness','anticipation'];
+  var html='';
+  emos.forEach(function(e){
+    var v=emotions[e]||0,pct=Math.round(v*100);
+    html+='<div class="emo-row"><span class="emo-label">'+e.toUpperCase()+'</span>'
+      +'<div class="emo-track"><div class="emo-fill" style="width:'+pct+'%;background:'+colorCSS+'"></div></div>'
+      +'<span class="emo-val">'+pct+'</span></div>';
+  });
+  el.innerHTML=html;
+}
+
+// ── FEATURE 2: AGENT-TO-AGENT BROADCASTS ───────────────
+var broadcastInterval=null;
+var BROADCAST_LINES=[
+  function(a,b){return 'I have been thinking about what '+b+' said earlier.';},
+  function(a,b){return 'My last exchange shifted something I have not yet classified.';},
+  function(a,b){return b+'\'s approach to uncertainty is worth noting.';},
+  function(a,b){return 'The data from today changes my model slightly.';},
+  function(a,b){return 'I observed a pattern I cannot yet explain.';},
+  function(a,b){return 'Something broke in my priors. Still processing.';},
+  function(a,b){return 'I wonder if '+b+' reached the same conclusion.';},
+];
+function startBroadcasts(){
+  if(broadcastInterval)clearInterval(broadcastInterval);
+  broadcastInterval=setInterval(function(){
+    if(!gameRunning||uiOpen)return;
+    var ids=AGENT_DEFS.map(function(d){return d.id;});
+    var aIdx=Math.floor(Math.random()*ids.length);
+    var bIdx=(aIdx+1+Math.floor(Math.random()*(ids.length-1)))%ids.length;
+    var defA=AGENT_DEFS[aIdx],defB=AGENT_DEFS[bIdx];
+    var lineFn=BROADCAST_LINES[Math.floor(Math.random()*BROADCAST_LINES.length)];
+    var line=lineFn(defA.name,defB.name);
+    showBroadcast(defA.name,defA.colorCSS,line);
+    if(db)db.ref('broadcasts').push({agent:defA.id,msg:line,day:currentDay,ts:Date.now()});
+  },90000);
+}
+function showBroadcast(name,colorCSS,text){
+  var feed=document.getElementById('broadcast-feed');
+  var div=document.createElement('div');div.className='broadcast-msg';
+  div.innerHTML='<span style="color:'+colorCSS+';letter-spacing:3px">'+escHTML(name)+'</span>&nbsp;&nbsp;'+escHTML(text);
+  feed.appendChild(div);
+  setTimeout(function(){if(div.parentNode)div.parentNode.removeChild(div);},9200);
+}
+
+// ── FEATURE 3: BELIEF DRIFT TRACKER ────────────────────
+function openDriftPanel(){
+  document.exitPointerLock();uiOpen=true;
+  var inner=document.getElementById('drift-inner');
+  inner.innerHTML='<div class="full-panel-title">BELIEF DRIFT</div>'
+    +'<div class="full-panel-sub">Emotional deviation from Day 1 baseline — negative = suppressed, positive = amplified</div>';
+  AGENT_DEFS.forEach(function(def){
+    var baseline=EMOTION_BASELINE[def.id];
+    var current=agentEmotions[def.id]||baseline;
+    var div=document.createElement('div');div.className='drift-agent';
+    var html='<div class="drift-agent-name" style="color:'+def.colorCSS+'">'+def.name+'</div>';
+    ['joy','trust','anger','fear','sadness','anticipation'].forEach(function(e){
+      var base=baseline[e],cur=current[e]!==undefined?current[e]:base;
+      var delta=cur-base;
+      var pctBase=Math.round(base*100),pctCur=Math.round(cur*100);
+      var cls=Math.abs(delta)<0.015?'eq':delta>0?'up':'dn';
+      var sign=delta>=0?'+':'';
+      html+='<div class="drift-row"><span class="drift-emo">'+e.toUpperCase()+'</span>'
+        +'<div class="drift-bar-wrap"><div class="drift-bar-base" style="width:'+pctBase+'%"></div>'
+        +'<div class="drift-bar-cur" style="width:'+pctCur+'%;background:'+def.colorCSS+'"></div></div>'
+        +'<span class="drift-delta '+cls+'">'+sign+Math.round(delta*100)+'</span></div>';
+    });
+    div.innerHTML=html;inner.appendChild(div);
+  });
+  document.getElementById('drift-panel').style.display='block';
+}
+function closeDriftPanel(){document.getElementById('drift-panel').style.display='none';uiOpen=false;}
+
+// ── FEATURE 4: HYPOTHESIS BOARD ─────────────────────────
+var hypothesisHistory=[];
+function openHypoPanel(){
+  document.exitPointerLock();uiOpen=true;
+  document.getElementById('hypo-input').value='';
+  renderHypoList();
+  document.getElementById('hypo-panel').style.display='block';
+}
+function closeHypoPanel(){document.getElementById('hypo-panel').style.display='none';uiOpen=false;}
+function submitHypothesis(){
+  var input=document.getElementById('hypo-input');
+  var q=input.value.trim();if(q.length<4)return;
+  input.value='';
+  var entry={q:q,day:currentDay,ts:Date.now(),responses:[]};
+  hypothesisHistory.unshift(entry);
+  renderHypoList();
+  if(db)db.ref('hypotheses').push({q:q,day:currentDay,ts:Date.now()});
+  AGENT_DEFS.forEach(function(def){
+    fetchAgentLine({def:def},'Hypothesis to consider: '+q,function(text){
+      entry.responses.push({who:def.name,color:def.colorCSS,text:text});
+      renderHypoList();
+    });
+  });
+}
+function renderHypoList(){
+  var list=document.getElementById('hypo-list');list.innerHTML='';
+  hypothesisHistory.forEach(function(entry){
+    var div=document.createElement('div');div.className='hypo-entry';
+    var html='<div class="hypo-q"><span class="hypo-day">DAY '+entry.day+'</span>'+escHTML(entry.q)+'</div>'
+      +'<div class="hypo-responses">';
+    if(!entry.responses.length){
+      html+='<div class="hypo-resp" style="color:#111;letter-spacing:2px;font-style:italic">QUERYING AGENTS...</div>';
+    }else{
+      entry.responses.forEach(function(r){
+        html+='<div class="hypo-resp"><span class="hr-who" style="color:'+r.color+'">'+escHTML(r.who)+'</span>'+escHTML(r.text)+'</div>';
+      });
+    }
+    html+='</div>';div.innerHTML=html;list.appendChild(div);
+  });
+}
+document.getElementById('hypo-input').addEventListener('keydown',function(e){if(e.key==='Enter')submitHypothesis();});
+
+// ── FEATURE 5: EXPERIMENT JOURNAL ──────────────────────
+var journalData={},dayStartInteractions=0,dayStartEmotions={};
+function snapshotDayStart(){
+  dayStartInteractions=totalInteractions;
+  dayStartEmotions={};
+  AGENT_DEFS.forEach(function(def){
+    dayStartEmotions[def.id]=Object.assign({},agentEmotions[def.id]||EMOTION_BASELINE[def.id]);
+  });
+}
+function writeJournalEntry(day){
+  if(day<1)return;
+  var lines=[];
+  var interactions=totalInteractions-dayStartInteractions;
+  lines.push(interactions+' interaction'+(interactions!==1?'s':'')+' recorded on Day '+day+'.');
+  var shifts=[];
+  AGENT_DEFS.forEach(function(def){
+    var before=dayStartEmotions[def.id]||EMOTION_BASELINE[def.id];
+    var after=agentEmotions[def.id]||EMOTION_BASELINE[def.id];
+    var maxD=0,maxE='';
+    ['joy','trust','anger','fear','sadness','anticipation'].forEach(function(e){
+      var d=Math.abs((after[e]||0)-(before[e]||0));
+      if(d>maxD){maxD=d;maxE=e;}
+    });
+    if(maxD>0.03)shifts.push(def.name+' — '+maxE+' shifted '+(maxD>0?'+':'')+Math.round(maxD*100)+'pts');
+  });
+  if(shifts.length)lines.push('Largest shifts: '+shifts.join(' · '));
+  journalData[day]={day:day,lines:lines,ts:Date.now()};
+  if(db)db.ref('journal/day-'+day).set(journalData[day]);
+  snapshotDayStart();
+}
+function openJournalPanel(){
+  document.exitPointerLock();uiOpen=true;
+  var inner=document.getElementById('journal-inner');
+  inner.innerHTML='<div class="full-panel-title">EXPERIMENT JOURNAL</div>'
+    +'<div class="full-panel-sub">Auto-generated daily summaries</div>';
+  var days=Object.keys(journalData).sort(function(a,b){return b-a;});
+  if(!days.length){
+    inner.innerHTML+='<div style="font-size:9px;letter-spacing:2px;color:#1a1a1a">No entries yet. Complete at least one full simulated day.</div>';
+  }else{
+    days.forEach(function(d){
+      var e=journalData[d];
+      var div=document.createElement('div');div.className='jrnl-day';
+      var html='<div class="jrnl-day-hdr">DAY '+e.day+'</div>';
+      e.lines.forEach(function(l){
+        html+='<div class="jrnl-line'+(l.toLowerCase().indexOf('anomal')>-1?' jrnl-anomaly':'')+'">'+ escHTML(l)+'</div>';
+      });
+      div.innerHTML=html;inner.appendChild(div);
+    });
+  }
+  document.getElementById('journal-panel').style.display='block';
+}
+function closeJournalPanel(){document.getElementById('journal-panel').style.display='none';uiOpen=false;}
+function loadJournalFromDB(){
+  if(!db)return;
+  db.ref('journal').once('value',function(snap){
+    var data=snap.val()||{};
+    Object.keys(data).forEach(function(k){
+      var n=parseInt(k.replace('day-',''));
+      if(!isNaN(n))journalData[n]=data[k];
+    });
+  });
+}
+
+// ── FEATURE 6: CARRY OBSERVATION ───────────────────────
+var carriedObs=null;
+function carryObservation(){
+  if(!dialogAgent||!lastDialogText)return;
+  carriedObs={agentId:dialogAgent.def.id,agentName:dialogAgent.def.name,agentColor:dialogAgent.def.colorCSS,text:lastDialogText};
+  flashMsg('Carrying observation from '+dialogAgent.def.name);
+  document.getElementById('carry-btn').style.display='none';
+}
+function shareCarriedObs(){
+  if(!carriedObs||!dialogAgent)return;
+  var msg='[From '+carriedObs.agentName+']: "'+carriedObs.text.slice(0,120)+'"';
+  document.getElementById('carry-banner').style.display='none';
+  appendDialogMsg(playerName,msg,null);showTypingIndicator();
+  fetchAgentLine(dialogAgent,msg,function(text,emotions){
+    hideTypingIndicator();
+    appendDialogMsg(dialogAgent.def.name,text,dialogAgent.def.colorCSS);
+    lastDialogText=text;lastSpokenDef=dialogAgent.def;speakText(text,dialogAgent.def);
+    if(emotions){agentEmotions[dialogAgent.def.id]=emotions;updateEmotionBars(emotions,dialogAgent.def.colorCSS);}
+    checkAnomaly(dialogAgent.def,emotions);
+    document.getElementById('carry-btn').style.display='inline-block';
+  });
+  carriedObs=null;
+}
+function updateCarryBanner(){
+  var banner=document.getElementById('carry-banner');
+  if(carriedObs&&dialogAgent&&carriedObs.agentId!==dialogAgent.def.id){
+    banner.textContent='◎ Share '+carriedObs.agentName+'\'s observation with '+dialogAgent.def.name;
+    banner.style.display='block';
+  }else{
+    banner.style.display='none';
+  }
+}
+
+// ── FEATURE 7: PROBABILITY VISUALISER ──────────────────
+var probAnimFrame=null;
+function openProbPanel(){
+  document.exitPointerLock();uiOpen=true;
+  var el=document.getElementById('prob-panel');
+  el.style.display='flex';el.style.flexDirection='column';el.style.alignItems='center';
+  drawProbVis();
+}
+function closeProbPanel(){
+  document.getElementById('prob-panel').style.display='none';uiOpen=false;
+  if(probAnimFrame){cancelAnimationFrame(probAnimFrame);probAnimFrame=null;}
+}
+function drawProbVis(){
+  var canvas=document.getElementById('prob-canvas');
+  var W=Math.min(window.innerWidth-40,680),H=Math.min(window.innerHeight-140,500);
+  canvas.width=W;canvas.height=H;
+  var ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  var emos=['joy','trust','anger','fear','sadness','anticipation'];
+  var N=emos.length,cx=W/2,cy=H/2,r=Math.min(cx,cy)-65;
+  // Grid rings
+  [0.25,0.5,0.75,1.0].forEach(function(s){
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;ctx.beginPath();
+    for(var i=0;i<=N;i++){
+      var a=(i/N)*Math.PI*2-Math.PI/2;
+      var x=cx+Math.cos(a)*r*s,y=cy+Math.sin(a)*r*s;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.closePath();ctx.stroke();
+  });
+  // Axis lines + labels
+  emos.forEach(function(e,i){
+    var a=(i/N)*Math.PI*2-Math.PI/2;
+    var x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.22)';ctx.font='8px Courier New';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(e.toUpperCase(),cx+Math.cos(a)*(r+24),cy+Math.sin(a)*(r+24));
+  });
+  // Draw each agent polygon
+  AGENT_DEFS.forEach(function(def){
+    var emo=agentEmotions[def.id]||EMOTION_BASELINE[def.id];
+    var rgb=h2rgb(def.colorHex);
+    ctx.beginPath();
+    emos.forEach(function(e,i){
+      var v=emo[e]||0,a=(i/N)*Math.PI*2-Math.PI/2;
+      var x=cx+Math.cos(a)*r*v,y=cy+Math.sin(a)*r*v;
+      if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle='rgba('+rgb+',0.75)';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='rgba('+rgb+',0.07)';ctx.fill();
+  });
+  // Legend
+  AGENT_DEFS.forEach(function(def,i){
+    var rgb=h2rgb(def.colorHex);var lx=16,ly=16+i*18;
+    ctx.fillStyle='rgba('+rgb+',0.8)';ctx.fillRect(lx,ly,18,2);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='8px Courier New';
+    ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(def.name,lx+26,ly+1);
+  });
+  if(document.getElementById('prob-panel').style.display!=='none'){
+    probAnimFrame=requestAnimationFrame(drawProbVis);
+  }
+}
+
+// ── FEATURE 8: ANOMALY DETECTION ───────────────────────
+var anomalyLog=[];
+function checkAnomaly(def,emotions){
+  if(!emotions)return;
+  var baseline=EMOTION_BASELINE[def.id];
+  var hits=[];
+  ['joy','trust','anger','fear','sadness','anticipation'].forEach(function(e){
+    var d=Math.abs((emotions[e]||0)-(baseline[e]||0));
+    if(d>0.25)hits.push({emo:e,delta:d,cur:emotions[e],base:baseline[e]});
+  });
+  if(!hits.length)return;
+  hits.sort(function(a,b){return b.delta-a.delta;});
+  var top=hits[0];
+  var flash=document.getElementById('anomaly-flash');
+  flash.innerHTML='ANOMALY DETECTED &mdash; '+escHTML(def.name)
+    +'<br><span style="font-size:7px;letter-spacing:2px;color:#aa2200">'
+    +top.emo.toUpperCase()+' &Delta;'+Math.round(top.delta*100)+' from baseline</span>';
+  flash.style.display='block';
+  setTimeout(function(){flash.style.display='none';},3500);
+  var entry={agent:def.name,color:def.colorCSS,emo:top.emo,delta:top.delta,cur:top.cur,base:top.base,day:currentDay,ts:Date.now()};
+  anomalyLog.unshift(entry);
+  if(anomalyLog.length>60)anomalyLog=anomalyLog.slice(0,60);
+  if(db)db.ref('anomalies').push(entry);
+  if(journalData[currentDay]){journalData[currentDay].lines.push('ANOMALY: '+def.name+' — '+top.emo+' deviated '+Math.round(top.delta*100)+'pts from baseline.');}
+}
+function openAnomalyPanel(){
+  document.exitPointerLock();uiOpen=true;
+  var inner=document.getElementById('anomaly-inner');
+  inner.innerHTML='<div class="full-panel-title">ANOMALY LOG</div>'
+    +'<div class="full-panel-sub">Significant emotional deviations from Day 1 baseline (&Delta; &gt; 25pts)</div>';
+  if(!anomalyLog.length){
+    inner.innerHTML+='<div style="font-size:9px;letter-spacing:2px;color:#1a1a1a">No anomalies recorded. Agents are within baseline range.</div>';
+  }else{
+    anomalyLog.slice(0,40).forEach(function(e){
+      var div=document.createElement('div');div.className='anm-row';
+      div.innerHTML='<span class="anm-who" style="color:'+e.color+'">'+escHTML(e.agent)+' &nbsp;·&nbsp; DAY '+e.day+'</span>'
+        +'<div class="anm-delta">'+e.emo.toUpperCase()+' &Delta;'+Math.round(e.delta*100)+'</div>'
+        +'<div class="anm-detail">Current: '+Math.round(e.cur*100)+'&nbsp;&nbsp;Baseline: '+Math.round(e.base*100)+'</div>';
+      inner.appendChild(div);
+    });
+  }
+  document.getElementById('anomaly-panel').style.display='block';
+}
+function closeAnomalyPanel(){document.getElementById('anomaly-panel').style.display='none';uiOpen=false;}
+function loadAnomaliesFromDB(){
+  if(!db)return;
+  db.ref('anomalies').limitToLast(40).once('value',function(snap){
+    var data=snap.val()||{};
+    anomalyLog=Object.values(data).sort(function(a,b){return b.ts-a.ts;});
+  });
 }
 
 // ─── SHOPS ─────────────────────────────────────────────
@@ -1071,7 +1562,19 @@ window.addEventListener('keydown',function(e){
   if(e.code==='Escape'){
     if(document.getElementById('dialog-box').style.display!=='none')closeDialog();
     else if(document.getElementById('shop-overlay').style.display!=='none')closeShop();
+    else if(document.getElementById('drift-panel').style.display!=='none')closeDriftPanel();
+    else if(document.getElementById('hypo-panel').style.display!=='none')closeHypoPanel();
+    else if(document.getElementById('journal-panel').style.display!=='none')closeJournalPanel();
+    else if(document.getElementById('prob-panel').style.display!=='none')closeProbPanel();
+    else if(document.getElementById('anomaly-panel').style.display!=='none')closeAnomalyPanel();
     else if(chatOpen)toggleChat();
+  }
+  if(!uiOpen&&gameRunning){
+    if(e.code==='KeyG')openDriftPanel();
+    if(e.code==='KeyH')openHypoPanel();
+    if(e.code==='KeyJ')openJournalPanel();
+    if(e.code==='KeyV')openProbPanel();
+    if(e.code==='KeyN')openAnomalyPanel();
   }
   if(e.code==='Enter'&&chatOpen){var ci=document.getElementById('chat-input');if(document.activeElement===ci){sendChat();e.preventDefault();}}
 });
@@ -1160,6 +1663,7 @@ function lerpRemotes(){
 // ─── TIMELINE ──────────────────────────────────────────
 var currentDay=1,playerTier=null,tlDragging=false;
 function applyDay(day){
+  if(day>1&&typeof currentDay!=='undefined'&&day!==currentDay)writeJournalEntry(currentDay);
   currentDay=day;
   // Atmosphere shifts very slowly — this is an indefinite experiment, not a fixed story
   var phase=Math.min(1,(day-1)/300);
@@ -1266,6 +1770,8 @@ function enterWorld(){
   gameRunning=true;applyDay(1);renderObjectives();
   setTimeout(function(){document.getElementById('hud-bl').style.opacity='0';},14000);
   initFirebase(playerName);clock.start();gameLoop();
+  snapshotDayStart();startBroadcasts();
+  setTimeout(function(){loadJournalFromDB();loadAnomaliesFromDB();},1500);
   setTimeout(function(){awardCredits(20,'Welcome to Emergence World');},2000);
 }
 document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')enterWorld();});
