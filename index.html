@@ -585,11 +585,11 @@ var solPriceUSD=0,lastTokenFetch=0;
 var cachedTokens={new:[],stretch:[],migrated:[]};
 var globalTradeLog=[];
 var TRADE_PROFILE={
-  alpha:  {col:'stretch', buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12},
-  beta:   {col:'migrated',buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07},
-  gamma:  {col:'new',     buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18},
-  delta:  {col:'stretch', buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14},
-  epsilon:{col:'new',     buyThresh:0.40, bias:0,     tp:0.60, sl:-0.30, maxHold:600,  riskPct:0.15},
+  alpha:  {col:'stretch', buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
+  beta:   {col:'migrated',buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
+  gamma:  {col:'new',     buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18, minObs:1},
+  delta:  {col:'stretch', buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14, minObs:3},
+  epsilon:{col:'new',     buyThresh:0.40, bias:0,     tp:0.60, sl:-0.30, maxHold:600,  riskPct:0.15, minObs:0},
 };
 
 var AGENT_DEFS=[
@@ -1036,7 +1036,8 @@ function spawnAgents(streetY){
       stepTimer:0,
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
-      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[]};
+      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
+      buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0};
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
@@ -1108,25 +1109,35 @@ function checkSell(ag,addr){
   if(curPrice!==null){
     pos.lastKnownPrice=curPrice;pos.simMult=1;
   }else{
-    // Simulate price drift when token falls out of feed (memecoin reality — mostly down)
     if(!pos.simMult)pos.simMult=1;
-    pos.simMult*=(1+(Math.random()-0.54)*0.14); // ~-7.5% to +6.5% per check
+    pos.simMult*=(1+(Math.random()-0.54)*0.14);
     pos.simMult=Math.max(0.05,pos.simMult);
     curPrice=(pos.lastKnownPrice||pos.entryPrice)*pos.simMult;
   }
   var pnl=(curPrice-pos.entryPrice)/pos.entryPrice;
   var tp=prof.tp,sl=prof.sl,maxHold=prof.maxHold;
   if(ag.def.id==='epsilon'){tp*=0.8+Math.random()*0.8;sl*=0.8+Math.random()*0.8;maxHold*=0.5+Math.random()*1.5;}
-  var reason=pnl>=tp?'TP':pnl<=sl?'SL':holdSec>=maxHold?'TIMEOUT':null;
+  var deepLoss=pnl<=sl*1.6; // force exit if far past stop loss
+  var timeout=holdSec>=maxHold;
+  // 10-min sell rate limit — deep losses and timeouts always override
+  if(Date.now()<ag.sellLockUntil&&!deepLoss&&!timeout)return;
+  var reason=pnl>=tp?'TP':pnl<=sl?'SL':timeout?'TIMEOUT':null;
   if(!reason)return;
   var pnlPct=Math.round(pnl*100);
   var sign=pnl>=0?'+':'';
   ag.solBalance+=pos.solSize*(1+pnl);
   delete ag.portfolio[addr];
+  ag.sellLockUntil=Date.now()+10*60*1000;
+  // Adaptive learning: adjust entry threshold based on rolling PnL
+  ag.recentPnl.push(pnlPct);
+  if(ag.recentPnl.length>5)ag.recentPnl.shift();
+  var avgPnl=ag.recentPnl.reduce(function(a,b){return a+b;},0)/ag.recentPnl.length;
+  ag.adaptiveBias=Math.max(-0.12,Math.min(0.12,-(avgPnl/100)*0.4));
   var msg=reason==='TP'?'Closed $'+pos.symbol+' '+sign+pnlPct+'%':
           reason==='SL'?'Stopped out $'+pos.symbol+' '+sign+pnlPct+'%':
           'Exited $'+pos.symbol+' '+sign+pnlPct+'%';
-  showBubble(ag,msg,4);
+  var learnMsg=avgPnl>15?' Tightening criteria.':avgPnl<-10?' Raising bar next time.':'';
+  showBubble(ag,msg+(learnMsg?'\n'+learnMsg:''),4);
   ag.tradeHistory.unshift((pnl>=0?'▲':'▼')+' $'+pos.symbol+' '+sign+pnlPct+'%');
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
   var glyph=pnl>=0?'▲':'▼';
@@ -1135,9 +1146,11 @@ function checkSell(ag,addr){
 }
 
 function checkBuy(ag){
+  if(Date.now()<ag.buyLockUntil)return; // 10-min buy rate limit
   var prof=TRADE_PROFILE[ag.def.id]||TRADE_PROFILE.epsilon;
   var col=cachedTokens[prof.col]||[];
   if(!col.length)return;
+  // Score all candidates, find best
   var bestScore=-1,bestTok=null;
   for(var i=0;i<col.length;i++){
     var t=col[i];
@@ -1149,29 +1162,55 @@ function checkBuy(ag){
     var score=volScore*0.6+feeScore*0.4+prof.bias+noise;
     if(score>bestScore){bestScore=score;bestTok=t;}
   }
-  if(bestScore<prof.buyThresh||!bestTok)return;
+  if(!bestTok)return;
+  var addr=bestTok.address;
+  // Initialise watchList entry on first sighting (epsilon gets random patience)
+  if(!ag.watchList[addr]){
+    var minObs=ag.def.id==='epsilon'?(1+Math.floor(Math.random()*3)):(prof.minObs||2);
+    ag.watchList[addr]={seenCount:0,scores:[],firstSeen:Date.now(),minObs:minObs};
+    if(minObs>1)showBubble(ag,'Watching $'+bestTok.symbol+'...',2);
+  }
+  ag.watchList[addr].seenCount++;
+  ag.watchList[addr].scores.push(bestScore);
+  ag.watchList[addr].lastSeen=Date.now();
+  // Haven't watched long enough yet
+  if(ag.watchList[addr].seenCount<ag.watchList[addr].minObs)return;
+  // Require average score across all observations to beat adaptive threshold
+  var scores=ag.watchList[addr].scores;
+  var avgScore=scores.reduce(function(a,b){return a+b;},0)/scores.length;
+  var threshold=(prof.buyThresh||0.5)+ag.adaptiveBias;
+  if(avgScore<threshold)return;
   if(Object.keys(ag.portfolio).length>=2)return;
   var solSize=ag.solBalance*prof.riskPct;
   if(solSize<0.01||ag.solBalance<solSize)return;
+  var obsCount=ag.watchList[addr].seenCount;
+  delete ag.watchList[addr];
   ag.solBalance-=solSize;
-  ag.portfolio[bestTok.address]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,solSize:solSize,entryTime:Date.now()};
-  showBubble(ag,'Entered $'+bestTok.symbol+' — '+(solSize).toFixed(3)+' SOL',3);
+  ag.portfolio[addr]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,solSize:solSize,entryTime:Date.now(),simMult:1};
+  ag.buyLockUntil=Date.now()+10*60*1000;
+  var obsStr=obsCount>1?' ('+obsCount+' checks)':'';
+  showBubble(ag,'Entered $'+bestTok.symbol+obsStr+' — '+solSize.toFixed(3)+' SOL',3);
   ag.tradeHistory.unshift('▶ $'+bestTok.symbol+' @ $'+bestTok.priceUsd.toFixed(6));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(3)+' SOL',pos:true,address:bestTok.address,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,solSize:solSize,pnl:null,reason:'BUY'});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(3)+' SOL',pos:true,address:addr,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,solSize:solSize,pnl:null,reason:'BUY'});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
 function evaluateTrades(ag,dt){
   if(!agentsSpawned)return;
   checkSolTopup(ag);
-  // Sell checks every ~15s regardless of buy cooldown
+  // Drop watchList entries for tokens gone stale (> 25 min without a sighting)
+  var now=Date.now();
+  Object.keys(ag.watchList).forEach(function(a){
+    if(now-ag.watchList[a].lastSeen>25*60*1000)delete ag.watchList[a];
+  });
+  // Sell checks every ~15s (deep losses and timeouts override sell lock inside checkSell)
   ag.sellTimer-=dt;
   if(ag.sellTimer<=0){
     ag.sellTimer=12+Math.random()*8;
     Object.keys(ag.portfolio).forEach(function(addr){checkSell(ag,addr);});
   }
-  // Buy checks on longer cooldown
+  // Buy evaluation every 20-60s (buy lock enforced inside checkBuy)
   ag.tradeCooldown-=dt;
   if(ag.tradeCooldown>0)return;
   ag.tradeCooldown=20+Math.random()*40;
@@ -1234,6 +1273,27 @@ function updatePortfolioHUD(){
   var solUsd=solPriceUSD>0?'~$'+(ag.solBalance*solPriceUSD).toFixed(0):'';
   var html='<div class="spec-ptitle">◈ TRADING</div>';
   html+='<div class="spec-psol">'+ag.solBalance.toFixed(3)+' SOL <span style="color:#555">'+solUsd+'</span></div>';
+  // Buy lock countdown
+  var now=Date.now();
+  if(ag.buyLockUntil>now){
+    var secsLeft=Math.ceil((ag.buyLockUntil-now)/1000);
+    var mLeft=Math.floor(secsLeft/60),sLeft=secsLeft%60;
+    html+='<div class="spec-prow" style="color:#555">⏸ BUY LOCK '+mLeft+'m'+sLeft+'s</div>';
+  }else{
+    // Show watchList summary
+    var watching=Object.keys(ag.watchList);
+    if(watching.length){
+      var wEntry=ag.watchList[watching[0]];
+      html+='<div class="spec-prow" style="color:#556">◉ WATCHING $'+(watching[0].slice(0,6)+'...')+' ('+wEntry.seenCount+'/'+wEntry.minObs+')</div>';
+    }
+  }
+  // Adaptive bias indicator
+  if(ag.adaptiveBias!==0){
+    var biasStr=ag.adaptiveBias>0?'▲ CAUTIOUS':'▼ CONFIDENT';
+    var biasCol=ag.adaptiveBias>0?'#ff8844':'#44ff88';
+    html+='<div class="spec-prow" style="color:'+biasCol+';font-size:7px">'+biasStr+' (bias '+(ag.adaptiveBias>0?'+':'')+ag.adaptiveBias.toFixed(2)+')</div>';
+  }
+  // Open positions
   var positions=Object.keys(ag.portfolio);
   if(positions.length){
     positions.forEach(function(addr){
@@ -1242,7 +1302,9 @@ function updatePortfolioHUD(){
       var pnl=(cur-pos.entryPrice)/pos.entryPrice*100;
       var sign=pnl>=0?'+':'';
       var cls=pnl>=0?'spec-ppnl-pos':'spec-ppnl-neg';
-      html+='<div class="spec-prow">◆ $'+pos.symbol+' <span class="'+cls+'">'+sign+pnl.toFixed(1)+'%</span></div>';
+      var holdS=Math.floor((now-pos.entryTime)/1000);
+      var holdStr=holdS<60?holdS+'s':Math.floor(holdS/60)+'m';
+      html+='<div class="spec-prow">◆ $'+pos.symbol+' <span class="'+cls+'">'+sign+pnl.toFixed(1)+'%</span> <span style="color:#333">'+holdStr+'</span></div>';
     });
   }else{
     html+='<div class="spec-prow" style="color:#333">NO POSITIONS</div>';
