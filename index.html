@@ -68,7 +68,7 @@ canvas{display:block;position:fixed;inset:0}
 #tl-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
 .tl-row{font-size:7px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:2px 0;border-radius:2px;transition:background .1s}
 .tl-row:hover{background:rgba(255,255,255,.06)}
-.tl-agent{color:#aaa;margin-right:4px}
+.tl-agent{margin-right:4px}
 .tl-pos{color:#44ff88}
 .tl-neg{color:#ff4444}
 .tl-time{color:#888;float:right}
@@ -1248,7 +1248,9 @@ function evaluateTrades(ag,dt){
 function openTradeDetail(idx){
   var entry=globalTradeLog[idx];if(!entry)return;
   var el=document.getElementById('trade-detail');if(!el)return;
-  document.getElementById('td-agent').textContent=entry.agent;
+  var tdAgentEl=document.getElementById('td-agent');
+  tdAgentEl.textContent=entry.agent;
+  tdAgentEl.style.color={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'}[entry.agent]||'#aaa';
   document.getElementById('td-symbol').textContent='$'+(entry.symbol||'?');
   document.getElementById('td-type').textContent=entry.reason||'?';
   document.getElementById('td-entry').textContent=entry.entryPrice?('$'+entry.entryPrice.toFixed(8)):'—';
@@ -1291,7 +1293,8 @@ function updateTradeLog(){
       var ageS=Math.round((Date.now()-entry.time)/1000);
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
       var cls=entry.pos?'tl-pos':'tl-neg';
-      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
+      var agCol={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'}[entry.agent]||'#aaa';
+      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent" style="color:'+agCol+'">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
   }
   el.innerHTML='<div class="tl-title">◈ TRADE FEED</div><div id="tl-scroll">'+rows+'</div>';
