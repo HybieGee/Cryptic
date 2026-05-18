@@ -17,24 +17,51 @@ canvas{display:block;position:fixed;inset:0}
 #load-bar-inner{height:2px;background:#4488ff;width:0%;transition:width .15s}
 #load-pct{font-size:9px;color:#333;letter-spacing:3px}
 
-#spectate-ui{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(4,6,14,.72);backdrop-filter:blur(2px)}
-.spec-title{font-size:24px;letter-spacing:10px}
-.spec-sub{font-size:9px;letter-spacing:4px;color:#444}
-.spec-stats{display:flex;gap:20px;margin:4px 0;flex-wrap:wrap;justify-content:center}
-.spec-stat{font-size:9px;letter-spacing:3px;color:#555;border:1px solid #1a1a1a;padding:5px 12px}
-.spec-stat span{color:#888}
-.spec-mode{font-size:8px;letter-spacing:5px;color:#2a2a2a;margin-top:4px}
-#spec-wallet-btn{margin-top:8px;padding:11px 36px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;cursor:pointer;transition:all .15s}
+/* ── SPECTATE UI ── */
+#spectate-ui{position:fixed;inset:0;z-index:100;display:none;flex-direction:column;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(4,6,14,.85) 0%,rgba(4,6,14,0) 22%,rgba(4,6,14,0) 65%,rgba(4,6,14,.88) 100%)}
+#spec-top{display:flex;align-items:flex-start;justify-content:space-between;padding:18px 22px 0;pointer-events:all}
+#spec-agent-info{display:flex;flex-direction:column;gap:4px}
+#spec-watching{font-size:7px;letter-spacing:5px;color:#333}
+#spec-agent-name{font-size:20px;letter-spacing:8px}
+#spec-world-status{font-size:8px;letter-spacing:3px;color:#2a2a2a;margin-top:2px}
+#spec-switcher{display:flex;align-items:center;gap:10px}
+.spec-sw-btn{padding:5px 14px;background:rgba(0,0,0,.6);border:1px solid #2a2a2a;color:#555;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .15s}
+.spec-sw-btn:hover{border-color:#888;color:#ccc}
+#spec-dots{display:flex;gap:6px;align-items:center}
+.spec-dot{width:6px;height:6px;border-radius:50%;background:#1a1a1a;cursor:pointer;transition:all .2s;border:1px solid #2a2a2a}
+.spec-dot.active{transform:scale(1.5);border-color:currentColor}
+#spec-emotions{position:absolute;left:18px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;flex-direction:column;gap:6px}
+.spec-emo-row{display:flex;align-items:center;gap:8px}
+.spec-emo-label{font-size:7px;letter-spacing:2px;color:#222;width:64px;text-align:right;flex-shrink:0}
+.spec-emo-bar{width:70px;height:1px;background:#0d0d1a;position:relative}
+.spec-emo-fill{position:absolute;top:0;left:0;height:100%;opacity:.6;transition:width .7s ease}
+#spec-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:all}
+#spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px}
+#spec-thought{font-size:9px;letter-spacing:.4px;color:#333;line-height:1.9;font-style:italic;min-height:16px}
+#spec-cooldown{font-size:8px;letter-spacing:3px;color:#2a2a2a}
+#spec-cooldown.ready{color:#44ff88}
+#spec-prompt-row{display:flex;gap:8px}
+#spec-prompt-input{flex:1;background:rgba(255,255,255,.04);border:1px solid #1a1a2a;color:#fff;font-family:'Courier New',monospace;font-size:9px;letter-spacing:1px;padding:7px 10px;outline:none}
+#spec-prompt-input:focus{border-color:#2a2a3a}
+#spec-prompt-input::placeholder{color:#1a1a2a}
+#spec-prompt-input:disabled{opacity:.25}
+#spec-send-btn{padding:7px 16px;background:transparent;border:1px solid #4488ff;color:#4488ff;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer;white-space:nowrap;transition:all .15s}
+#spec-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
+#spec-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
+#spec-response{font-size:9px;letter-spacing:.3px;color:#555;line-height:1.9;min-height:0;max-width:480px}
+#spec-join-cta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+#spec-wallet-btn{padding:9px 22px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 #spec-wallet-btn:hover:not(:disabled){background:rgba(68,136,255,.12);color:#fff}
 #spec-wallet-btn:disabled{opacity:.5;cursor:default}
 #spec-wallet-btn.ok{border-color:#00cc66;color:#00cc66}
-#spec-nw{display:none;font-size:9px;letter-spacing:2px;color:#553311;padding:8px 16px;border:1px solid #331100;max-width:320px;text-align:center;line-height:1.8}
-#spec-join{display:none;flex-direction:column;align-items:center;gap:10px;margin-top:4px}
-#spec-name-input{background:rgba(255,255,255,.92);border:1px solid #ccc;color:#000;font-family:'Courier New',monospace;font-size:13px;letter-spacing:2px;padding:10px 18px;width:220px;text-align:center;outline:none}
+#spec-nw{display:none;font-size:8px;letter-spacing:2px;color:#553311;padding:6px 12px;border:1px solid #331100;max-width:240px;text-align:right;line-height:1.8}
+#spec-join{display:none;flex-direction:column;align-items:flex-end;gap:8px}
+#spec-name-input{background:rgba(255,255,255,.92);border:1px solid #ccc;color:#000;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;padding:8px 14px;width:200px;text-align:center;outline:none}
 #spec-name-input:focus{border-color:#4488ff;background:#fff}
 #spec-name-input::placeholder{color:#888}
-#spec-name-error{font-size:9px;letter-spacing:2px;color:#ff4444;min-height:14px;text-align:center;max-width:260px}
-#spec-join-btn{padding:11px 36px;background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:12px;letter-spacing:4px;cursor:pointer;transition:all .15s}
+#spec-name-error{font-size:8px;letter-spacing:2px;color:#ff4444;min-height:12px;text-align:right}
+#spec-join-btn{padding:9px 22px;background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 #spec-join-btn:hover:not(:disabled){background:rgba(68,255,136,.1);color:#fff}
 #spec-join-btn:disabled{opacity:.5;cursor:default}
 
@@ -261,20 +288,41 @@ canvas{display:block;position:fixed;inset:0}
 </div>
 
 <div id="spectate-ui">
-  <div class="spec-title">EMERGENCE WORLD</div>
-  <div class="spec-sub">AI AGENT SIMULATION · MAY 2026</div>
-  <div class="spec-stats">
-    <div class="spec-stat">AGENTS <span>5 ACTIVE</span></div>
-    <div class="spec-stat">DAY <span id="spec-day">1</span></div>
-    <div class="spec-stat"><span id="spec-online">— ONLINE</span></div>
+  <!-- Top bar: agent name + switcher -->
+  <div id="spec-top">
+    <div id="spec-agent-info">
+      <div id="spec-watching">SPECTATING</div>
+      <div id="spec-agent-name" style="color:#44aaff">ALPHA</div>
+      <div id="spec-world-status">DAY <span id="spec-day">1</span> &nbsp;·&nbsp; <span id="spec-online">—</span> ONLINE</div>
+    </div>
+    <div id="spec-switcher">
+      <button class="spec-sw-btn" onclick="switchSpectateAgent(-1)">← PREV</button>
+      <div id="spec-dots"></div>
+      <button class="spec-sw-btn" onclick="switchSpectateAgent(1)">NEXT →</button>
+    </div>
   </div>
-  <div class="spec-mode">SPECTATING</div>
-  <button id="spec-wallet-btn" onclick="spectateConnectWallet()">◌ CONNECT WALLET TO JOIN</button>
-  <div id="spec-nw">No wallet detected. Install MetaMask to join.</div>
-  <div id="spec-join">
-    <input id="spec-name-input" type="text" maxlength="18" placeholder="CHOOSE A UNIQUE NAME" autocomplete="off" spellcheck="false">
-    <div id="spec-name-error"></div>
-    <button id="spec-join-btn" onclick="tryJoin()">JOIN WORLD</button>
+  <!-- Emotion sidebar (mid-left) -->
+  <div id="spec-emotions"></div>
+  <!-- Bottom row -->
+  <div id="spec-bottom">
+    <div id="spec-left-bottom">
+      <div id="spec-thought"></div>
+      <div id="spec-cooldown" class="ready">FREE PROMPT AVAILABLE</div>
+      <div id="spec-prompt-row">
+        <input id="spec-prompt-input" type="text" maxlength="200" placeholder="Ask this agent something..." autocomplete="off">
+        <button id="spec-send-btn" onclick="sendSpectatePrompt()">SEND ◌</button>
+      </div>
+      <div id="spec-response"></div>
+    </div>
+    <div id="spec-join-cta">
+      <button id="spec-wallet-btn" onclick="spectateConnectWallet()">◌ CONNECT WALLET TO JOIN</button>
+      <div id="spec-nw">No wallet detected. Install MetaMask to join.</div>
+      <div id="spec-join">
+        <input id="spec-name-input" type="text" maxlength="18" placeholder="CHOOSE A UNIQUE NAME" autocomplete="off" spellcheck="false">
+        <div id="spec-name-error"></div>
+        <button id="spec-join-btn" onclick="tryJoin()">JOIN WORLD</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1590,6 +1638,9 @@ function tickAgentActivity(){
 var playerPos=new THREE.Vector3(),camYaw=0,camPitch=0,pointerLocked=false;
 var isDragging=false,lastTouchX=0,lastTouchY=0;
 var keys={},gameRunning=false;
+var spectateAgentIdx=0,spectateLastPromptTime=0,spectAutoFetch=null;
+var SPECTATE_COOLDOWN=5*60*1000;
+var spectCamPos=new THREE.Vector3(),spectLookAt=new THREE.Vector3();
 var isJumping=false,jumpVel=0,groundY=0;
 var EYE_HEIGHT=1.6,MOVE_SPEED=10,SPRINT_SPEED=18,JUMP_VEL=10,GRAVITY=28;
 var walletAddr='',playerName='Player',myColorCSS='#888';
@@ -1825,7 +1876,26 @@ function initFirebase(name){
 // ─── SPECTATE / JOIN ───────────────────────────────────
 function startSpectate(){
   document.getElementById('spectate-ui').style.display='flex';
+  clock.start();
+  // Spawn agents at street level so spectators see them moving
+  if(!agentsSpawned){
+    groundRay.set(new THREE.Vector3(0,modelBounds.max.y+5,0),DOWN);
+    var hits=groundRay.intersectObjects(groundMeshes,false);
+    var sy=hits.length?hits[0].point.y:0;
+    streetLevel=sy;agentsSpawned=true;
+    spawnAgents(sy);spawnShops(sy);
+    setInterval(tickAgentActivity,12000);
+    setTimeout(tickAgentActivity,3000);
+  }
+  // Init camera at city-center so lerp starts from a sane position
+  var r=Math.max(modelSize.x,modelSize.z)*.7;
+  spectCamPos.set(r*.3,modelSize.y*.4+4,r*.3);
+  spectLookAt.copy(modelCenter);
+  // Build agent-switcher dots
+  buildSpecDots();
+  setSpecAgent(0);
   previewAnimate();
+  // Firebase for live day + online count
   if(CFG.FIREBASE&&!db){
     try{
       firebase.initializeApp(CFG.FIREBASE);
@@ -1835,10 +1905,110 @@ function startSpectate(){
       });
       db.ref('players').on('value',function(s){
         var count=Object.keys(s.val()||{}).length;
-        var el=document.getElementById('spec-online');if(el)el.textContent=count+' ONLINE';
+        var el=document.getElementById('spec-online');if(el)el.textContent=count;
       });
     }catch(e){}
   }
+  // Auto-fetch agent thought every 45 s
+  clearInterval(spectAutoFetch);
+  spectAutoFetch=setInterval(function(){if(!gameRunning)fetchSpectateThought();},45000);
+  setTimeout(fetchSpectateThought,3500);
+}
+
+function buildSpecDots(){
+  var wrap=document.getElementById('spec-dots');if(!wrap)return;
+  wrap.innerHTML='';
+  AGENT_DEFS.forEach(function(def,i){
+    var d=document.createElement('div');
+    d.className='spec-dot'+(i===spectateAgentIdx?' active':'');
+    d.style.color=def.colorCSS;
+    d.style.background=i===spectateAgentIdx?def.colorCSS:'#1a1a1a';
+    d.title=def.name;
+    d.onclick=(function(idx){return function(){setSpecAgent(idx);};})(i);
+    wrap.appendChild(d);
+  });
+}
+
+function setSpecAgent(idx){
+  spectateAgentIdx=((idx%AGENT_DEFS.length)+AGENT_DEFS.length)%AGENT_DEFS.length;
+  var def=AGENT_DEFS[spectateAgentIdx];
+  var nameEl=document.getElementById('spec-agent-name');
+  if(nameEl){nameEl.textContent=def.name;nameEl.style.color=def.colorCSS;}
+  buildSpecDots();
+  updateSpectateEmotionBars(def);
+  // Clear thought so it fetches fresh on next interval
+  var th=document.getElementById('spec-thought');if(th)th.textContent='';
+  fetchSpectateThought();
+}
+
+function switchSpectateAgent(dir){
+  setSpecAgent(spectateAgentIdx+dir);
+}
+
+function updateSpectateHUD(){
+  // Cooldown display
+  var cd=document.getElementById('spec-cooldown');if(!cd)return;
+  var rem=SPECTATE_COOLDOWN-(Date.now()-spectateLastPromptTime);
+  var inp=document.getElementById('spec-prompt-input');
+  var btn=document.getElementById('spec-send-btn');
+  if(rem<=0||spectateLastPromptTime===0){
+    cd.textContent='FREE PROMPT AVAILABLE';cd.className='ready';
+    if(inp)inp.disabled=false;
+    if(btn)btn.disabled=false;
+  }else{
+    var m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    cd.textContent='NEXT FREE PROMPT IN '+m+':'+(s<10?'0':'')+s;
+    cd.className='';
+    if(inp)inp.disabled=true;
+    if(btn)btn.disabled=true;
+  }
+  // Refresh emotion bars each second (cheap)
+  if(Math.floor(Date.now()/1000)%2===0){
+    updateSpectateEmotionBars(AGENT_DEFS[spectateAgentIdx]);
+  }
+}
+
+function updateSpectateEmotionBars(def){
+  var el=document.getElementById('spec-emotions');if(!el)return;
+  var emos=['joy','trust','anger','fear','sadness','anticipation'];
+  var cur=agentEmotions[def.id]||EMOTION_BASELINE[def.id]||{};
+  el.innerHTML=emos.map(function(e){
+    var v=cur[e]||0,pct=Math.round(v*100);
+    return '<div class="spec-emo-row">'
+      +'<span class="spec-emo-label">'+e.toUpperCase()+'</span>'
+      +'<div class="spec-emo-bar"><div class="spec-emo-fill" style="width:'+pct+'%;background:'+def.colorCSS+'"></div></div>'
+      +'</div>';
+  }).join('');
+}
+
+function fetchSpectateThought(){
+  if(!AGENT_DEFS[spectateAgentIdx]||gameRunning)return;
+  var def=AGENT_DEFS[spectateAgentIdx];
+  var th=document.getElementById('spec-thought');
+  if(th)th.style.opacity='0.3';
+  fetchAgentLine({def:def},'thinking aloud — no one nearby',function(text,emotions){
+    if(gameRunning)return;
+    if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
+    if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
+  });
+}
+
+function sendSpectatePrompt(){
+  if(Date.now()-spectateLastPromptTime<SPECTATE_COOLDOWN&&spectateLastPromptTime!==0)return;
+  var inp=document.getElementById('spec-prompt-input');
+  var msg=inp.value.trim();if(!msg)return;
+  inp.value='';inp.disabled=true;
+  document.getElementById('spec-send-btn').disabled=true;
+  var def=AGENT_DEFS[spectateAgentIdx];
+  var respEl=document.getElementById('spec-response');
+  if(respEl){respEl.textContent='';respEl.style.opacity='0.4';}
+  fetchAgentLine({def:def},msg,function(text,emotions){
+    spectateLastPromptTime=Date.now();
+    if(respEl){respEl.textContent=def.name+': "'+text+'"';respEl.style.opacity='1';}
+    var th=document.getElementById('spec-thought');
+    if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
+    if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
+  });
 }
 
 async function spectateConnectWallet(){
@@ -1870,10 +2040,10 @@ function showSpecError(msg){
 
 function tryJoin(){
   var raw=document.getElementById('spec-name-input').value.trim();
-  if(!raw||raw.length<2){showSpecError('Name must be at least 2 characters.');return;}
+  if(!raw||raw.length<2){showSpecError('Min 2 characters.');return;}
   var name=raw.slice(0,18);
   var key=name.toLowerCase().replace(/[^a-z0-9]/g,'_');
-  if(!key){showSpecError('Invalid name — letters and numbers only.');return;}
+  if(!key){showSpecError('Letters and numbers only.');return;}
   var btn=document.getElementById('spec-join-btn');
   btn.textContent='CHECKING...';btn.disabled=true;
   if(db){
@@ -1883,10 +2053,12 @@ function tryJoin(){
         btn.textContent='JOIN WORLD';btn.disabled=false;
       }else{
         db.ref('names/'+key).set({ts:Date.now()});
+        clearInterval(spectAutoFetch);
         enterWorld(name);
       }
     });
   }else{
+    clearInterval(spectAutoFetch);
     enterWorld(name);
   }
 }
@@ -1908,6 +2080,7 @@ function enterWorld(name){
   setTimeout(function(){awardCredits(20,'Welcome to Emergence World');},2000);
 }
 document.getElementById('spec-name-input').addEventListener('keydown',function(e){if(e.key==='Enter')tryJoin();});
+document.getElementById('spec-prompt-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendSpectatePrompt();});
 document.getElementById('dialog-prompt-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendCustomPrompt();});
 
 // ─── WORLD CLOCK (1 min = 1 day) ───────────────────────
@@ -1963,9 +2136,30 @@ var pvStart=Date.now();
 function previewAnimate(){
   if(gameRunning)return;
   requestAnimationFrame(previewAnimate);
-  var t=(Date.now()-pvStart)/1000,r=Math.max(modelSize.x,modelSize.z)*.7;
-  camera.position.set(Math.sin(t*.13)*r,modelSize.y*.5+Math.sin(t*.07)*8,Math.cos(t*.13)*r);
-  camera.lookAt(modelCenter);renderer.render(scene,camera);
+  var delta=Math.min(clock.getDelta(),.05),t=clock.getElapsedTime();
+  if(agentsSpawned&&agents.length){
+    // 3rd-person follow: camera orbits behind the spectated agent
+    var ag=agents[spectateAgentIdx]||agents[0];
+    var agPos=ag.grp.position;
+    var yaw=ag.grp.rotation.y;
+    var tx=agPos.x-Math.sin(yaw)*7;
+    var ty=agPos.y+4.8;
+    var tz=agPos.z-Math.cos(yaw)*7;
+    spectCamPos.x+=(tx-spectCamPos.x)*0.04;
+    spectCamPos.y+=(ty-spectCamPos.y)*0.04;
+    spectCamPos.z+=(tz-spectCamPos.z)*0.04;
+    camera.position.copy(spectCamPos);
+    spectLookAt.x+=(agPos.x-spectLookAt.x)*0.06;
+    spectLookAt.y+=((agPos.y+1.6)-spectLookAt.y)*0.06;
+    spectLookAt.z+=(agPos.z-spectLookAt.z)*0.06;
+    camera.lookAt(spectLookAt);
+    updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
+  }else{
+    var r=Math.max(modelSize.x,modelSize.z)*.7,ts=(Date.now()-pvStart)/1000;
+    camera.position.set(Math.sin(ts*.13)*r,modelSize.y*.5+Math.sin(ts*.07)*8,Math.cos(ts*.13)*r);
+    camera.lookAt(modelCenter);
+  }
+  renderer.render(scene,camera);
 }
 
 function gameLoop(){
