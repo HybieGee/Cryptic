@@ -179,6 +179,226 @@ async function saveMemory(env, agentId, memory) {
   } catch {}
 }
 
+// ── Firebase REST helpers ─────────────────────────────────────────────────────
+
+const FIREBASE_DB = 'https://emergence-probability-lab-default-rtdb.firebaseio.com';
+
+async function fbGet(path) {
+  try {
+    const r = await fetch(`${FIREBASE_DB}/${path}.json`);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function fbPatch(path, data) {
+  try {
+    await fetch(`${FIREBASE_DB}/${path}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch {}
+}
+
+async function fbSet(path, data) {
+  try {
+    await fetch(`${FIREBASE_DB}/${path}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch {}
+}
+
+// ── Simulation trading logic ──────────────────────────────────────────────────
+
+const TRADE_PROFILE = {
+  alpha:   { col: 'stretch',  buyThresh: 0.55, bias: +0.10, tp: 0.35, sl: -0.20, maxHold: 480,  riskPct: 0.12, minObs: 3 },
+  beta:    { col: 'migrated', buyThresh: 0.65, bias: -0.05, tp: 0.15, sl: -0.10, maxHold: 1200, riskPct: 0.07, minObs: 5 },
+  gamma:   { col: 'new',      buyThresh: 0.45, bias: +0.15, tp: 0.80, sl: -0.35, maxHold: 300,  riskPct: 0.18, minObs: 1 },
+  delta:   { col: 'stretch',  buyThresh: 0.58, bias: +0.08, tp: 0.40, sl: -0.22, maxHold: 360,  riskPct: 0.14, minObs: 3 },
+  epsilon: { col: 'new',      buyThresh: 0.40, bias: 0,     tp: 0.60, sl: -0.30, maxHold: 600,  riskPct: 0.15, minObs: 0 },
+};
+
+const AGENT_IDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
+
+function toArr(v)  { if (!v) return []; if (Array.isArray(v)) return v; return Object.values(v); }
+function toObj(v)  { if (!v) return {}; if (typeof v === 'object' && !Array.isArray(v)) return v; return {}; }
+
+function defaultAgentState() {
+  return { solBalance: 0.5, portfolio: {}, tradeHistory: [], buyLockUntil: 0, sellLockUntil: 0, watchList: {}, recentPnl: [], adaptiveBias: 0, balance: 10000, jobTier: 0, gamblingAddiction: 0 };
+}
+
+function simCheckSell(ag, tokens, tradeLog) {
+  const prof = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+  const allTokens = [...toArr(tokens.new), ...toArr(tokens.stretch), ...toArr(tokens.migrated)];
+
+  for (const addr of Object.keys(ag.portfolio)) {
+    const pos = ag.portfolio[addr];
+    if (!pos) continue;
+
+    const holdSec = (Date.now() - (pos.entryTime || 0)) / 1000;
+    const inFeed = allTokens.find(t => t.address === addr);
+
+    let curPrice;
+    if (inFeed && inFeed.priceUsd > 0) {
+      pos.lastKnownPrice = inFeed.priceUsd; pos.simMult = 1; curPrice = inFeed.priceUsd;
+    } else {
+      if (!pos.simMult) pos.simMult = 1;
+      pos.simMult *= (1 + (Math.random() - 0.54) * 0.14);
+      pos.simMult = Math.max(0.05, pos.simMult);
+      curPrice = (pos.lastKnownPrice || pos.entryPrice) * pos.simMult;
+    }
+
+    const pnl = (curPrice - pos.entryPrice) / pos.entryPrice;
+    let tp = prof.tp, sl = prof.sl, maxHold = prof.maxHold;
+    if (ag.id === 'epsilon') { tp *= 0.8 + Math.random() * 0.8; sl *= 0.8 + Math.random() * 0.8; maxHold *= 0.5 + Math.random() * 1.5; }
+
+    const deepLoss = pnl <= sl * 1.6;
+    const timeout  = holdSec >= maxHold;
+    if (Date.now() < (ag.sellLockUntil || 0) && !deepLoss && !timeout) continue;
+
+    const reason = pnl >= tp ? 'TP' : pnl <= sl ? 'SL' : timeout ? 'TIMEOUT' : null;
+    if (!reason) continue;
+
+    const pnlPct = Math.round(pnl * 100);
+    const sign = pnl >= 0 ? '+' : '';
+    const glyph = pnl >= 0 ? '▲' : '▼';
+
+    ag.solBalance = (ag.solBalance || 0) + pos.solSize * (1 + pnl);
+    delete ag.portfolio[addr];
+    ag.sellLockUntil = Date.now() + 10 * 60 * 1000;
+
+    ag.recentPnl.push(pnlPct);
+    if (ag.recentPnl.length > 5) ag.recentPnl.shift();
+    const avg = ag.recentPnl.reduce((a, b) => a + b, 0) / ag.recentPnl.length;
+    ag.adaptiveBias = Math.max(-0.12, Math.min(0.12, -(avg / 100) * 0.4));
+
+    ag.tradeHistory.unshift(`${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`);
+    if (ag.tradeHistory.length > 5) ag.tradeHistory.length = 5;
+
+    tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`, pos: pnl >= 0, address: addr, symbol: pos.symbol, entryPrice: pos.entryPrice, exitPrice: curPrice, solSize: pos.solSize, pnl: pnlPct, reason });
+  }
+}
+
+function simCheckBuy(ag, tokens, tradeLog) {
+  if (Date.now() < (ag.buyLockUntil || 0)) return;
+
+  const prof = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+  const col  = toArr(tokens[prof.col]);
+  if (!col.length) return;
+
+  let bestScore = -1, bestTok = null;
+  for (const t of col) {
+    if (!t.address || !t.priceUsd) continue;
+    if (ag.portfolio[t.address]) continue;
+    const volScore = Math.min(1, (t.vol5m || 0) / 10000);
+    const feeScore = Math.min(1, (t.fees5mSol || 0) / 3);
+    const noise = ag.id === 'epsilon' ? (Math.random() - 0.5) * 0.6 : (Math.random() - 0.5) * 0.1;
+    const score = volScore * 0.6 + feeScore * 0.4 + (prof.bias || 0) + noise;
+    if (score > bestScore) { bestScore = score; bestTok = t; }
+  }
+  if (!bestTok) return;
+
+  const addr = bestTok.address;
+  if (!ag.watchList[addr]) {
+    const minObs = ag.id === 'epsilon' ? (1 + Math.floor(Math.random() * 3)) : (prof.minObs || 2);
+    ag.watchList[addr] = { seenCount: 0, scores: [], firstSeen: Date.now(), minObs, lastSeen: Date.now() };
+  }
+  ag.watchList[addr].seenCount++;
+  ag.watchList[addr].scores = toArr(ag.watchList[addr].scores);
+  ag.watchList[addr].scores.push(bestScore);
+  ag.watchList[addr].lastSeen = Date.now();
+
+  if (ag.watchList[addr].seenCount < ag.watchList[addr].minObs) return;
+
+  const scores = toArr(ag.watchList[addr].scores);
+  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  if (avgScore < (prof.buyThresh || 0.5) + (ag.adaptiveBias || 0)) return;
+  if (Object.keys(ag.portfolio).length >= 2) return;
+
+  const solSize = (ag.solBalance || 0) * prof.riskPct;
+  if (solSize < 0.01 || (ag.solBalance || 0) < solSize) return;
+
+  delete ag.watchList[addr];
+  ag.solBalance = (ag.solBalance || 0) - solSize;
+  ag.portfolio[addr] = { symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, lastKnownPrice: bestTok.priceUsd, solSize, entryTime: Date.now(), simMult: 1 };
+  ag.buyLockUntil = Date.now() + 10 * 60 * 1000;
+
+  ag.tradeHistory.unshift(`▶ $${bestTok.symbol} @ $${bestTok.priceUsd.toFixed(6)}`);
+  if (ag.tradeHistory.length > 5) ag.tradeHistory.length = 5;
+
+  tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `▶ BUY $${bestTok.symbol} ${solSize.toFixed(3)} SOL`, pos: true, address: addr, symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, exitPrice: null, solSize, pnl: null, reason: 'BUY' });
+}
+
+async function runSimTick(env) {
+  const simData = await fbGet('sim') || {};
+  const world   = simData.world || {};
+
+  if (world.simulationActive === false) return; // paused by admin
+
+  const now           = Date.now();
+  const tokens        = await fetchTokenColumns(env);
+  const agentStates   = toObj(simData.agents);
+  const emotions      = toObj(simData.emotions);
+  let   tradeLog      = toArr(simData.trades);
+  const worldStart    = world.worldStartTime || now;
+
+  for (const id of AGENT_IDS) {
+    if (!agentStates[id]) agentStates[id] = defaultAgentState();
+    const ag = { ...agentStates[id], id };
+    ag.portfolio   = toObj(ag.portfolio);
+    ag.watchList   = toObj(ag.watchList);
+    ag.recentPnl   = toArr(ag.recentPnl);
+    ag.tradeHistory = toArr(ag.tradeHistory);
+    if (ag.solBalance == null) ag.solBalance = 0.5;
+
+    // Prune stale watchList entries
+    for (const addr of Object.keys(ag.watchList)) {
+      if (now - (ag.watchList[addr].lastSeen || 0) > 25 * 60 * 1000) delete ag.watchList[addr];
+    }
+
+    // SOL top-up from USD balance if near empty
+    if ((ag.solBalance || 0) < 0.05 && (ag.balance || 0) > 0 && (tokens.solPrice || 0) > 0) {
+      const cost = 0.5 * tokens.solPrice;
+      if ((ag.balance || 0) >= cost) { ag.balance -= cost; ag.solBalance += 0.5; }
+    }
+
+    simCheckSell(ag, tokens, tradeLog);
+    if (Object.keys(ag.portfolio).length < 2) simCheckBuy(ag, tokens, tradeLog);
+
+    // Emotion drift toward personality baseline
+    const agDef = AGENTS[id];
+    if (agDef) {
+      if (!emotions[id]) emotions[id] = { ...agDef.baseEmotions };
+      for (const e of Object.keys(agDef.baseEmotions)) {
+        if (emotions[id][e] != null) {
+          emotions[id][e] = Math.max(0, Math.min(1, emotions[id][e] + (agDef.baseEmotions[e] - emotions[id][e]) * 0.02));
+        }
+      }
+    }
+
+    const { id: _id, ...state } = ag;
+    agentStates[id] = state;
+  }
+
+  if (tradeLog.length > 30) tradeLog = tradeLog.slice(0, 30);
+
+  // Day counter matches browser tickAutoDay: 1 min per in-game day
+  const currentDay = Math.floor((now - worldStart) / 60000) + 1;
+
+  const patch = {
+    world:    { currentDay, worldStartTime: worldStart, simulationActive: true, savedAt: now, totalInteractions: world.totalInteractions || 0 },
+    agents:   agentStates,
+    emotions,
+    solPrice: tokens.solPrice || 0,
+  };
+  // Only write trades if we have entries — never overwrite Firebase with an empty array
+  if (tradeLog.length > 0) patch.trades = tradeLog;
+  await fbPatch('sim', patch);
+}
+
 // ── Bitquery token fetching ───────────────────────────────────────────────────
 
 const BITQUERY_URL  = 'https://streaming.bitquery.io/graphql';
@@ -213,12 +433,21 @@ async function fetchSolPrice(env) {
   try {
     const cached = await env.AGENT_MEMORY.get('sol_price');
     if (cached) return parseFloat(cached);
-    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    // Binance public ticker — no auth, no rate limit issues
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT');
     const d = await r.json();
-    const price = d?.solana?.usd || 150;
-    await env.AGENT_MEMORY.put('sol_price', String(price), { expirationTtl: 300 });
-    return price;
-  } catch { return 150; }
+    const price = parseFloat(d?.price || 0);
+    if (price > 0) {
+      await env.AGENT_MEMORY.put('sol_price', String(price), { expirationTtl: 120 });
+      return price;
+    }
+    // Fallback: CoinGecko
+    const r2 = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const d2 = await r2.json();
+    const price2 = d2?.solana?.usd || 0;
+    if (price2 > 0) { await env.AGENT_MEMORY.put('sol_price', String(price2), { expirationTtl: 120 }); return price2; }
+    return 0;
+  } catch { return 0; }
 }
 
 function buildPumpQuery(since) {
@@ -306,7 +535,7 @@ async function fetchTokenColumns(env) {
       const vol5m   = vol5mByAddr[addr] || 0;
       const vol30m  = parseFloat(t.volUsd || 0);
       const ageMin  = t.Block?.Time
-        ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
+        ? (Date.now() - new Date(t.Block.Time).getTime()) / 60000
         : 9999;
       const mcap      = price * PUMP_SUPPLY;
       const fees5mSol = solPrice > 0 ? (vol5m / solPrice) * PUMP_FEE_RATE : 0;
@@ -334,7 +563,7 @@ async function fetchTokenColumns(env) {
     const price    = parseFloat(t.Trade?.Price || 0);
     const volTotal = parseFloat(t.volUsd || 0);
     const ageMin   = t.Block?.Time
-      ? (Date.now() - new Date(t.Block.firstTime).getTime()) / 60000
+      ? (Date.now() - new Date(t.Block.Time).getTime()) / 60000
       : 9999;
     const vol5m      = vol5mByAddr[addr] || 0;
     const fees5mSol  = solPrice > 0 ? (vol5m / solPrice) * RAY_FEE_RATE : 0;
@@ -366,6 +595,49 @@ export default {
     let body;
     try { body = await request.json(); }
     catch { return new Response('Invalid JSON', { status: 400, headers: corsHeaders }); }
+
+    // ── Browser-triggered sim tick (rate-limited, no auth needed) ────────────
+    if (body.type === 'tick') {
+      // Only advance if last tick was >30s ago — prevents parallel browser spam
+      const world = await fbGet('sim/world');
+      const lastSave = world?.savedAt || 0;
+      if (world?.simulationActive === false) {
+        return new Response(JSON.stringify({ ok: false, reason: 'paused' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (Date.now() - lastSave < 30000) {
+        return new Response(JSON.stringify({ ok: false, reason: 'rate_limited', nextIn: Math.ceil((30000 - (Date.now() - lastSave)) / 1000) }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      ctx.waitUntil(runSimTick(env));
+      return new Response(JSON.stringify({ ok: true, triggered: Date.now() }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── External cron trigger route ───────────────────────────────────────────
+    if (body.type === 'cron') {
+      const { token } = body;
+      if (!env.CRON_SECRET || token !== env.CRON_SECRET) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      ctx.waitUntil(runSimTick(env));
+      return new Response(JSON.stringify({ ok: true, triggered: Date.now() }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ── Admin route ───────────────────────────────────────────────────────────
+    if (body.type === 'admin') {
+      const { password, action } = body;
+      if (!env.ADMIN_PASSWORD || password !== env.ADMIN_PASSWORD) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (action === 'status') {
+        const world = await fbGet('sim/world');
+        return new Response(JSON.stringify({ simulationActive: world?.simulationActive !== false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      if (action === 'on' || action === 'off') {
+        const active = action === 'on';
+        await fbSet('sim/world/simulationActive', active);
+        return new Response(JSON.stringify({ ok: true, simulationActive: active }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     // ── Token feed route ──────────────────────────────────────────────────────
     if (body.type === 'tokens') {
@@ -487,5 +759,9 @@ You are not an assistant. You are a learning agent mid-experiment. Speak in 1-2 
     return new Response(JSON.stringify({ text, agentName: agent.name, emotions }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runSimTick(env));
   }
 };

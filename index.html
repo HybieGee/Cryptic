@@ -1410,16 +1410,15 @@ function updateAgents(delta,t){
     var moving=dist>1.5;
 
     if(moving){
-      // ── Stuck detection ──────────────────────────────
-      if(Math.abs(pos.x-ag.lastX)<0.01&&Math.abs(pos.z-ag.lastZ)<0.01){
-        ag.stuckTimer+=delta;
-      }else{
-        ag.stuckTimer=0;ag.lastX=pos.x;ag.lastZ=pos.z;
-      }
-      if(ag.stuckTimer>2.5){
-        ag.wp=randomWaypoint();
-        ag.stuckTimer=0;
-        ag.idleTimer=0.5;
+      // ── Stuck detection (progress checkpoint every 2s) ───
+      ag._stuckCheck=(ag._stuckCheck||0)+delta;
+      if(ag._stuckCheck>=2.0){
+        var progX=pos.x-(ag._stuckCX!=null?ag._stuckCX:pos.x);
+        var progZ=pos.z-(ag._stuckCZ!=null?ag._stuckCZ:pos.z);
+        if(Math.sqrt(progX*progX+progZ*progZ)<1.0){
+          ag.wp=randomWaypoint();ag.idleTimer=0.5;
+        }
+        ag._stuckCX=pos.x;ag._stuckCZ=pos.z;ag._stuckCheck=0;
       }
 
       var spd=ag.speed*ag.speedDebuff*delta;
@@ -2936,7 +2935,7 @@ function loadWorldState(cb){
       if(data.world.totalInteractions)totalInteractions=data.world.totalInteractions;
       if(data.world.simulationActive!==undefined)simulationActive=!!data.world.simulationActive;
     }
-    if(data.trades&&Array.isArray(data.trades))globalTradeLog=data.trades;
+    if(data.trades){var _ta=Array.isArray(data.trades)?data.trades:Object.values(data.trades);if(_ta.length>0)globalTradeLog=_ta;}
     if(data.emotions){
       Object.keys(data.emotions).forEach(function(id){agentEmotions[id]=data.emotions[id];});
     }
@@ -2963,8 +2962,7 @@ function applySimState(data){
   if(data.solPrice&&data.solPrice>0)solPriceUSD=data.solPrice;
   if(data.trades){
     var arr=Array.isArray(data.trades)?data.trades:Object.values(data.trades);
-    globalTradeLog=arr;
-    updateTradeLog();
+    if(arr.length>0){globalTradeLog=arr;updateTradeLog();}
   }
   if(data.emotions){
     Object.keys(data.emotions).forEach(function(id){agentEmotions[id]=data.emotions[id];});
