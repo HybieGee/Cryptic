@@ -840,6 +840,18 @@ function prepareAgentModel(def, gltf){
     });
   });
   var clips=gltf.animations||[];
+  // Strip root motion XZ from every clip so all animations play in-place.
+  // Position tracks store keyframes as flat [x0,y0,z0, x1,y1,z1, ...].
+  // We zero X and Z on every position track; Y is preserved for natural vertical bounce.
+  clips.forEach(function(clip){
+    clip.tracks.forEach(function(track){
+      if(track.name.indexOf('.position')===-1)return;
+      for(var i=0;i<track.values.length;i+=3){
+        track.values[i]=0;    // X
+        track.values[i+2]=0;  // Z
+      }
+    });
+  });
   // Log available animations so you can see what the model provides
   if(Object.keys(agentPrepared).length===0)
     console.log('[AGENT MODEL] Clips:',clips.map(function(c){return c.name;}));
@@ -1001,9 +1013,6 @@ function updateAgents(delta,t){
       // Skip movement while knocked out — still update mixer + ground
       if(ag.mixer){
         ag.mixer.update(delta);
-        // Kill root motion X/Z — Mixamo embeds horizontal drift in the Hips bone
-        if(!ag.rootBone&&ag.grp){ag.grp.traverse(function(c){if(c.isSkinnedMesh&&c.skeleton&&c.skeleton.bones.length){ag.rootBone=c.skeleton.bones[0];}});}
-        if(ag.rootBone){ag.rootBone.position.x=0;ag.rootBone.position.z=0;}
         if(ag.emotionAnimTimer>0)ag.emotionAnimTimer-=delta;
         // NOTE: do NOT blank animState when emotionAnimTimer hits 0
         // Re-trigger injured if lapsed
@@ -1139,9 +1148,6 @@ function updateAgents(delta,t){
     // Character animations
     if(ag.mixer){
       ag.mixer.update(delta);
-      // Kill root motion X/Z — Mixamo embeds horizontal drift in the Hips bone
-      if(!ag.rootBone&&ag.grp){ag.grp.traverse(function(c){if(c.isSkinnedMesh&&c.skeleton&&c.skeleton.bones.length){ag.rootBone=c.skeleton.bones[0];}});}
-      if(ag.rootBone){ag.rootBone.position.x=0;ag.rootBone.position.z=0;}
 
       // Tick cooldowns
       if(ag.emotionAnimTimer>0)ag.emotionAnimTimer-=delta;
