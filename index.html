@@ -495,8 +495,9 @@ loader.load(CFG.CITY_MODEL,
     var _cbox=new THREE.Box3(),_csz=new THREE.Vector3();
     groundMeshes.forEach(function(m){_cbox.setFromObject(m);_cbox.getSize(_csz);if(Math.max(_csz.x,_csz.y,_csz.z)>1.5)collisionMeshes.push(m);});
     buildFirePositions();
-    // City done — enter immediately; agents download in parallel and swap via requestIdleCallback
-    // so GPU uploads never block a game frame
+    // City done — show spawn immediately; prepare agent models in background.
+    // prepareAgentModel() does all GPU work while user is on spawn screen (safe to stall there).
+    // By the time they hit ENTER WORLD, models are compiled and swap is instant.
     setLoadBar(100,'READY');
     document.getElementById('loading').style.display='none';
     document.getElementById('spawn').style.display='flex';
@@ -505,11 +506,18 @@ loader.load(CFG.CITY_MODEL,
       loader.load(def.model,
         function(g2){
           agentModels[def.id]=g2;
-          function doSwap(){
-            agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag,g2);});
+          if(!gameRunning){
+            // Spawn screen: do all expensive prep now (user doesn't see frame stalls)
+            prepareAgentModel(def,g2);
+          }else{
+            // Already in-game: prep + swap on idle time so frames aren't blocked
+            function doPrepSwap(){
+              prepareAgentModel(def,g2);
+              agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
+            }
+            if(window.requestIdleCallback)requestIdleCallback(doPrepSwap,{timeout:15000});
+            else setTimeout(doPrepSwap,500);
           }
-          if(window.requestIdleCallback)requestIdleCallback(doSwap,{timeout:12000});
-          else setTimeout(doSwap,800);
         },
         null,
         function(){agentModels[def.id]=null;}
@@ -622,52 +630,67 @@ function SkeletonUtils_clone(source){
 
 // ─── AGENTS ────────────────────────────────────────────
 var agents=[],agentsSpawned=false,streetLevel=0;
-var agentModels={};  // loaded GLTF per agent id
+var agentModels={};    // raw loaded GLTF per agent id
+var agentPrepared={};  // pre-processed, GPU-ready data per agent id
+
+// Run all expensive work (clone-less scale/material setup + GPU compile)
+// while user is on spawn screen so in-world swap costs nothing
+function prepareAgentModel(def, gltf){
+  var sc3=gltf.scene;
+  // Scale to ~2 units tall in-place (no clone — each agent has unique GLB)
+  var box=new THREE.Box3().setFromObject(sc3);
+  var h=box.max.y-box.min.y;
+  sc3.scale.setScalar(h>0?2.0/h:1);
+  box.setFromObject(sc3);
+  sc3.position.y=-box.min.y;
+  // Materials + disable shadows (characters don't need shadow casting)
+  sc3.traverse(function(c){
+    if(!c.isMesh)return;
+    c.castShadow=false;c.receiveShadow=false;
+    if(c.material){
+      var mats=Array.isArray(c.material)?c.material.map(function(m){return m.clone();}):c.material.clone();
+      var arr=Array.isArray(mats)?mats:[mats];
+      arr.forEach(function(m){m.emissive=new THREE.Color(def.colorHex);m.emissiveIntensity=0.08;});
+      c.material=Array.isArray(c.material)?mats:mats;
+    }
+  });
+  // Pre-compile shaders + upload textures to GPU now (during spawn screen = safe to stall)
+  try{renderer.compile(sc3,camera);}catch(e){}
+  sc3.traverse(function(c){
+    if(!c.isMesh||!c.material)return;
+    var arr=Array.isArray(c.material)?c.material:[c.material];
+    arr.forEach(function(mat){
+      ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(function(k){
+        if(mat[k])try{renderer.initTexture(mat[k]);}catch(e){}
+      });
+    });
+  });
+  agentPrepared[def.id]={scene:sc3,animations:gltf.animations||[]};
+}
 var agentCheckIdx=0;
 var AGENT_TICKER_LINES=['at the Exchange','in the Probability Lab','near the Ledger','observing the Calibration Lab','in the Optimizer','in the Sandbox','in the Archive','at the Commons','wandering the simulation space','processing recent interactions','observing agent patterns','updating behavioral weights'];
 
 function loadAgentModels(){/* models pre-loaded during loading screen */}
 
-function swapOrbToModel(ag,gltf){
+function swapOrbToModel(ag){
   if(!ag.orbMode)return;
+  var prepared=agentPrepared[ag.def.id];
+  if(!prepared)return; // not ready yet — will be called when prepareAgentModel completes
   ag.orbMode=false;
-  // Remove orb meshes
   ag.inner&&ag.grp.remove(ag.inner);
   ag.shell&&ag.grp.remove(ag.shell);
-
-  var clone=SkeletonUtils_clone(gltf.scene);
-  // Scale to ~2 units tall
-  var box=new THREE.Box3().setFromObject(clone);
-  var h=box.max.y-box.min.y;
-  var sc=h>0?2.0/h:1;
-  clone.scale.setScalar(sc);
-  box.setFromObject(clone);
-  clone.position.y=-box.min.y;
-  clone.traverse(function(c){if(c.isMesh)c.castShadow=true;});
-
-  // Tint with agent color
-  clone.traverse(function(c){
-    if(c.isMesh&&c.material){
-      var m=c.material.clone();
-      m.emissive=new THREE.Color(ag.def.colorHex);
-      m.emissiveIntensity=0.08;
-      c.material=m;
-    }
-  });
-
-  ag.grp.add(clone);
-  ag.charMesh=clone;
-
-  // Animations
-  if(gltf.animations&&gltf.animations.length>0){
-    ag.mixer=new THREE.AnimationMixer(clone);
+  // prepared.scene is already scaled, tinted, GPU-compiled — just add it
+  ag.grp.add(prepared.scene);
+  ag.charMesh=prepared.scene;
+  if(prepared.animations.length>0){
+    ag.mixer=new THREE.AnimationMixer(prepared.scene);
     ag.animIdle=null;ag.animWalk=null;
-    gltf.animations.forEach(function(clip){
+    prepared.animations.forEach(function(clip){
       var n=clip.name.toLowerCase();
       if(n.includes('idle')&&!ag.animIdle)ag.animIdle=ag.mixer.clipAction(clip);
       if((n.includes('walk')||n.includes('run'))&&!ag.animWalk)ag.animWalk=ag.mixer.clipAction(clip);
     });
-    if(!ag.animIdle&&!ag.animWalk&&gltf.animations[0])ag.animIdle=ag.mixer.clipAction(gltf.animations[0]);
+    if(!ag.animIdle&&!ag.animWalk&&prepared.animations[0])ag.animIdle=ag.mixer.clipAction(prepared.animations[0]);
     if(ag.animIdle){ag.animIdle.setEffectiveWeight(1);ag.animIdle.play();}
     ag.currentAgentAnim='idle';
   }
@@ -699,7 +722,7 @@ function spawnAgents(streetY){
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
-    if(agentModels[def.id])swapOrbToModel(ag,agentModels[def.id]);
+    if(agentPrepared[def.id])swapOrbToModel(ag);
     else if(agentModels[def.id]===null){/* failed */}
     // else: still loading, swapOrbToModel called when done
   });
