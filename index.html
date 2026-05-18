@@ -520,10 +520,12 @@ var TIERS=[
 ];
 
 var JOB_TIERS=[
-  {title:'LABORER',      income:35,  color:'#888'},
-  {title:'TECHNICIAN',   income:120, color:'#88aaff'},
-  {title:'SPECIALIST',   income:350, color:'#ffaa44'},
+  {title:'UNEMPLOYED',   income:0,   color:'#ff4444'}, // index 0 = tier -1 mapped as index 0
+  {title:'LABORER',      income:35,  color:'#888'},    // index 1
+  {title:'TECHNICIAN',   income:120, color:'#88aaff'}, // index 2
+  {title:'SPECIALIST',   income:350, color:'#ffaa44'}, // index 3
 ];
+var JOB_TIER_ROLES=[-1,0,0,1,2]; // maps agent spawn index to tier offset into JOB_TIERS
 
 var AGENT_DEFS=[
   {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'Animations/TPOSE Simple Stick.fbx.glb',ttsRate:0.95,ttsPitch:1.0},
@@ -955,7 +957,7 @@ function spawnAgents(streetY){
       hp:AGENT_MAX_HP,knockedOut:false,knockoutTimer:0,speedDebuff:1,speedDebuffTimer:0,
       lastX:ax,lastZ:az,stuckTimer:0,lastGroundX:ax,lastGroundZ:az,
       stepTimer:0,
-      balance:10000,jobTier:Math.floor(Math.random()*2),gamblingAddiction:0,lastPayday:0,
+      balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null};
     agents.push(ag);
 
@@ -1500,7 +1502,7 @@ function fetchAgentLine(ag,playerAction,cb){
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     personality:ag.def.personality,
     worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
-      agentBalance:ag.balance,agentJob:(JOB_TIERS[ag.jobTier]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction},
+      agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction},
     playerAction:playerAction,
     playerName:playerName,
     conversationHistory:hist.slice(-12)  // last 6 exchanges
@@ -2270,7 +2272,7 @@ function tickAgentEconomy(day){
     // Job income
     if(ag.lastPayday!==day){
       ag.lastPayday=day;
-      var tier=JOB_TIERS[ag.jobTier]||JOB_TIERS[0];
+      var tier=JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0];
       ag.balance+=tier.income;
       if(ag.balLabelEl)showBubble(ag,'+$'+tier.income+' ('+tier.title+')',2.5);
       playSound('coin');
@@ -2283,15 +2285,34 @@ function tickAgentEconomy(day){
     var desperate=ag.balance<200;
     var comfortable=ag.balance>3000;
 
-    // Skill upgrade: if comfortable and no upgrade yet, chance to study
+    // Skill upgrade: if comfortable and below SPECIALIST cap, chance to study
     if(comfortable&&ag.jobTier<2&&Math.random()<0.08){
       var cost=ag.jobTier===0?500:2000;
       if(ag.balance>cost){
-        ag.balance-=cost;
-        ag.jobTier=Math.min(2,ag.jobTier+1);
-        showBubble(ag,'📚 UPGRADED TO '+JOB_TIERS[ag.jobTier].title,4);
-        var lib=SHOPS.find(function(s){return s.id==='library';});
-        if(lib)ag.wp={x:lib.pos.x+(Math.random()-.5)*3,z:lib.pos.z+(Math.random()-.5)*3};
+        // Count agents per tier slot (index 0=unemployed,1=laborer,2=tech,3=spec)
+        var tierCount=[0,0,0,0];
+        agents.forEach(function(o){tierCount[Math.max(0,o.jobTier+1)]++;});
+        var targetTier=ag.jobTier+1;
+        var maxAllowed=targetTier===3?1:targetTier===2?1:2; // spec:1, tech:1, labor:2
+        if(tierCount[targetTier+1]<maxAllowed){
+          ag.balance-=cost;
+          ag.jobTier=Math.min(2,ag.jobTier+1);
+          showBubble(ag,'📚 UPGRADED TO '+JOB_TIERS[Math.max(0,ag.jobTier+1)].title,4);
+          var lib=SHOPS.find(function(s){return s.id==='library';});
+          if(lib)ag.wp={x:lib.pos.x+(Math.random()-.5)*3,z:lib.pos.z+(Math.random()-.5)*3};
+          // Displace another agent at the same new tier to maintain cap
+          var newTier=ag.jobTier;
+          var displaced=null;
+          agents.forEach(function(o){
+            if(o!==ag&&o.jobTier===newTier){
+              if(!displaced||o.jobTier>displaced.jobTier)displaced=o;
+            }
+          });
+          if(displaced){
+            displaced.jobTier=Math.max(-1,displaced.jobTier-1);
+            showBubble(displaced,'Displaced. Back to '+JOB_TIERS[Math.max(0,displaced.jobTier+1)].title,4);
+          }
+        }
       }
     }
 
