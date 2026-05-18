@@ -73,7 +73,8 @@ canvas{display:block;position:fixed;inset:0}
 .tl-neg{color:#ff4444}
 .tl-time{color:#555;float:right}
 .tl-empty{color:#444;font-size:7px}
-#trade-detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,8,.97);border:1px solid #2a2a4a;padding:22px 28px;min-width:320px;z-index:99;display:none;font-family:'Courier New',monospace;color:#ddd}
+#trade-detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,8,.97);border:1px solid #2a2a4a;padding:22px 28px;min-width:320px;z-index:200;display:none;font-family:'Courier New',monospace;color:#ddd;pointer-events:all}
+#trade-detail-overlay{position:fixed;inset:0;z-index:199;display:none;background:rgba(0,0,0,.4);cursor:pointer;pointer-events:all}
 .td-title{font-size:8px;letter-spacing:4px;color:#fff;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
 .td-close{cursor:pointer;color:#555;font-size:14px;line-height:1}
 .td-close:hover{color:#fff}
@@ -367,6 +368,7 @@ canvas{display:block;position:fixed;inset:0}
     </div>
   </div>
   <!-- Trade detail pop-out -->
+  <div id="trade-detail-overlay" onclick="closeTradeDetail()"></div>
   <div id="trade-detail">
     <div class="td-title">◈ TRADE DETAIL<span class="td-close" onclick="closeTradeDetail()">✕</span></div>
     <div class="td-row"><span class="td-label">AGENT</span><span class="td-val" id="td-agent"></span></div>
@@ -1263,8 +1265,12 @@ function openTradeDetail(idx){
   document.getElementById('td-addr').textContent=entry.address||'N/A';
   document.getElementById('td-copied').textContent='';
   el.style.display='block';
+  var ov=document.getElementById('trade-detail-overlay');if(ov)ov.style.display='block';
 }
-function closeTradeDetail(){var el=document.getElementById('trade-detail');if(el)el.style.display='none';}
+function closeTradeDetail(){
+  var el=document.getElementById('trade-detail');if(el)el.style.display='none';
+  var ov=document.getElementById('trade-detail-overlay');if(ov)ov.style.display='none';
+}
 function copyTradeAddr(){
   var addr=document.getElementById('td-addr').textContent;
   if(!addr||addr==='N/A')return;
@@ -3026,6 +3032,15 @@ function startSpectate(){
   if(db){
     db.ref('sim').on('value',function(snap){applySimState(snap.val());});
   }
+  // Browser-side tick: advance simulation every 60s while page is open (fallback for headless cron)
+  clearInterval(window._simTickTimer);
+  window._simTickTimer=setInterval(function(){pingSimTick();},60000);
+  setTimeout(function(){pingSimTick();},4000); // initial tick shortly after load
+}
+
+function pingSimTick(){
+  if(!simulationActive||!CFG.WORKER_URL)return;
+  fetch(CFG.WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'tick'})}).catch(function(){});
 }
 
 function buildSpecDots(){
