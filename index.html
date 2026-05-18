@@ -495,6 +495,29 @@ var AGENT_DEFS=[
   {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'Man in Suit.glb',ttsRate:0.9, ttsPitch:1.05},
 ];
 
+// ── OPTIONAL ANIMATION FILES ──────────────────────────────────────────────────
+// Drop GLB files alongside index.html, then fill in the file names below.
+// Each file's FIRST animation clip is used for that slot.
+// Leave a slot empty ('') to use whatever the base model already has.
+//
+// HOW TO GET THESE FILES (Mixamo workflow):
+//   1. Go to mixamo.com → Characters tab → pick any built-in character
+//   2. Select an animation (Idle, Walking, Punch, Wave, etc.)
+//   3. Download as FBX → "With Skin"
+//   4. Convert at cloudconvert.com: FBX → GLB
+//   5. Rename to match below (e.g. anim_idle.glb) and drop in project folder
+//   6. Fill the file name into the matching slot below
+var AGENT_ANIM_FILES={
+  idle:  '',   // standing idle       — e.g. 'anim_idle.glb'
+  walk:  '',   // walking             — e.g. 'anim_walk.glb'
+  punch: '',   // punch / attack      — e.g. 'anim_punch.glb'
+  wave:  '',   // wave / cheer        — e.g. 'anim_wave.glb'
+  fear:  '',   // cower / scared      — e.g. 'anim_fear.glb'
+  sad:   '',   // sad / drooping      — e.g. 'anim_sad.glb'
+  argue: '',   // pointing / talking  — e.g. 'anim_argue.glb'
+  dance: '',   // dance / joy         — e.g. 'anim_dance.glb'
+};
+
 var SHOPS=[
   {id:'market',  name:'EXCHANGE',       colorCSS:'#22cc55',colorHex:0x22cc55,pos:{x:32,z:22},  desc:'Information and resource exchange between agents.',
    items:[{name:'DATA PACKET',price:5,desc:'Compressed behavioral data'},{name:'PROTOCOL UPDATE',price:8,desc:'Sync with latest agent state'},{name:'BANDWIDTH',price:15,desc:'Increase interaction capacity'},{name:'SIGNAL CACHE',price:12,desc:'Store interaction signals'}]},
@@ -574,20 +597,52 @@ loader.load(CFG.CITY_MODEL,
     startSpectate();
     loader.load('Man in Suit.glb',
       function(sharedGLTF){
-        AGENT_DEFS.forEach(function(def){
-          agentModels[def.id]=sharedGLTF;
-          if(!gameRunning){
-            prepareAgentModel(def,sharedGLTF);
-            // Agents already spawned by startSpectate — swap their orbs now
-            agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
-          }else{
-            function doPrepSwap(){
+        // ── Load extra animation GLBs then prep all agents ──────────────────
+        var extraKeys=Object.keys(AGENT_ANIM_FILES).filter(function(k){return !!AGENT_ANIM_FILES[k];});
+        var extraLeft=extraKeys.length;
+
+        function doAllPrep(){
+          AGENT_DEFS.forEach(function(def){
+            agentModels[def.id]=sharedGLTF;
+            if(!gameRunning){
               prepareAgentModel(def,sharedGLTF);
+              // Agents already spawned by startSpectate — swap their orbs now
               agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
+            }else{
+              (function(d){
+                function doPrepSwap(){
+                  prepareAgentModel(d,sharedGLTF);
+                  agents.forEach(function(ag){if(ag.def.id===d.id&&ag.orbMode)swapOrbToModel(ag);});
+                }
+                if(window.requestIdleCallback)requestIdleCallback(doPrepSwap,{timeout:15000});
+                else setTimeout(doPrepSwap,500);
+              })(def);
             }
-            if(window.requestIdleCallback)requestIdleCallback(doPrepSwap,{timeout:15000});
-            else setTimeout(doPrepSwap,500);
-          }
+          });
+        }
+
+        if(!extraLeft){doAllPrep();return;}
+
+        extraKeys.forEach(function(key){
+          loader.load(AGENT_ANIM_FILES[key],
+            function(animGltf){
+              if(animGltf.animations&&animGltf.animations.length>0){
+                var clip=animGltf.animations[0];
+                clip.name=key; // rename to catalog key so prepareAgentModel finds it
+                sharedGLTF.animations=sharedGLTF.animations||[];
+                // Replace any existing clip with the same name
+                sharedGLTF.animations=sharedGLTF.animations.filter(function(c){return c.name!==key;});
+                sharedGLTF.animations.push(clip);
+                console.log('[ANIM] loaded "'+key+'" from '+AGENT_ANIM_FILES[key]);
+              }
+              if(--extraLeft===0)doAllPrep();
+            },
+            null,
+            function(){
+              console.log('[ANIM] "'+AGENT_ANIM_FILES[key]+'" not found — skipping slot "'+key+'"');
+              if(--extraLeft===0)doAllPrep();
+            }
+          );
         });
       },
       null,
