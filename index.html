@@ -156,10 +156,13 @@ canvas{display:block;position:fixed;inset:0}
 
 /* Ticker */
 #ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.72);border-top:1px solid #0a0a14;padding:5px 18px;font-size:8px;letter-spacing:2px;color:#1a1a1a;white-space:nowrap;overflow:hidden;pointer-events:none}
+/* Debug */
+#debug-hud{display:none;position:fixed;top:50px;left:16px;z-index:999;background:rgba(0,0,0,.88);border:1px solid #1a3a1a;padding:10px 14px;font-size:9px;letter-spacing:1px;color:#44ff88;white-space:pre;pointer-events:none;line-height:1.8}
 </style>
 </head>
 <body>
 
+<div id="debug-hud"></div>
 <div id="loading">
   <h1>EMERGENCE WORLD</h1>
   <p id="load-label">LOADING CITY</p>
@@ -1058,6 +1061,8 @@ window.addEventListener('keydown',function(e){
   if(e.code==='Enter'&&chatOpen){var ci=document.getElementById('chat-input');if(document.activeElement===ci){sendChat();e.preventDefault();}}
 });
 window.addEventListener('keyup',function(e){keys[e.code]=false;});
+var debugMode=false;
+window.addEventListener('keydown',function(e){if(e.code==='Backquote'&&gameRunning){debugMode=!debugMode;document.getElementById('debug-hud').style.display=debugMode?'block':'none';}},true);
 window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 function updatePlayer(delta){
@@ -1072,12 +1077,18 @@ function updatePlayer(delta){
   if(keys['KeyA']||keys['ArrowLeft']) {mx-=rgtX;mz-=rgtZ;}
   if(keys['KeyD']||keys['ArrowRight']){mx+=rgtX;mz+=rgtZ;}
   if(mx!==0||mz!==0){var len=Math.sqrt(mx*mx+mz*mz);tryMove((mx/len)*speed*delta,(mz/len)*speed*delta);}
-  // Hard boundary at city edges
-  playerPos.x=Math.max(modelBounds.min.x+2,Math.min(modelBounds.max.x-2,playerPos.x));
-  playerPos.z=Math.max(modelBounds.min.z+2,Math.min(modelBounds.max.z-2,playerPos.z));
+  // 20-unit inset: bounding box edge is often empty void before city geometry ends
+  playerPos.x=Math.max(modelBounds.min.x+20,Math.min(modelBounds.max.x-20,playerPos.x));
+  playerPos.z=Math.max(modelBounds.min.z+20,Math.min(modelBounds.max.z-20,playerPos.z));
 
   groundY=getGroundY(playerPos.x,playerPos.z);
-  if(playerPos.y<modelBounds.min.y-15){playerPos.set(0,modelBounds.max.y+EYE_HEIGHT+10,0);jumpVel=0;isJumping=false;groundY=0;}
+  // If standing over void, nudge toward city center until ground is found
+  if(groundY<-998&&!isJumping){
+    playerPos.x+=(0-playerPos.x)*0.12;playerPos.z+=(0-playerPos.z)*0.12;
+    groundY=getGroundY(playerPos.x,playerPos.z);
+  }
+  // Fall recovery: use findSpawn so player lands on actual geometry
+  if(playerPos.y<modelBounds.min.y-8){var sp=findSpawn();playerPos.set(sp.x,sp.y,sp.z);jumpVel=0;isJumping=false;groundY=0;}
 
   var inAir=isJumping||playerPos.y>groundY+EYE_HEIGHT+0.4;
   if(inAir){jumpVel-=GRAVITY*delta;playerPos.y+=jumpVel*delta;if(groundY>-998&&playerPos.y<=groundY+EYE_HEIGHT){playerPos.y=groundY+EYE_HEIGHT;isJumping=false;jumpVel=0;}}
@@ -1148,7 +1159,7 @@ var flashT=null;
 function flashMsg(txt){var el=document.getElementById('flash');el.textContent=txt;el.style.display='block';clearTimeout(flashT);flashT=setTimeout(function(){el.style.display='none';},5500);}
 function buildTLUI(){var el=document.getElementById('tl-days');el.innerHTML='';for(var d=1;d<=15;d++){var sp=document.createElement('span');sp.className='tl-d'+(DAY_INFO[d]&&DAY_INFO[d].fire?' fire':'');sp.textContent=d;sp.dataset.d=d;sp.onclick=(function(day){return function(){seekTL(day);};})(d);el.appendChild(sp);}}
 function updateTLUI(day){var pct=((day-1)/14)*100;document.getElementById('tl-fill').style.width=pct+'%';document.getElementById('tl-handle').style.left=pct+'%';document.querySelectorAll('.tl-d').forEach(function(el){el.classList.toggle('cur',parseInt(el.dataset.d)===day);});var info=DAY_INFO[day];document.getElementById('tl-desc').textContent=info?info.text:'';}
-function seekTL(day){if(!playerTier)return;var tier=TIERS.find(function(t){return t.name===playerTier;});if(!tier)return;day=Math.max(tier.dayMin,Math.min(tier.dayMax,day));applyDay(day);}
+function seekTL(day){if(!playerTier)return;manualControl=true;var tier=TIERS.find(function(t){return t.name===playerTier;});if(!tier)return;day=Math.max(tier.dayMin,Math.min(tier.dayMax,day));applyDay(day);}
 function initTLDrag(){
   var rail=document.getElementById('tl-rail'),handle=document.getElementById('tl-handle');
   function dayFromE(e){var r=rail.getBoundingClientRect();var cx=(e.clientX||(e.touches&&e.touches[0].clientX)||0)-r.left;return Math.round(1+Math.max(0,Math.min(1,cx/r.width))*14);}
@@ -1220,6 +1231,7 @@ function enterWorld(){
   document.getElementById('xhair').style.display='block';
   document.getElementById('tl-lock').style.display='block';
   playerPos.copy(findSpawn());groundY=0;jumpVel=0;isJumping=false;camYaw=0.4;camPitch=0;
+  worldStartTime=Date.now();lastAutoDay=1;manualControl=false;
   gameRunning=true;applyDay(1);renderObjectives();
   setTimeout(function(){document.getElementById('hud-bl').style.opacity='0';},14000);
   initFirebase(playerName);clock.start();gameLoop();
@@ -1227,6 +1239,30 @@ function enterWorld(){
 }
 document.getElementById('name-input').addEventListener('keydown',function(e){if(e.key==='Enter')enterWorld();});
 document.getElementById('dialog-prompt-input').addEventListener('keydown',function(e){if(e.key==='Enter')sendCustomPrompt();});
+
+// ─── WORLD CLOCK (1 min = 1 day) ───────────────────────
+var worldStartTime=null,lastAutoDay=1,manualControl=false;
+function tickAutoDay(){
+  if(!worldStartTime||!gameRunning||manualControl)return;
+  var newDay=Math.min(15,Math.floor((Date.now()-worldStartTime)/60000)+1);
+  if(newDay!==lastAutoDay){lastAutoDay=newDay;applyDay(newDay);}
+}
+
+// ─── DEBUG ─────────────────────────────────────────────
+function updateDebug(){
+  if(!debugMode)return;
+  var inAir=isJumping||playerPos.y>(groundY+EYE_HEIGHT+0.4);
+  var elapsed=worldStartTime?(Date.now()-worldStartTime)/1000:0;
+  document.getElementById('debug-hud').textContent=[
+    'POS   x:'+playerPos.x.toFixed(1)+'  y:'+playerPos.y.toFixed(1)+'  z:'+playerPos.z.toFixed(1),
+    'GND   '+groundY.toFixed(2)+'   inAir:'+inAir,
+    'BNDX  '+modelBounds.min.x.toFixed(1)+' → '+modelBounds.max.x.toFixed(1),
+    'BNDZ  '+modelBounds.min.z.toFixed(1)+' → '+modelBounds.max.z.toFixed(1),
+    'BNDY  min:'+modelBounds.min.y.toFixed(1)+'  max:'+modelBounds.max.y.toFixed(1),
+    'DAY   '+currentDay+'/15   t:'+elapsed.toFixed(0)+'s',
+    '` = toggle this panel',
+  ].join('\n');
+}
 
 // ─── LOOPS ─────────────────────────────────────────────
 var pvStart=Date.now();
@@ -1243,7 +1279,7 @@ function gameLoop(){
   var delta=Math.min(clock.getDelta(),.05),t=clock.getElapsedTime();
   updatePlayer(delta);
   if(agentsSpawned){updateAgents(delta,t);updateShopMarkers(t);updateLabels();checkInteractions();}
-  lerpRemotes();tickFires(t);renderer.render(scene,camera);
+  lerpRemotes();tickFires(t);tickAutoDay();updateDebug();renderer.render(scene,camera);
 }
 </script>
 </body>
