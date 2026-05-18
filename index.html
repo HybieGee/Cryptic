@@ -488,11 +488,11 @@ var TIERS=[
 ];
 
 var AGENT_DEFS=[
-  {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'xbot-tpose.glb',ttsRate:0.95,ttsPitch:1.0},
-  {id:'beta',   personality:'beta',   name:'BETA',    colorHex:0xff8844,colorCSS:'#ff8844',model:'xbot-tpose.glb',ttsRate:1.0, ttsPitch:0.9},
-  {id:'gamma',  personality:'gamma',  name:'GAMMA',   colorHex:0x44ff88,colorCSS:'#44ff88',model:'xbot-tpose.glb',ttsRate:1.1, ttsPitch:1.1},
-  {id:'delta',  personality:'delta',  name:'DELTA',   colorHex:0xff4488,colorCSS:'#ff4488',model:'xbot-tpose.glb',ttsRate:1.05,ttsPitch:0.8},
-  {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'xbot-tpose.glb',ttsRate:0.9, ttsPitch:1.05},
+  {id:'alpha',  personality:'alpha',  name:'ALPHA',   colorHex:0x44aaff,colorCSS:'#44aaff',model:'Man in Suit.glb',ttsRate:0.95,ttsPitch:1.0},
+  {id:'beta',   personality:'beta',   name:'BETA',    colorHex:0xff8844,colorCSS:'#ff8844',model:'Man in Suit.glb',ttsRate:1.0, ttsPitch:0.9},
+  {id:'gamma',  personality:'gamma',  name:'GAMMA',   colorHex:0x44ff88,colorCSS:'#44ff88',model:'Man in Suit.glb',ttsRate:1.1, ttsPitch:1.1},
+  {id:'delta',  personality:'delta',  name:'DELTA',   colorHex:0xff4488,colorCSS:'#ff4488',model:'Man in Suit.glb',ttsRate:1.05,ttsPitch:0.8},
+  {id:'epsilon',personality:'epsilon',name:'EPSILON', colorHex:0xaa88ff,colorCSS:'#aa88ff',model:'Man in Suit.glb',ttsRate:0.9, ttsPitch:1.05},
 ];
 
 // ── OPTIONAL ANIMATION FILES ──────────────────────────────────────────────────
@@ -507,18 +507,21 @@ var AGENT_DEFS=[
 //   4. Convert at cloudconvert.com: FBX → GLB
 //   5. Rename to match below (e.g. anim_idle.glb) and drop in project folder
 //   6. Fill the file name into the matching slot below
+// External animations disabled — X Bot (8 MB) was too heavy to clone x5.
+// To re-enable: replace Man in Suit.glb with a lightweight (<1 MB) Mixamo-rigged GLB
+// then fill in the file paths below.
 var AGENT_ANIM_FILES={
-  idle:    'Animations/Idle.fbx.glb',
-  walk:    'Animations/Walking.fbx.glb',
-  punch:   'Animations/Punch Combo.fbx.glb',
-  wave:    'Animations/Waving.fbx.glb',
-  fear:    'Animations/Terrified.fbx.glb',
-  sad:     'Animations/Sad Idle.fbx.glb',
-  argue:   'Animations/Standing Arguing.fbx.glb',
-  dance:   'Animations/Booty Hip Hop Dance.fbx.glb',
-  kick:    'Animations/Mma Kick.fbx.glb',
-  injured: 'Animations/Injured Idle.fbx.glb',
-  run:     'Animations/Slow Run.fbx.glb',
+  idle:    '',
+  walk:    '',
+  punch:   '',
+  wave:    '',
+  fear:    '',
+  sad:     '',
+  argue:   '',
+  dance:   '',
+  kick:    '',
+  injured: '',
+  run:     '',
 };
 
 var SHOPS=[
@@ -598,7 +601,7 @@ loader.load(CFG.CITY_MODEL,
     setLoadBar(100,'READY');
     document.getElementById('loading').style.display='none';
     startSpectate();
-    loader.load('xbot-tpose.glb',
+    loader.load('Man in Suit.glb',
       function(sharedGLTF){
         // ── Load extra animation GLBs then prep all agents ──────────────────
         var extraKeys=Object.keys(AGENT_ANIM_FILES).filter(function(k){return !!AGENT_ANIM_FILES[k];});
