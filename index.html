@@ -37,7 +37,7 @@ canvas{display:block;position:fixed;inset:0}
 .spec-emo-bar{width:70px;height:1px;background:#0d0d1a;position:relative}
 .spec-emo-fill{position:absolute;top:0;left:0;height:100%;opacity:.6;transition:width .7s ease}
 #spec-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:all}
-#spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px}
+#spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px;background:rgba(0,0,6,.82);border:1px solid #111;padding:12px 16px}
 #spec-thought{font-size:9px;letter-spacing:.4px;color:#333;line-height:1.9;font-style:italic;min-height:16px}
 #spec-cooldown{font-size:8px;letter-spacing:3px;color:#2a2a2a}
 #spec-cooldown.ready{color:#44ff88}
@@ -80,7 +80,7 @@ canvas{display:block;position:fixed;inset:0}
 #tts-btn{padding:5px 10px;background:rgba(0,0,0,.75);border:1px solid #444;color:#aaa;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer}
 #tts-btn.on{border-color:#44ffaa;color:#44ffaa}
 #hud-bl{position:absolute;bottom:52px;left:16px;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:2px;line-height:2;transition:opacity 1s;text-shadow:0 1px 6px rgba(0,0,0,1)}
-#online-count{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-50px;font-size:9px;color:rgba(255,255,255,.6);letter-spacing:3px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,1)}
+#online-count{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:3px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,1)}
 #lock-hint{position:absolute;bottom:50%;left:50%;transform:translate(-50%,50%);font-size:9px;color:rgba(255,255,255,.7);letter-spacing:3px;pointer-events:none;transition:opacity .5s;text-shadow:0 1px 6px rgba(0,0,0,1)}
 
 /* Objectives */
@@ -1813,7 +1813,7 @@ window.addEventListener('keydown',function(e){
 });
 window.addEventListener('keyup',function(e){keys[e.code]=false;});
 var debugMode=false;
-window.addEventListener('keydown',function(e){if(e.code==='Backquote'&&gameRunning){debugMode=!debugMode;document.getElementById('debug-hud').style.display=debugMode?'block':'none';if(debugMode)showCornerMarkers();else hideCornerMarkers();}},true);
+window.addEventListener('keydown',function(e){if(e.code==='Backquote'&&gameRunning){debugMode=!debugMode;document.getElementById('debug-hud').style.display=debugMode?'block':'none';if(debugMode){showCornerMarkers();showShopDebugMarkers();}else{hideCornerMarkers();hideShopDebugMarkers();}}},true);
 window.addEventListener('resize',function(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
 function updatePlayer(delta){
@@ -1829,8 +1829,8 @@ function updatePlayer(delta){
   if(keys['KeyD']||keys['ArrowRight']){mx+=rgtX;mz+=rgtZ;}
   if(mx!==0||mz!==0){var len=Math.sqrt(mx*mx+mz*mz);tryMove((mx/len)*speed*delta,(mz/len)*speed*delta);}
   // 8-unit inset keeps player on solid city geometry
-  playerPos.x=Math.max(modelBounds.min.x+8,Math.min(modelBounds.max.x-8,playerPos.x));
-  playerPos.z=Math.max(modelBounds.min.z+8,Math.min(modelBounds.max.z-8,playerPos.z));
+  playerPos.x=Math.max(modelBounds.min.x+4,Math.min(modelBounds.max.x-4,playerPos.x));
+  playerPos.z=Math.max(modelBounds.min.z+4,Math.min(modelBounds.max.z-4,playerPos.z));
 
   groundY=getGroundY(playerPos.x,playerPos.z);
   // If standing over void, nudge toward city center until ground is found
@@ -2209,42 +2209,73 @@ function tickAutoDay(){
 }
 
 // ─── DEBUG ─────────────────────────────────────────────
-var cornerMarkers=[];
+var cornerMarkers=[],shopDebugMarkers=[];
+var INSET=4; // boundary inset — reduce to move corners closer to edge
+
 function showCornerMarkers(){
   hideCornerMarkers();
-  var INSET=8;
   var corners=[
-    {x:modelBounds.min.x+INSET,z:modelBounds.min.z+INSET,col:0xff0000},
-    {x:modelBounds.max.x-INSET,z:modelBounds.min.z+INSET,col:0x00ff00},
-    {x:modelBounds.min.x+INSET,z:modelBounds.max.z-INSET,col:0x0088ff},
-    {x:modelBounds.max.x-INSET,z:modelBounds.max.z-INSET,col:0xffff00},
+    {x:modelBounds.min.x+INSET,z:modelBounds.min.z+INSET,col:0xff0000,label:'NW'},
+    {x:modelBounds.max.x-INSET,z:modelBounds.min.z+INSET,col:0x00ff00,label:'NE'},
+    {x:modelBounds.min.x+INSET,z:modelBounds.max.z-INSET,col:0x0088ff,label:'SW'},
+    {x:modelBounds.max.x-INSET,z:modelBounds.max.z-INSET,col:0xffff00,label:'SE'},
   ];
   corners.forEach(function(c){
-    var geo=new THREE.CylinderGeometry(0.3,0.3,20,6);
     var mat=new THREE.MeshBasicMaterial({color:c.col});
-    var mesh=new THREE.Mesh(geo,mat);
-    mesh.position.set(c.x,10,c.z);
-    scene.add(mesh);cornerMarkers.push(mesh);
-    // Label
-    var top=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,8),new THREE.MeshBasicMaterial({color:c.col}));
-    top.position.set(c.x,21,c.z);scene.add(top);cornerMarkers.push(top);
+    var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,24,6),mat);
+    pole.position.set(c.x,12,c.z);scene.add(pole);cornerMarkers.push(pole);
+    var top=new THREE.Mesh(new THREE.SphereGeometry(0.9,8,8),mat);
+    top.position.set(c.x,25,c.z);scene.add(top);cornerMarkers.push(top);
   });
 }
 function hideCornerMarkers(){
   cornerMarkers.forEach(function(m){scene.remove(m);});cornerMarkers=[];
 }
+
+function showShopDebugMarkers(){
+  hideShopDebugMarkers();
+  SHOPS.forEach(function(sh){
+    var col=sh.colorHex;
+    var mat=new THREE.MeshBasicMaterial({color:col});
+    // Thin vertical pole taller than player so it's always visible
+    var pole=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,28,6),mat);
+    var sy=getSurfaceY(sh.pos.x,sh.pos.z,modelBounds.max.y)||streetLevel||0;
+    pole.position.set(sh.pos.x,sy+14,sh.pos.z);scene.add(pole);shopDebugMarkers.push(pole);
+    // Ring at ground level showing 7-unit interaction radius
+    var ring=new THREE.Mesh(new THREE.TorusGeometry(7,0.08,4,32),mat);
+    ring.rotation.x=Math.PI/2;ring.position.set(sh.pos.x,sy+0.1,sh.pos.z);
+    scene.add(ring);shopDebugMarkers.push(ring);
+    // Diamond top
+    var top=new THREE.Mesh(new THREE.OctahedronGeometry(0.7),mat);
+    top.position.set(sh.pos.x,sy+29,sh.pos.z);scene.add(top);shopDebugMarkers.push(top);
+  });
+}
+function hideShopDebugMarkers(){
+  shopDebugMarkers.forEach(function(m){scene.remove(m);});shopDebugMarkers=[];
+}
+
 function updateDebug(){
   if(!debugMode)return;
   var inAir=isJumping||playerPos.y>(groundY+EYE_HEIGHT+0.4);
   var elapsed=worldStartTime?(Date.now()-worldStartTime)/1000:0;
-  var INSET=8;
+  // Nearest shop
+  var nearSh='none',nearShD=9999;
+  SHOPS.forEach(function(sh){
+    var dx=playerPos.x-sh.pos.x,dz=playerPos.z-sh.pos.z,d=Math.sqrt(dx*dx+dz*dz);
+    if(d<nearShD){nearShD=d;nearSh=sh.id+'('+sh.pos.x+','+sh.pos.z+')';}
+  });
   document.getElementById('debug-hud').textContent=[
     'POS   x:'+playerPos.x.toFixed(1)+'  y:'+playerPos.y.toFixed(1)+'  z:'+playerPos.z.toFixed(1),
     'GND   '+groundY.toFixed(2)+'   inAir:'+inAir,
-    'BNDX  '+(modelBounds.min.x+INSET).toFixed(1)+' → '+(modelBounds.max.x-INSET).toFixed(1)+' (inset '+INSET+')',
+    'BNDX  '+(modelBounds.min.x+INSET).toFixed(1)+' → '+(modelBounds.max.x-INSET).toFixed(1)+'  (inset '+INSET+')',
     'BNDZ  '+(modelBounds.min.z+INSET).toFixed(1)+' → '+(modelBounds.max.z-INSET).toFixed(1),
+    'NEAR  '+nearSh+'  dist:'+nearShD.toFixed(1)+'u  (enter<7u)',
     'DAY   '+currentDay+'   t:'+elapsed.toFixed(0)+'s',
-    '` = toggle · corners: RED=NW  GREEN=NE  BLUE=SW  YELLOW=SE',
+    '──────────────────────────────────────',
+    'SHOPS (id  x  z):',
+    SHOPS.map(function(s){return '  '+s.id.padEnd(12)+s.pos.x+','+s.pos.z;}).join('\n'),
+    '──────────────────────────────────────',
+    '`=toggle  RED=NW GREEN=NE BLUE=SW YEL=SE  rings=7u interact radius',
   ].join('\n');
 }
 
