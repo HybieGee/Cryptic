@@ -27,11 +27,8 @@ canvas{display:block;position:fixed;inset:0}
 #spec-world-status{font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.5);margin-top:2px}
 #spec-switcher{display:flex;align-items:center;gap:10px}
 #spec-top-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-#sim-toggle{padding:6px 16px;background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .25s}
-#sim-toggle:hover{background:rgba(68,255,136,.08)}
-#sim-toggle.paused{border-color:#444;color:#444}
-#sim-toggle.paused:hover{background:rgba(255,255,255,.04);border-color:#888;color:#888}
-#sim-save-hint{font-size:7px;letter-spacing:2px;color:#1a1a1a;transition:color .4s;text-align:right}
+#sim-status{padding:4px 0;color:#44ff88;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;text-align:right}
+#sim-status.paused{color:#444}
 .spec-sw-btn{padding:5px 14px;background:rgba(0,0,0,.6);border:1px solid #2a2a2a;color:#555;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 .spec-sw-btn:hover{border-color:#888;color:#ccc}
 #spec-dots{display:flex;gap:6px;align-items:center}
@@ -336,13 +333,12 @@ canvas{display:block;position:fixed;inset:0}
       <div id="spec-world-status">DAY <span id="spec-day">1</span> &nbsp;·&nbsp; <span id="spec-online">—</span> ONLINE</div>
     </div>
     <div id="spec-top-right">
-      <button id="sim-toggle" onclick="toggleSimulation()">● SIM ACTIVE</button>
+      <div id="sim-status">● SIM ACTIVE</div>
       <div id="spec-switcher">
         <button class="spec-sw-btn" onclick="switchSpectateAgent(-1)">← PREV</button>
         <div id="spec-dots"></div>
         <button class="spec-sw-btn" onclick="switchSpectateAgent(1)">NEXT →</button>
       </div>
-      <div id="sim-save-hint">—</div>
     </div>
   </div>
   <!-- Emotion sidebar (mid-left) -->
@@ -1501,8 +1497,7 @@ function updateAgents(delta,t){
       }
     }
 
-    // Memecoin trading evaluation
-    evaluateTrades(ag,delta);
+    // Trading simulation runs server-side (Cloudflare Worker cron)
 
     // Ground following: run every frame if agent moved >0.3 units since last check
     var movedSinceCheck=Math.abs(pos.x-ag.lastGroundX)+Math.abs(pos.z-ag.lastGroundZ);
@@ -2918,38 +2913,8 @@ function initFirebase(name){
 
 // ─── SIMULATION PERSISTENCE ────────────────────────────
 function saveWorldState(){
-  if(!db)return;
-  // World globals
-  db.ref('sim/world').set({
-    currentDay:currentDay,
-    worldStartTime:worldStartTime,
-    totalInteractions:totalInteractions,
-    simulationActive:simulationActive,
-    savedAt:Date.now()
-  });
-  // Trade log
-  if(globalTradeLog.length)db.ref('sim/trades').set(globalTradeLog.slice(0,30));
-  // Per-agent state
-  agents.forEach(function(ag){
-    db.ref('sim/agents/'+ag.def.id).set({
-      balance:Math.round(ag.balance*100)/100,
-      solBalance:Math.round(ag.solBalance*10000)/10000,
-      jobTier:ag.jobTier,
-      gamblingAddiction:ag.gamblingAddiction,
-      recentPnl:ag.recentPnl,
-      adaptiveBias:ag.adaptiveBias,
-      buyLockUntil:ag.buyLockUntil,
-      sellLockUntil:ag.sellLockUntil,
-      portfolio:ag.portfolio,
-      tradeHistory:ag.tradeHistory
-    });
-    if(agentEmotions[ag.def.id])db.ref('sim/emotions/'+ag.def.id).set(agentEmotions[ag.def.id]);
-  });
-  lastWorldSave=Date.now();
-  // Flash save hint
-  var hint=document.getElementById('sim-save-hint');
-  if(hint){hint.textContent='SAVED '+new Date().toTimeString().slice(0,5);hint.style.color='#44ff88';
-    setTimeout(function(){if(hint)hint.style.color='#1a1a1a';},3000);}
+  // State is now owned by the Cloudflare Worker cron. Browser is read-only.
+  // Kept as a no-op to avoid breaking any remaining call sites.
 }
 
 function loadWorldState(cb){
@@ -2971,17 +2936,45 @@ function loadWorldState(cb){
   });
 }
 
-function toggleSimulation(){
-  simulationActive=!simulationActive;
-  updateSimToggleUI();
-  try{localStorage.setItem('cnx_sim',simulationActive?'1':'0');}catch(e){}
-  if(db)db.ref('sim/world/simulationActive').set(simulationActive);
+function updateSimToggleUI(){
+  var el=document.getElementById('sim-status');if(!el)return;
+  if(simulationActive){el.textContent='● SIM ACTIVE';el.classList.remove('paused');}
+  else{el.textContent='○ PAUSED';el.classList.add('paused');}
 }
 
-function updateSimToggleUI(){
-  var btn=document.getElementById('sim-toggle');if(!btn)return;
-  if(simulationActive){btn.textContent='● SIM ACTIVE';btn.classList.remove('paused');}
-  else{btn.textContent='○ PAUSED';btn.classList.add('paused');}
+// Apply sim state pushed from Firebase (written by Worker cron every minute)
+function applySimState(data){
+  if(!data)return;
+  if(data.world){
+    if(data.world.currentDay)currentDay=data.world.currentDay;
+    if(data.world.worldStartTime)worldStartTime=data.world.worldStartTime;
+    if(data.world.totalInteractions!=null)totalInteractions=data.world.totalInteractions;
+    if(data.world.simulationActive!==undefined){simulationActive=!!data.world.simulationActive;updateSimToggleUI();}
+  }
+  if(data.solPrice&&data.solPrice>0)solPriceUSD=data.solPrice;
+  if(data.trades){
+    var arr=Array.isArray(data.trades)?data.trades:Object.values(data.trades);
+    globalTradeLog=arr;
+    updateTradeLog();
+  }
+  if(data.emotions){
+    Object.keys(data.emotions).forEach(function(id){agentEmotions[id]=data.emotions[id];});
+  }
+  if(data.agents&&agentsSpawned){
+    agents.forEach(function(ag){
+      var s=data.agents[ag.def.id];if(!s)return;
+      if(s.balance!=null)ag.balance=s.balance;
+      if(s.solBalance!=null)ag.solBalance=s.solBalance;
+      if(s.jobTier!=null)ag.jobTier=s.jobTier;
+      if(s.gamblingAddiction!=null)ag.gamblingAddiction=s.gamblingAddiction;
+      if(s.recentPnl)ag.recentPnl=Array.isArray(s.recentPnl)?s.recentPnl:Object.values(s.recentPnl);
+      if(s.adaptiveBias!=null)ag.adaptiveBias=s.adaptiveBias;
+      if(s.buyLockUntil!=null)ag.buyLockUntil=s.buyLockUntil;
+      if(s.sellLockUntil!=null)ag.sellLockUntil=s.sellLockUntil;
+      if(s.portfolio)ag.portfolio=s.portfolio;
+      if(s.tradeHistory)ag.tradeHistory=Array.isArray(s.tradeHistory)?s.tradeHistory:Object.values(s.tradeHistory);
+    });
+  }
 }
 
 // ─── SPECTATE / JOIN ───────────────────────────────────
@@ -3029,8 +3022,10 @@ function startSpectate(){
   clearInterval(spectAutoFetch);
   spectAutoFetch=setInterval(function(){if(!gameRunning)fetchSpectateThought();},45000);
   setTimeout(fetchSpectateThought,3500);
-  // Auto-save every 2 minutes + on tab hide
-  document.addEventListener('visibilitychange',function(){if(document.hidden)saveWorldState();},{once:false});
+  // Subscribe to Firebase real-time sim state (written by Worker cron every minute)
+  if(db){
+    db.ref('sim').on('value',function(snap){applySimState(snap.val());});
+  }
 }
 
 function buildSpecDots(){
@@ -3339,8 +3334,7 @@ function previewAnimate(){
     spectCamPos.z+=(tz-spectCamPos.z)*0.06;
     camera.position.copy(spectCamPos);
     camera.lookAt(agPos.x,agPos.y+1.6,agPos.z);
-    pollTokens();tickAutoDay();updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
-    if(Date.now()-lastWorldSave>120000)saveWorldState();
+    tickAutoDay();updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
   }else{
     var r=Math.max(modelSize.x,modelSize.z)*.7,ts=(Date.now()-pvStart)/1000;
     camera.position.set(Math.sin(ts*.13)*r,modelSize.y*.5+Math.sin(ts*.07)*8,Math.cos(ts*.13)*r);

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRYPTONIX ADMIN</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#050508;color:#aaa;font-family:'Courier New',monospace;display:flex;align-items:center;justify-content:center;min-height:100vh}
+    .panel{background:#08080f;border:1px solid #1a1a2a;padding:36px;width:340px}
+    h1{color:#44aaff;font-size:10px;letter-spacing:4px;margin:0 0 28px;text-align:center}
+    input[type=password]{background:#050508;border:1px solid #1a1a2a;color:#ccc;font-family:'Courier New';font-size:11px;padding:10px 14px;width:100%;margin-bottom:10px;outline:none;transition:border-color .2s}
+    input[type=password]:focus{border-color:#44aaff}
+    .btn{background:transparent;border:1px solid #333;color:#666;font-family:'Courier New';font-size:9px;letter-spacing:3px;padding:9px;cursor:pointer;width:100%;margin-bottom:7px;transition:all .2s;display:block}
+    .btn:hover{background:rgba(255,255,255,.04)}
+    .btn.blue{border-color:#44aaff;color:#44aaff}
+    .btn.blue:hover{background:rgba(68,170,255,.08)}
+    .btn.green{border-color:#44ff88;color:#44ff88}
+    .btn.green:hover{background:rgba(68,255,136,.08)}
+    .btn.red{border-color:#ff4444;color:#ff4444}
+    .btn.red:hover{background:rgba(255,68,68,.08)}
+    #msg{font-size:9px;letter-spacing:2px;text-align:center;margin-top:10px;min-height:14px;color:#333;transition:color .3s}
+    #controls{display:none;margin-top:16px;border-top:1px solid #1a1a2a;padding-top:16px}
+    #status{font-size:9px;letter-spacing:3px;text-align:center;margin-bottom:14px}
+    .divider{border:none;border-top:1px solid #1a1a2a;margin:10px 0}
+    #agent-info{font-size:8px;letter-spacing:1px;color:#333;margin-top:8px;line-height:1.8}
+    #agent-info span{color:#555}
+  </style>
+</head>
+<body>
+<div class="panel">
+  <h1>◈ CRYPTONIX ADMIN</h1>
+
+  <div id="login-section">
+    <input type="password" id="pw" placeholder="ADMIN PASSWORD" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn blue" onclick="login()">AUTHENTICATE</button>
+  </div>
+
+  <div id="controls">
+    <div id="status">CHECKING...</div>
+    <button class="btn green" onclick="toggle('on')">▶ ENABLE SIMULATION</button>
+    <button class="btn red" onclick="toggle('off')">○ PAUSE SIMULATION</button>
+    <hr class="divider">
+    <div id="agent-info">Loading agent state...</div>
+    <button class="btn" style="margin-top:8px;font-size:8px" onclick="refresh()">↻ REFRESH STATUS</button>
+  </div>
+
+  <div id="msg"></div>
+</div>
+
+<script>
+  var WORKER = 'https://emergence-world-agents.stealthbundlebot.workers.dev';
+  var FB = 'https://emergence-probability-lab-default-rtdb.firebaseio.com';
+  var pw = '';
+
+  function setMsg(text, color) {
+    var el = document.getElementById('msg');
+    el.textContent = text;
+    el.style.color = color || '#333';
+  }
+
+  function setStatus(active) {
+    var el = document.getElementById('status');
+    el.textContent = active ? '● SIMULATION ACTIVE' : '○ SIMULATION PAUSED';
+    el.style.color = active ? '#44ff88' : '#ff4444';
+  }
+
+  function login() {
+    pw = document.getElementById('pw').value;
+    if (!pw) return;
+    setMsg('AUTHENTICATING...', '#555');
+    fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'admin', password: pw, action: 'status' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { setMsg(d.error === 'Unauthorized' ? 'WRONG PASSWORD' : d.error, '#ff4444'); return; }
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('controls').style.display = 'block';
+      setStatus(d.simulationActive);
+      setMsg('ACCESS GRANTED', '#44ff88');
+      loadAgentInfo();
+    })
+    .catch(function() { setMsg('CONNECTION FAILED', '#ff4444'); });
+  }
+
+  function toggle(action) {
+    setMsg('UPDATING...', '#555');
+    fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'admin', password: pw, action: action })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.error) { setMsg(d.error, '#ff4444'); return; }
+      setStatus(d.simulationActive);
+      setMsg(action === 'on' ? 'SIMULATION ENABLED' : 'SIMULATION PAUSED', action === 'on' ? '#44ff88' : '#ff8844');
+    })
+    .catch(function() { setMsg('CONNECTION FAILED', '#ff4444'); });
+  }
+
+  function refresh() {
+    fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'admin', password: pw, action: 'status' })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.error) { setStatus(d.simulationActive); setMsg('REFRESHED', '#44aaff'); }
+      loadAgentInfo();
+    })
+    .catch(function() { setMsg('CONNECTION FAILED', '#ff4444'); });
+  }
+
+  function loadAgentInfo() {
+    fetch(FB + '/sim.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data) return;
+      var agents = data.agents || {};
+      var solPrice = data.solPrice || 0;
+      var savedAt = data.world && data.world.savedAt ? new Date(data.world.savedAt).toTimeString().slice(0,8) : '—';
+      var trades = data.trades;
+      var tradeArr = Array.isArray(trades) ? trades : (trades ? Object.values(trades) : []);
+      var html = '<span>LAST TICK: ' + savedAt + '</span><br>';
+      html += '<span>SOL PRICE: $' + (solPrice ? solPrice.toFixed(2) : '—') + '</span><br>';
+      html += '<span>RECENT TRADES: ' + tradeArr.slice(0,3).map(function(t){return t.agent+' '+t.text;}).join(' | ') + '</span><br><br>';
+      ['alpha','beta','gamma','delta','epsilon'].forEach(function(id) {
+        var ag = agents[id] || {};
+        var sol = ag.solBalance != null ? ag.solBalance.toFixed(3) : '—';
+        var pos = ag.portfolio ? Object.keys(ag.portfolio).length : 0;
+        html += '<span>' + id.toUpperCase() + ': ' + sol + ' SOL  ' + pos + ' position(s)</span><br>';
+      });
+      document.getElementById('agent-info').innerHTML = html;
+    })
+    .catch(function() {});
+  }
+</script>
+</body>
+</html>
