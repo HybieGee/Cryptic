@@ -900,7 +900,7 @@ function prepareAgentModel(def, gltf){
     if(c.material){
       var mats=Array.isArray(c.material)?c.material.map(function(m){return m.clone();}):c.material.clone();
       var arr=Array.isArray(mats)?mats:[mats];
-      arr.forEach(function(m){m.emissive=new THREE.Color(def.colorHex);m.emissiveIntensity=0.08;});
+      arr.forEach(function(m){m.color=new THREE.Color(def.colorHex);m.emissive=new THREE.Color(def.colorHex);m.emissiveIntensity=0.15;});
       c.material=Array.isArray(c.material)?mats:mats;
     }
   });
