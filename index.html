@@ -57,8 +57,12 @@ canvas{display:block;position:fixed;inset:0}
 #spec-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
 #spec-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
 #spec-response{font-size:9px;letter-spacing:.3px;color:#888;line-height:1.9;min-height:0;max-width:480px}
-#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:3px;pointer-events:all;flex-shrink:0}
-.tl-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:3px}
+#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:0;pointer-events:all;flex-shrink:0}
+.tl-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:6px;flex-shrink:0}
+#tl-scroll{display:flex;flex-direction:column;gap:3px;max-height:154px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#1a1a2a transparent}
+#tl-scroll::-webkit-scrollbar{width:3px}
+#tl-scroll::-webkit-scrollbar-track{background:transparent}
+#tl-scroll::-webkit-scrollbar-thumb{background:#1a1a2a;border-radius:2px}
 .tl-row{font-size:7px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:2px 0;border-radius:2px;transition:background .1s}
 .tl-row:hover{background:rgba(255,255,255,.06)}
 .tl-agent{color:#aaa;margin-right:4px}
@@ -511,14 +515,20 @@ canvas{display:block;position:fixed;inset:0}
 var audioCtx=null;
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
 
-function playSound(type){
+function playSound(type,dist){
   try{
     var ctx=getAudioCtx();
     if(ctx.state==='suspended')ctx.resume();
     var g=ctx.createGain();g.connect(ctx.destination);
     var t=ctx.currentTime;
     if(type==='step'){
-      var b=ctx.createOscillator();b.type='sine';b.frequency.setValueAtTime(80,t);b.frequency.exponentialRampToValueAtTime(40,t+0.06);g.gain.setValueAtTime(0.08,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.06);b.connect(g);b.start(t);b.stop(t+0.07);
+      // Proximity-based volume: silent beyond 22 units, max 0.014 at contact
+      var d=dist==null?0:dist;
+      if(d>22)return; // too far — skip entirely
+      var prox=Math.max(0,1-d/22);
+      var stepVol=0.014*prox*prox; // quadratic falloff
+      if(stepVol<0.001)return;
+      var b=ctx.createOscillator();b.type='sine';b.frequency.setValueAtTime(80,t);b.frequency.exponentialRampToValueAtTime(40,t+0.06);g.gain.setValueAtTime(stepVol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.06);b.connect(g);b.start(t);b.stop(t+0.07);
     }else if(type==='punch'){
       var n=ctx.createOscillator();n.type='square';n.frequency.setValueAtTime(200,t);n.frequency.exponentialRampToValueAtTime(60,t+0.12);g.gain.setValueAtTime(0.4,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.12);n.connect(g);n.start(t);n.stop(t+0.13);
     }else if(type==='kick'){
@@ -1204,19 +1214,18 @@ function copyTradeAddr(){
 
 function updateTradeLog(){
   var el=document.getElementById('trade-log-panel');if(!el)return;
-  var html='<div class="tl-title">◈ TRADE FEED</div>';
+  var rows='';
   if(!globalTradeLog.length){
-    html+='<div class="tl-empty">awaiting trades...</div>';
+    rows='<div class="tl-empty">awaiting trades...</div>';
   }else{
-    var show=globalTradeLog.slice(0,10);
-    show.forEach(function(entry,i){
+    globalTradeLog.forEach(function(entry,i){
       var ageS=Math.round((Date.now()-entry.time)/1000);
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
       var cls=entry.pos?'tl-pos':'tl-neg';
-      html+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
+      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
   }
-  el.innerHTML=html;
+  el.innerHTML='<div class="tl-title">◈ TRADE FEED</div><div id="tl-scroll">'+rows+'</div>';
 }
 
 function updatePortfolioHUD(){
@@ -1441,7 +1450,11 @@ function updateAgents(delta,t){
           var useRun=ag.speed*ag.speedDebuff>3.5&&ag.animActions.run;
           transitionAnim(ag,useRun?'run':'walk',0.3);
           ag.stepTimer-=delta;
-          if(ag.stepTimer<=0){playSound('step');ag.stepTimer=0.45;}
+          if(ag.stepTimer<=0){
+            var sdx=pos.x-camera.position.x,sdz=pos.z-camera.position.z;
+            playSound('step',Math.sqrt(sdx*sdx+sdz*sdz));
+            ag.stepTimer=0.45;
+          }
         }else{
           ag.stepTimer=0;
           // Not moving: idle, or check for emotion anim (with cooldown)
