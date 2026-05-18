@@ -578,6 +578,8 @@ loader.load(CFG.CITY_MODEL,
           agentModels[def.id]=sharedGLTF;
           if(!gameRunning){
             prepareAgentModel(def,sharedGLTF);
+            // Agents already spawned by startSpectate — swap their orbs now
+            agents.forEach(function(ag){if(ag.def.id===def.id&&ag.orbMode)swapOrbToModel(ag);});
           }else{
             function doPrepSwap(){
               prepareAgentModel(def,sharedGLTF);
@@ -734,7 +736,27 @@ function prepareAgentModel(def, gltf){
       });
     });
   });
-  agentPrepared[def.id]={scene:sc3,animations:gltf.animations||[]};
+  var clips=gltf.animations||[];
+  // Log available animations so you can see what the model provides
+  if(Object.keys(agentPrepared).length===0)
+    console.log('[AGENT MODEL] Clips:',clips.map(function(c){return c.name;}));
+  // Catalog clips by emotional role — keyword-matched
+  var catalog={idle:null,walk:null,punch:null,wave:null,fear:null,sad:null,argue:null,dance:null,look:null};
+  clips.forEach(function(clip){
+    var n=clip.name.toLowerCase();
+    if(!catalog.idle   &&(n.includes('idle')||n.includes('stand')))catalog.idle=clip;
+    else if(!catalog.walk  &&(n.includes('walk')||n.includes('run')))catalog.walk=clip;
+    else if(!catalog.punch &&(n.includes('punch')||n.includes('hit')||n.includes('attack')||n.includes('fight')||n.includes('strike')))catalog.punch=clip;
+    else if(!catalog.wave  &&(n.includes('wave')||n.includes('cheer')||n.includes('celebrat')))catalog.wave=clip;
+    else if(!catalog.fear  &&(n.includes('fear')||n.includes('cower')||n.includes('scared')||n.includes('dodge')))catalog.fear=clip;
+    else if(!catalog.sad   &&(n.includes('sad')||n.includes('droop')||n.includes('mourn')||n.includes('defeat')))catalog.sad=clip;
+    else if(!catalog.argue &&(n.includes('point')||n.includes('argu')||n.includes('gesture')||n.includes('talk')))catalog.argue=clip;
+    else if(!catalog.dance &&(n.includes('danc')||n.includes('joy')))catalog.dance=clip;
+    else if(!catalog.look  &&(n.includes('look')||n.includes('survey')||n.includes('think')))catalog.look=clip;
+  });
+  if(!catalog.idle&&clips.length>0)catalog.idle=clips[0];
+  if(!catalog.walk&&clips.length>1)catalog.walk=clips[1];
+  agentPrepared[def.id]={scene:sc3,animations:clips,catalog:catalog};
 }
 var agentCheckIdx=0;
 var AGENT_TICKER_LINES=['at the Exchange','in the Probability Lab','near the Ledger','observing the Calibration Lab','in the Optimizer','in the Sandbox','in the Archive','at the Commons','wandering the simulation space','processing recent interactions','observing agent patterns','updating behavioral weights'];
@@ -744,22 +766,28 @@ function loadAgentModels(){/* models pre-loaded during loading screen */}
 function swapOrbToModel(ag){
   if(!ag.orbMode)return;
   var prepared=agentPrepared[ag.def.id];
-  if(!prepared)return; // not ready yet — will be called when prepareAgentModel completes
+  if(!prepared)return;
   ag.orbMode=false;
   ag.inner&&ag.grp.remove(ag.inner);
   ag.shell&&ag.grp.remove(ag.shell);
-  // prepared.scene is already scaled, tinted, GPU-compiled — just add it
   ag.grp.add(prepared.scene);
   ag.charMesh=prepared.scene;
+  ag.animActions={};ag.emotionAnimTimer=0;ag.currentEmotionAnim=null;
   if(prepared.animations.length>0){
     ag.mixer=new THREE.AnimationMixer(prepared.scene);
     ag.animIdle=null;ag.animWalk=null;
-    prepared.animations.forEach(function(clip){
-      var n=clip.name.toLowerCase();
-      if(n.includes('idle')&&!ag.animIdle)ag.animIdle=ag.mixer.clipAction(clip);
-      if((n.includes('walk')||n.includes('run'))&&!ag.animWalk)ag.animWalk=ag.mixer.clipAction(clip);
+    var catalog=prepared.catalog||{};
+    // Create an AnimationAction for every cataloged clip
+    Object.keys(catalog).forEach(function(key){
+      if(catalog[key]){
+        ag.animActions[key]=ag.mixer.clipAction(catalog[key]);
+        ag.animActions[key].setEffectiveWeight(0);
+      }
     });
-    if(!ag.animIdle&&!ag.animWalk&&prepared.animations[0])ag.animIdle=ag.mixer.clipAction(prepared.animations[0]);
+    ag.animIdle=ag.animActions.idle||null;
+    ag.animWalk=ag.animActions.walk||null;
+    if(!ag.animIdle&&!ag.animWalk&&prepared.animations[0])
+      ag.animIdle=ag.mixer.clipAction(prepared.animations[0]);
     if(ag.animIdle){ag.animIdle.setEffectiveWeight(1);ag.animIdle.play();}
     ag.currentAgentAnim='idle';
   }
@@ -787,7 +815,9 @@ function spawnAgents(streetY){
 
     var ag={def:def,grp:grp,inner:inner,shell:shell,ptLight:ptLight,labelEl:lbl,groundY:streetY,
       wp:{x:ax,z:az},speed:2.2+Math.random()*1.8,idleTimer:0,shopVisitTimer:15+Math.random()*20,
-      orbMode:true,mixer:null,animIdle:null,animWalk:null,charMesh:null,currentAgentAnim:'idle',wasMoving:false};
+      orbMode:true,mixer:null,animIdle:null,animWalk:null,animActions:{},
+      emotionAnimTimer:0,currentEmotionAnim:null,
+      charMesh:null,currentAgentAnim:'idle',wasMoving:false};
     agents.push(ag);
 
     // If model already loaded (fast network), swap immediately
@@ -839,7 +869,17 @@ function updateAgents(delta,t){
     // Character animations
     if(ag.mixer){
       ag.mixer.update(delta);
-      if(moving!==ag.wasMoving){
+      // Tick emotion anim timer
+      if(ag.emotionAnimTimer>0){
+        ag.emotionAnimTimer-=delta;
+        if(ag.emotionAnimTimer<=0)clearEmotionAnim(ag);
+      }
+      // Periodically evaluate whether emotion should trigger a new anim
+      if(ag.emotionAnimTimer<=0&&!ag.orbMode&&idx===agentCheckIdx%agents.length){
+        checkEmotionAnim(ag);
+      }
+      // Locomotion — only when no emotion anim is holding the floor
+      if(ag.emotionAnimTimer<=0&&moving!==ag.wasMoving){
         var toAnim=moving?ag.animWalk:ag.animIdle;
         var fromAnim=moving?ag.animIdle:ag.animWalk;
         if(toAnim){toAnim.reset();toAnim.setEffectiveWeight(1);toAnim.play();}
@@ -848,6 +888,83 @@ function updateAgents(delta,t){
       }
     }
   });
+}
+
+// ─── EMOTION ANIMATION SYSTEM ──────────────────────────
+// Priority-ordered: first matching threshold that has the clip wins.
+var EMOTION_ANIMS=[
+  {emo:'anger',       thresh:0.70, anim:'punch', dur:3.5},
+  {emo:'anger',       thresh:0.58, anim:'argue', dur:4.0},
+  {emo:'joy',         thresh:0.84, anim:'wave',  dur:3.0},
+  {emo:'joy',         thresh:0.76, anim:'dance', dur:4.5},
+  {emo:'fear',        thresh:0.72, anim:'fear',  dur:3.0},
+  {emo:'sadness',     thresh:0.70, anim:'sad',   dur:5.0},
+  {emo:'anticipation',thresh:0.88, anim:'look',  dur:2.5},
+];
+
+function getEmotionAnimEntry(ag){
+  var emo=agentEmotions[ag.def.id]||EMOTION_BASELINE[ag.def.id]||{};
+  for(var i=0;i<EMOTION_ANIMS.length;i++){
+    var e=EMOTION_ANIMS[i];
+    if((emo[e.emo]||0)>=e.thresh&&ag.animActions&&ag.animActions[e.anim])return e;
+  }
+  return null;
+}
+
+function playEmotionAnim(ag,animKey,duration){
+  if(!ag.animActions||!ag.animActions[animKey])return false;
+  var newAnim=ag.animActions[animKey];
+  if(ag.currentEmotionAnim&&ag.currentEmotionAnim!==newAnim)ag.currentEmotionAnim.fadeOut(0.4);
+  if(ag.animIdle)ag.animIdle.setEffectiveWeight(0);
+  if(ag.animWalk)ag.animWalk.setEffectiveWeight(0);
+  newAnim.reset().setEffectiveWeight(1).fadeIn(0.35).play();
+  ag.currentEmotionAnim=newAnim;
+  ag.emotionAnimTimer=duration||3;
+  ag.currentAgentAnim=animKey;
+  return true;
+}
+
+function clearEmotionAnim(ag){
+  if(ag.currentEmotionAnim){ag.currentEmotionAnim.fadeOut(0.5);ag.currentEmotionAnim=null;}
+  ag.emotionAnimTimer=0;ag.currentAgentAnim='idle';
+  var loc=ag.wasMoving?ag.animWalk:ag.animIdle;
+  if(loc){loc.reset().setEffectiveWeight(1).fadeIn(0.5).play();}
+}
+
+function checkEmotionAnim(ag){
+  var entry=getEmotionAnimEntry(ag);
+  if(!entry)return;
+  // Punch needs a target: find nearest agent to confront
+  if(entry.anim==='punch'){
+    var pos=ag.grp.position,nearAg=null,nearD=10;
+    agents.forEach(function(other){
+      if(other===ag||other.orbMode)return;
+      var odx=other.grp.position.x-pos.x,odz=other.grp.position.z-pos.z;
+      var od=Math.sqrt(odx*odx+odz*odz);
+      if(od<nearD){nearD=od;nearAg=other;}
+    });
+    if(nearAg){
+      if(nearD<3.5){
+        // In range: throw the punch
+        ag.grp.rotation.y=Math.atan2(nearAg.grp.position.x-pos.x,nearAg.grp.position.z-pos.z);
+        if(playEmotionAnim(ag,'punch',3.5)&&nearAg.emotionAnimTimer<=0){
+          // Target reacts: fear spikes
+          playEmotionAnim(nearAg,'fear',2.5);
+          if(!agentEmotions[nearAg.def.id])agentEmotions[nearAg.def.id]=Object.assign({},EMOTION_BASELINE[nearAg.def.id]);
+          agentEmotions[nearAg.def.id].fear=Math.min(1,(agentEmotions[nearAg.def.id].fear||0)+0.14);
+          // Angry agent runs away after being punched
+          nearAg.wp=randomWaypoint();
+        }
+      }else{
+        // Walk toward target to close distance
+        ag.wp={x:nearAg.grp.position.x+(Math.random()-.5)*2,z:nearAg.grp.position.z+(Math.random()-.5)*2};
+      }
+    }else{
+      playEmotionAnim(ag,'punch',3.5);
+    }
+  }else{
+    playEmotionAnim(ag,entry.anim,entry.dur);
+  }
 }
 
 function spawnShops(streetY){
