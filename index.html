@@ -24,7 +24,7 @@ canvas{display:block;position:fixed;inset:0}
 #spec-agent-info{display:flex;flex-direction:column;gap:4px}
 #spec-watching{font-size:7px;letter-spacing:5px;color:#333}
 #spec-agent-name{font-size:20px;letter-spacing:8px}
-#spec-world-status{font-size:8px;letter-spacing:3px;color:#2a2a2a;margin-top:2px}
+#spec-world-status{font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.5);margin-top:2px}
 #spec-switcher{display:flex;align-items:center;gap:10px}
 .spec-sw-btn{padding:5px 14px;background:rgba(0,0,0,.6);border:1px solid #2a2a2a;color:#555;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 .spec-sw-btn:hover{border-color:#888;color:#ccc}
@@ -32,14 +32,14 @@ canvas{display:block;position:fixed;inset:0}
 .spec-dot{width:6px;height:6px;border-radius:50%;background:#1a1a1a;cursor:pointer;transition:all .2s;border:1px solid #2a2a2a}
 .spec-dot.active{transform:scale(1.5);border-color:currentColor}
 #spec-emotions{position:absolute;left:18px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;flex-direction:column;gap:6px}
-.spec-emo-row{display:flex;align-items:center;gap:8px}
-.spec-emo-label{font-size:7px;letter-spacing:2px;color:#222;width:64px;text-align:right;flex-shrink:0}
-.spec-emo-bar{width:70px;height:1px;background:#0d0d1a;position:relative}
+.spec-emo-row{display:flex;align-items:center;gap:12px}
+.spec-emo-label{font-size:9px;letter-spacing:2px;color:#fff;width:64px;text-align:right;flex-shrink:0;text-shadow:0 0 6px #000,1px 1px 0 #000}
+.spec-emo-bar{width:80px;height:2px;background:#0d0d1a;position:relative;margin-left:4px}
 .spec-emo-fill{position:absolute;top:0;left:0;height:100%;opacity:.6;transition:width .7s ease}
 #spec-bottom{position:absolute;bottom:0;left:0;right:0;padding:18px 22px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;pointer-events:all}
 #spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px;background:rgba(0,0,6,.82);border:1px solid #111;padding:12px 16px}
-#spec-thought{font-size:9px;letter-spacing:.4px;color:#333;line-height:1.9;font-style:italic;min-height:16px}
-#spec-cooldown{font-size:8px;letter-spacing:3px;color:#2a2a2a}
+#spec-thought{font-size:9px;letter-spacing:.4px;color:#999;line-height:1.9;font-style:italic;min-height:16px}
+#spec-cooldown{font-size:8px;letter-spacing:3px;color:#555}
 #spec-cooldown.ready{color:#44ff88}
 #spec-prompt-row{display:flex;gap:8px}
 #spec-prompt-input{flex:1;background:rgba(255,255,255,.04);border:1px solid #1a1a2a;color:#fff;font-family:'Courier New',monospace;font-size:9px;letter-spacing:1px;padding:7px 10px;outline:none}
@@ -49,7 +49,7 @@ canvas{display:block;position:fixed;inset:0}
 #spec-send-btn{padding:7px 16px;background:transparent;border:1px solid #4488ff;color:#4488ff;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer;white-space:nowrap;transition:all .15s}
 #spec-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
 #spec-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
-#spec-response{font-size:9px;letter-spacing:.3px;color:#555;line-height:1.9;min-height:0;max-width:480px}
+#spec-response{font-size:9px;letter-spacing:.3px;color:#888;line-height:1.9;min-height:0;max-width:480px}
 #spec-join-cta{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
 #spec-wallet-btn{padding:9px 22px;background:transparent;border:1px solid #4488ff;color:#88bbff;font-family:'Courier New',monospace;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 #spec-wallet-btn:hover:not(:disabled){background:rgba(68,136,255,.12);color:#fff}
@@ -80,7 +80,7 @@ canvas{display:block;position:fixed;inset:0}
 #tts-btn{padding:5px 10px;background:rgba(0,0,0,.75);border:1px solid #444;color:#aaa;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer}
 #tts-btn.on{border-color:#44ffaa;color:#44ffaa}
 #hud-bl{position:absolute;bottom:52px;left:16px;font-size:9px;color:rgba(255,255,255,.7);letter-spacing:2px;line-height:2;transition:opacity 1s;text-shadow:0 1px 6px rgba(0,0,0,1)}
-#online-count{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,.55);letter-spacing:3px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,1)}
+#online-count{position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,.85);letter-spacing:3px;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,1)}
 #lock-hint{position:absolute;bottom:50%;left:50%;transform:translate(-50%,50%);font-size:9px;color:rgba(255,255,255,.7);letter-spacing:3px;pointer-events:none;transition:opacity .5s;text-shadow:0 1px 6px rgba(0,0,0,1)}
 
 /* Objectives */
@@ -869,13 +869,19 @@ function swapOrbToModel(ag){
         ag.animActions[key].setEffectiveWeight(0);
       }
     });
-    ag.animIdle=ag.animActions.idle||null;
-    ag.animWalk=ag.animActions.walk||null;
-    ag.animRun=ag.animActions.run||ag.animActions.walk||null;
-    if(!ag.animIdle&&!ag.animWalk&&prepared.animations[0])
-      ag.animIdle=ag.mixer.clipAction(prepared.animations[0]);
-    if(ag.animIdle){ag.animIdle.setEffectiveWeight(1);ag.animIdle.play();}
-    ag.currentAgentAnim='idle';
+    // init: weights all zero, start in idle state
+    Object.keys(ag.animActions).forEach(function(k){
+      ag.animActions[k].setEffectiveWeight(0);
+      ag.animActions[k].stop();
+    });
+    ag.animState='';
+    ag.emoteCooldown=0;
+    // Start idle
+    if(ag.animActions.idle){
+      ag.animActions.idle.setEffectiveWeight(1);
+      ag.animActions.idle.play();
+      ag.animState='idle';
+    }
   }
 }
 
@@ -902,7 +908,7 @@ function spawnAgents(streetY){
     var ag={def:def,grp:grp,inner:inner,shell:shell,ptLight:ptLight,labelEl:lbl,groundY:streetY,
       wp:{x:ax,z:az},speed:2.2+Math.random()*1.8,idleTimer:0,shopVisitTimer:15+Math.random()*20,
       orbMode:true,mixer:null,animIdle:null,animWalk:null,animActions:{},
-      emotionAnimTimer:0,currentEmotionAnim:null,
+      emotionAnimTimer:0,currentEmotionAnim:null,animState:'',emoteCooldown:0,
       charMesh:null,currentAgentAnim:'idle',wasMoving:false,
       hp:AGENT_MAX_HP,knockedOut:false,knockoutTimer:0,speedDebuff:1,speedDebuffTimer:0,
       lastX:ax,lastZ:az,stuckTimer:0};
@@ -944,25 +950,20 @@ function updateAgents(delta,t){
       if(ag.knockoutTimer<=0){
         ag.knockedOut=false;ag.speedDebuff=0.6;ag.speedDebuffTimer=10;
         ag.wp=randomWaypoint();clearEmotionAnim(ag);
-      }else{
-        // Re-trigger injured anim while knocked out
-        if(ag.animActions&&ag.animActions.injured&&ag.emotionAnimTimer<=0){
-          playEmotionAnim(ag,'injured',6);
-        }
       }
       // Skip movement while knocked out — still update mixer + ground
       if(ag.mixer){
         ag.mixer.update(delta);
-        if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0)clearEmotionAnim(ag);}
+        if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0){ag.animState='';}}
+        // Re-trigger injured if lapsed
+        if(ag.knockedOut&&ag.emotionAnimTimer<=0)transitionAnim(ag,'injured',0.2);
+        if(ag.knockedOut)ag.emotionAnimTimer=1; // keep holding
       }
       if(idx===agentCheckIdx%agents.length){var gy=agentGroundY(pos);if(gy!==null)ag.groundY=gy;}
       pos.y+=(ag.groundY-pos.y)*0.18;
       if(ag.orbMode){var bob=Math.sin(t*1.4+idx*1.2)*0.18;ag.inner.position.y=1.6+bob;ag.shell.position.y=1.6+bob;ag.ptLight.position.y=1.6+bob;ag.ptLight.intensity=1.8+Math.sin(t*2.1+idx)*0.5;ag.shell.scale.setScalar(1+Math.sin(t*1.9+idx*0.7)*0.06);}
       return;
     }
-
-    // ── Speed debuff tick ──────────────────────────────
-    if(ag.speedDebuffTimer>0){ag.speedDebuffTimer-=delta;if(ag.speedDebuffTimer<=0)ag.speedDebuff=1;}
 
     var dx=ag.wp.x-pos.x,dz=ag.wp.z-pos.z,dist=Math.sqrt(dx*dx+dz*dz);
     var moving=dist>1.5;
@@ -981,16 +982,20 @@ function updateAgents(delta,t){
 
       var spd=ag.speed*ag.speedDebuff*delta;
       var ndx=dx/dist,ndz=dz/dist;
-      // Wall collision with axis-aligned sliding fallback
-      if(!wallBlocked(pos.x,pos.y,pos.z,ndx*spd,ndz*spd)){
+      // Wall collision with axis-aligned sliding fallback — cast at two heights (shin + chest)
+      var shinY=pos.y+0.5,chestY=pos.y+1.4;
+      function agBlocked(ox,oy,oz,ddx,ddz){
+        return wallBlocked(ox,shinY,oz,ddx,ddz)||wallBlocked(ox,chestY,oz,ddx,ddz);
+      }
+      if(!agBlocked(pos.x,pos.y,pos.z,ndx*spd,ndz*spd)){
         pos.x+=ndx*spd;pos.z+=ndz*spd;
-      }else if(!wallBlocked(pos.x,pos.y,pos.z,ndx*spd,0)){
+      }else if(!agBlocked(pos.x,pos.y,pos.z,ndx*spd,0)){
         pos.x+=ndx*spd;
-      }else if(!wallBlocked(pos.x,pos.y,pos.z,0,ndz*spd)){
+      }else if(!agBlocked(pos.x,pos.y,pos.z,0,ndz*spd)){
         pos.z+=ndz*spd;
       }else{
         // Completely blocked — abandon waypoint
-        ag.wp=randomWaypoint();ag.idleTimer=0.5;
+        ag.wp=randomWaypoint();ag.idleTimer=0.5;ag.stuckTimer=0;
       }
       ag.grp.rotation.y=Math.atan2(dx,dz);
     }else{
@@ -1023,20 +1028,26 @@ function updateAgents(delta,t){
     // Character animations
     if(ag.mixer){
       ag.mixer.update(delta);
+
+      // Tick cooldowns
+      if(ag.emotionAnimTimer>0){ag.emotionAnimTimer-=delta;if(ag.emotionAnimTimer<=0){ag.animState='';}}
+      if(ag.emoteCooldown>0)ag.emoteCooldown-=delta;
+      if(ag.speedDebuffTimer>0){ag.speedDebuffTimer-=delta;if(ag.speedDebuffTimer<=0)ag.speedDebuff=1;}
+
       if(ag.emotionAnimTimer>0){
-        ag.emotionAnimTimer-=delta;
-        if(ag.emotionAnimTimer<=0)clearEmotionAnim(ag);
-      }
-      if(ag.emotionAnimTimer<=0&&!ag.orbMode&&idx===agentCheckIdx%agents.length){
-        checkEmotionAnim(ag);
-      }
-      // Locomotion — only when no emotion anim is holding the floor
-      if(ag.emotionAnimTimer<=0&&moving!==ag.wasMoving){
-        var toAnim=moving?ag.animWalk:ag.animIdle;
-        var fromAnim=moving?ag.animIdle:ag.animWalk;
-        if(toAnim){toAnim.reset();toAnim.setEffectiveWeight(1);toAnim.play();}
-        if(fromAnim)fromAnim.setEffectiveWeight(0);
-        ag.wasMoving=moving;
+        // Emotion anim in progress — do nothing, let it finish
+      }else{
+        // Locomotion: pick anim based on actual movement
+        if(moving){
+          var useRun=ag.speed*ag.speedDebuff>3.5&&ag.animActions.run;
+          transitionAnim(ag,useRun?'run':'walk',0.3);
+        }else{
+          // Not moving: idle, or check for emotion anim (with cooldown)
+          transitionAnim(ag,'idle',0.4);
+          if(ag.emoteCooldown<=0&&idx===agentCheckIdx%agents.length){
+            checkEmotionAnim(ag);
+          }
+        }
       }
     }
   });
@@ -1070,23 +1081,33 @@ function getEmotionAnimEntry(ag){
 }
 
 function playEmotionAnim(ag,animKey,duration){
-  if(!ag.animActions||!ag.animActions[animKey])return false;
-  var newAnim=ag.animActions[animKey];
-  if(ag.currentEmotionAnim&&ag.currentEmotionAnim!==newAnim)ag.currentEmotionAnim.fadeOut(0.4);
-  if(ag.animIdle)ag.animIdle.setEffectiveWeight(0);
-  if(ag.animWalk)ag.animWalk.setEffectiveWeight(0);
-  newAnim.reset().setEffectiveWeight(1).fadeIn(0.35).play();
-  ag.currentEmotionAnim=newAnim;
-  ag.emotionAnimTimer=duration||3;
-  ag.currentAgentAnim=animKey;
+  var ok=transitionAnim(ag,animKey,0.3);
+  if(ok){
+    ag.emotionAnimTimer=duration||3;
+    ag.emoteCooldown=10+Math.random()*8;
+  }
+  return ok;
+}
+
+function transitionAnim(ag,key,fadeDur){
+  if(!ag.mixer||!ag.animActions)return false;
+  var next=ag.animActions[key];
+  if(!next)return false;
+  if(ag.animState===key)return true; // already there
+  // Fade out every other clip that is playing
+  Object.keys(ag.animActions).forEach(function(k){
+    var a=ag.animActions[k];
+    if(a&&a.isRunning()&&k!==key)a.fadeOut(fadeDur||0.25);
+  });
+  next.reset().setEffectiveWeight(1).fadeIn(fadeDur||0.25).play();
+  ag.animState=key;
   return true;
 }
 
 function clearEmotionAnim(ag){
-  if(ag.currentEmotionAnim){ag.currentEmotionAnim.fadeOut(0.5);ag.currentEmotionAnim=null;}
-  ag.emotionAnimTimer=0;ag.currentAgentAnim='idle';
-  var loc=ag.wasMoving?ag.animWalk:ag.animIdle;
-  if(loc){loc.reset().setEffectiveWeight(1).fadeIn(0.5).play();}
+  ag.emotionAnimTimer=0;
+  ag.currentEmotionAnim=null;
+  ag.animState=''; // will re-evaluate next frame
 }
 
 function checkEmotionAnim(ag){
@@ -1106,6 +1127,7 @@ function checkEmotionAnim(ag){
     if(nearAg){
       if(nearD<3.5){
         ag.grp.rotation.y=Math.atan2(nearAg.grp.position.x-pos.x,nearAg.grp.position.z-pos.z);
+        ag.wp={x:ag.grp.position.x,z:ag.grp.position.z}; // stop in place to fight
         if(playEmotionAnim(ag,attackKey,attackDur)&&nearAg.emotionAnimTimer<=0){
           playEmotionAnim(nearAg,'fear',2.5);
           if(!agentEmotions[nearAg.def.id])agentEmotions[nearAg.def.id]=Object.assign({},EMOTION_BASELINE[nearAg.def.id]);
