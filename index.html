@@ -26,6 +26,12 @@ canvas{display:block;position:fixed;inset:0}
 #spec-agent-name{font-size:20px;letter-spacing:8px}
 #spec-world-status{font-size:8px;letter-spacing:3px;color:rgba(255,255,255,0.5);margin-top:2px}
 #spec-switcher{display:flex;align-items:center;gap:10px}
+#spec-top-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#sim-toggle{padding:6px 16px;background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .25s}
+#sim-toggle:hover{background:rgba(68,255,136,.08)}
+#sim-toggle.paused{border-color:#444;color:#444}
+#sim-toggle.paused:hover{background:rgba(255,255,255,.04);border-color:#888;color:#888}
+#sim-save-hint{font-size:7px;letter-spacing:2px;color:#1a1a1a;transition:color .4s;text-align:right}
 .spec-sw-btn{padding:5px 14px;background:rgba(0,0,0,.6);border:1px solid #2a2a2a;color:#555;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 .spec-sw-btn:hover{border-color:#888;color:#ccc}
 #spec-dots{display:flex;gap:6px;align-items:center}
@@ -329,10 +335,14 @@ canvas{display:block;position:fixed;inset:0}
       <div id="spec-agent-name" style="color:#44aaff">ALPHA</div>
       <div id="spec-world-status">DAY <span id="spec-day">1</span> &nbsp;·&nbsp; <span id="spec-online">—</span> ONLINE</div>
     </div>
-    <div id="spec-switcher">
-      <button class="spec-sw-btn" onclick="switchSpectateAgent(-1)">← PREV</button>
-      <div id="spec-dots"></div>
-      <button class="spec-sw-btn" onclick="switchSpectateAgent(1)">NEXT →</button>
+    <div id="spec-top-right">
+      <button id="sim-toggle" onclick="toggleSimulation()">● SIM ACTIVE</button>
+      <div id="spec-switcher">
+        <button class="spec-sw-btn" onclick="switchSpectateAgent(-1)">← PREV</button>
+        <div id="spec-dots"></div>
+        <button class="spec-sw-btn" onclick="switchSpectateAgent(1)">NEXT →</button>
+      </div>
+      <div id="sim-save-hint">—</div>
     </div>
   </div>
   <!-- Emotion sidebar (mid-left) -->
@@ -584,6 +594,9 @@ var JOB_TIER_ROLES=[-1,0,0,1,2]; // maps agent spawn index to tier offset into J
 var solPriceUSD=0,lastTokenFetch=0;
 var cachedTokens={new:[],stretch:[],migrated:[]};
 var globalTradeLog=[];
+var simulationActive=true; // on/off master switch
+var lastWorldSave=0;
+var pendingSavedState=null; // agent data loaded from Firebase before spawn
 var TRADE_PROFILE={
   alpha:  {col:'stretch', buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
   beta:   {col:'migrated',buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
@@ -1039,6 +1052,20 @@ function spawnAgents(streetY){
       solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
       buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0};
     agents.push(ag);
+    // Restore persisted state (balance, SOL, emotions, portfolio, etc.)
+    var saved=pendingSavedState&&pendingSavedState[def.id];
+    if(saved){
+      if(saved.balance!=null)ag.balance=saved.balance;
+      if(saved.solBalance!=null)ag.solBalance=saved.solBalance;
+      if(saved.jobTier!=null)ag.jobTier=saved.jobTier;
+      if(saved.gamblingAddiction!=null)ag.gamblingAddiction=saved.gamblingAddiction;
+      if(saved.recentPnl)ag.recentPnl=saved.recentPnl;
+      if(saved.adaptiveBias!=null)ag.adaptiveBias=saved.adaptiveBias;
+      if(saved.buyLockUntil)ag.buyLockUntil=saved.buyLockUntil;
+      if(saved.sellLockUntil)ag.sellLockUntil=saved.sellLockUntil;
+      if(saved.portfolio)ag.portfolio=saved.portfolio;
+      if(saved.tradeHistory)ag.tradeHistory=saved.tradeHistory;
+    }
 
     // If model already loaded (fast network), swap immediately
     if(agentPrepared[def.id])swapOrbToModel(ag);
@@ -1065,6 +1092,7 @@ function randomWaypoint(){
 
 // ── Memecoin trading system ───────────────────────────────────────────────────
 function pollTokens(){
+  if(!simulationActive)return;
   if(Date.now()-lastTokenFetch<55000)return;
   lastTokenFetch=Date.now();
   fetch(CFG.WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'tokens'})})
@@ -1197,7 +1225,7 @@ function checkBuy(ag){
 }
 
 function evaluateTrades(ag,dt){
-  if(!agentsSpawned)return;
+  if(!agentsSpawned||!simulationActive)return;
   checkSolTopup(ag);
   // Drop watchList entries for tokens gone stale (> 25 min without a sighting)
   var now=Date.now();
@@ -1956,7 +1984,7 @@ function showBubble(ag,text,duration){
 function scheduleIdleBubble(ag){
   var delay=28000+Math.random()*22000; // 28-50s between thoughts
   ag._idleBubbleTimer=setTimeout(function(){
-    if(ag.bubbleEl&&!ag.knockedOut&&CFG.WORKER_URL){
+    if(ag.bubbleEl&&!ag.knockedOut&&CFG.WORKER_URL&&simulationActive){
       var ag2=ag; // closure ref
       var emo=agentEmotions[ag2.def.id]||EMOTION_BASELINE[ag2.def.id]||{};
       var highEmo=Object.entries(emo).sort(function(a,b){return b[1]-a[1];})[0];
@@ -2888,30 +2916,79 @@ function initFirebase(name){
   }catch(e){console.warn('Firebase:',e);}
 }
 
+// ─── SIMULATION PERSISTENCE ────────────────────────────
+function saveWorldState(){
+  if(!db)return;
+  // World globals
+  db.ref('sim/world').set({
+    currentDay:currentDay,
+    worldStartTime:worldStartTime,
+    totalInteractions:totalInteractions,
+    simulationActive:simulationActive,
+    savedAt:Date.now()
+  });
+  // Trade log
+  if(globalTradeLog.length)db.ref('sim/trades').set(globalTradeLog.slice(0,30));
+  // Per-agent state
+  agents.forEach(function(ag){
+    db.ref('sim/agents/'+ag.def.id).set({
+      balance:Math.round(ag.balance*100)/100,
+      solBalance:Math.round(ag.solBalance*10000)/10000,
+      jobTier:ag.jobTier,
+      gamblingAddiction:ag.gamblingAddiction,
+      recentPnl:ag.recentPnl,
+      adaptiveBias:ag.adaptiveBias,
+      buyLockUntil:ag.buyLockUntil,
+      sellLockUntil:ag.sellLockUntil,
+      portfolio:ag.portfolio,
+      tradeHistory:ag.tradeHistory
+    });
+    if(agentEmotions[ag.def.id])db.ref('sim/emotions/'+ag.def.id).set(agentEmotions[ag.def.id]);
+  });
+  lastWorldSave=Date.now();
+  // Flash save hint
+  var hint=document.getElementById('sim-save-hint');
+  if(hint){hint.textContent='SAVED '+new Date().toTimeString().slice(0,5);hint.style.color='#44ff88';
+    setTimeout(function(){if(hint)hint.style.color='#1a1a1a';},3000);}
+}
+
+function loadWorldState(cb){
+  if(!db){cb({});return;}
+  db.ref('sim').once('value',function(snap){
+    var data=snap.val()||{};
+    if(data.world){
+      if(data.world.currentDay)currentDay=data.world.currentDay;
+      if(data.world.worldStartTime)worldStartTime=data.world.worldStartTime;
+      if(data.world.totalInteractions)totalInteractions=data.world.totalInteractions;
+      if(data.world.simulationActive!==undefined)simulationActive=!!data.world.simulationActive;
+    }
+    if(data.trades&&Array.isArray(data.trades))globalTradeLog=data.trades;
+    if(data.emotions){
+      Object.keys(data.emotions).forEach(function(id){agentEmotions[id]=data.emotions[id];});
+    }
+    updateSimToggleUI();
+    cb(data.agents||{});
+  });
+}
+
+function toggleSimulation(){
+  simulationActive=!simulationActive;
+  updateSimToggleUI();
+  try{localStorage.setItem('cnx_sim',simulationActive?'1':'0');}catch(e){}
+  if(db)db.ref('sim/world/simulationActive').set(simulationActive);
+}
+
+function updateSimToggleUI(){
+  var btn=document.getElementById('sim-toggle');if(!btn)return;
+  if(simulationActive){btn.textContent='● SIM ACTIVE';btn.classList.remove('paused');}
+  else{btn.textContent='○ PAUSED';btn.classList.add('paused');}
+}
+
 // ─── SPECTATE / JOIN ───────────────────────────────────
 function startSpectate(){
   document.getElementById('spectate-ui').style.display='flex';
   clock.start();
-  // Spawn agents at street level so spectators see them moving
-  if(!agentsSpawned){
-    groundRay.set(new THREE.Vector3(0,modelBounds.max.y+5,0),DOWN);
-    var hits=groundRay.intersectObjects(groundMeshes,false);
-    var sy=hits.length?hits[0].point.y:0;
-    streetLevel=sy;agentsSpawned=true;
-    if(!worldStartTime)worldStartTime=Date.now();
-    spawnAgents(sy);spawnShops(sy);
-    setInterval(tickAgentActivity,12000);
-    setTimeout(tickAgentActivity,3000);
-  }
-  // Init camera at city-center so lerp starts from a sane position
-  var r=Math.max(modelSize.x,modelSize.z)*.7;
-  spectCamPos.set(r*.3,modelSize.y*.4+4,r*.3);
-  spectLookAt.copy(modelCenter);
-  // Build agent-switcher dots
-  buildSpecDots();
-  setSpecAgent(0);
-  previewAnimate();
-  // Firebase for live day + online count
+  // ── Firebase init first (needed for state load before spawn) ──────────────
   if(CFG.FIREBASE&&!db){
     try{
       firebase.initializeApp(CFG.FIREBASE);
@@ -2925,10 +3002,35 @@ function startSpectate(){
       });
     }catch(e){}
   }
-  // Auto-fetch agent thought every 45 s
+  // ── Spawn agents with saved state ─────────────────────────────────────────
+  if(!agentsSpawned){
+    function doSpawn(savedAgents){
+      pendingSavedState=savedAgents||{};
+      groundRay.set(new THREE.Vector3(0,modelBounds.max.y+5,0),DOWN);
+      var hits=groundRay.intersectObjects(groundMeshes,false);
+      var sy=hits.length?hits[0].point.y:0;
+      streetLevel=sy;agentsSpawned=true;
+      if(!worldStartTime)worldStartTime=Date.now();
+      spawnAgents(sy);spawnShops(sy);
+      setInterval(tickAgentActivity,12000);
+      setTimeout(tickAgentActivity,3000);
+    }
+    if(db){loadWorldState(doSpawn);}else{doSpawn({});}
+  }
+  // ── Camera + UI ───────────────────────────────────────────────────────────
+  var r=Math.max(modelSize.x,modelSize.z)*.7;
+  spectCamPos.set(r*.3,modelSize.y*.4+4,r*.3);
+  spectLookAt.copy(modelCenter);
+  buildSpecDots();
+  setSpecAgent(0);
+  previewAnimate();
+  updateSimToggleUI();
+  // Auto-fetch agent thought every 45 s (only if sim active)
   clearInterval(spectAutoFetch);
   spectAutoFetch=setInterval(function(){if(!gameRunning)fetchSpectateThought();},45000);
   setTimeout(fetchSpectateThought,3500);
+  // Auto-save every 2 minutes + on tab hide
+  document.addEventListener('visibilitychange',function(){if(document.hidden)saveWorldState();},{once:false});
 }
 
 function buildSpecDots(){
@@ -2999,7 +3101,7 @@ function updateSpectateEmotionBars(def){
 }
 
 function fetchSpectateThought(){
-  if(!AGENT_DEFS[spectateAgentIdx]||gameRunning)return;
+  if(!AGENT_DEFS[spectateAgentIdx]||gameRunning||!simulationActive)return;
   var def=AGENT_DEFS[spectateAgentIdx];
   var th=document.getElementById('spec-thought');
   if(th)th.style.opacity='0.3';
@@ -3238,6 +3340,7 @@ function previewAnimate(){
     camera.position.copy(spectCamPos);
     camera.lookAt(agPos.x,agPos.y+1.6,agPos.z);
     pollTokens();tickAutoDay();updateAgents(delta,t);updateShopMarkers(t);tickFires(t);updateLabels();updateSpectateHUD();
+    if(Date.now()-lastWorldSave>120000)saveWorldState();
   }else{
     var r=Math.max(modelSize.x,modelSize.z)*.7,ts=(Date.now()-pvStart)/1000;
     camera.position.set(Math.sin(ts*.13)*r,modelSize.y*.5+Math.sin(ts*.07)*8,Math.cos(ts*.13)*r);
