@@ -683,6 +683,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.80;
 document.body.appendChild(renderer.domElement);
 
 var scene=new THREE.Scene();
@@ -692,7 +694,7 @@ var camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.05,500);
 camera.rotation.order='YXZ';
 var clock=new THREE.Clock();
 
-var sunLight=new THREE.DirectionalLight(0xfffae8,1.4);
+var sunLight=new THREE.DirectionalLight(0xfff4e0,1.1);
 sunLight.position.set(80,120,60);
 sunLight.castShadow=true;
 sunLight.shadow.mapSize.set(1024,1024);
@@ -700,8 +702,8 @@ sunLight.shadow.camera.left=sunLight.shadow.camera.bottom=-150;
 sunLight.shadow.camera.right=sunLight.shadow.camera.top=150;
 sunLight.shadow.camera.far=500;
 scene.add(sunLight);
-scene.add(new THREE.AmbientLight(0xffffff,0.85));
-scene.add(new THREE.HemisphereLight(0x87ceeb,0x4a8a20,0.6));
+scene.add(new THREE.AmbientLight(0xd0d8f0,0.45));
+scene.add(new THREE.HemisphereLight(0x6699cc,0x334422,0.30));
 
 // ─── LOAD STATE ────────────────────────────────────────
 var groundMeshes=[],collisionMeshes=[],modelBounds=new THREE.Box3(),modelCenter=new THREE.Vector3(),modelSize=new THREE.Vector3();
@@ -920,7 +922,7 @@ function prepareAgentModel(def, gltf){
     if(c.material){
       var mats=Array.isArray(c.material)?c.material.map(function(m){return m.clone();}):c.material.clone();
       var arr=Array.isArray(mats)?mats:[mats];
-      arr.forEach(function(m){m.color=new THREE.Color(def.colorHex);m.emissive=new THREE.Color(def.colorHex);m.emissiveIntensity=0.15;});
+      arr.forEach(function(m){m.color=new THREE.Color(def.colorHex);m.emissive=new THREE.Color(def.colorHex);m.emissiveIntensity=0.06;});
       c.material=Array.isArray(c.material)?mats:mats;
     }
   });
