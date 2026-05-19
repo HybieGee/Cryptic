@@ -72,6 +72,22 @@ canvas{display:block;position:fixed;inset:0}
 .tl-pos{color:#44ff88}
 .tl-neg{color:#ff4444}
 .tl-time{color:#888;float:right}
+#rankings-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:8px 12px;pointer-events:none;min-width:170px;margin-top:6px}
+.rnk-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:5px}
+.rnk-row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:7px;letter-spacing:1px;white-space:nowrap}
+.rnk-pos{color:#444;min-width:10px;text-align:right}
+.rnk-crown{color:#ffcc00}
+.rnk-name{flex:1;letter-spacing:2px}
+.rnk-val{color:#666;font-size:6px;letter-spacing:1px}
+#convo-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:0;pointer-events:none;flex-shrink:0}
+.convo-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:6px;flex-shrink:0}
+#convo-scroll{display:flex;flex-direction:column;gap:4px;max-height:102px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#333 transparent}
+#convo-scroll::-webkit-scrollbar{width:3px}
+#convo-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.convo-entry{font-size:7px;letter-spacing:.4px;line-height:1.7;padding-bottom:3px;border-bottom:1px solid #0a0a14}
+.convo-who{letter-spacing:1.5px;margin-bottom:1px}
+.convo-arrow{color:#333;margin:0 3px}
+.convo-text{color:#666;font-style:italic}
 .tl-empty{color:#666;font-size:7px}
 #trade-detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,8,.97);border:1px solid #2a2a4a;padding:22px 28px;min-width:320px;z-index:200;display:none;font-family:'Courier New',monospace;color:#ddd;pointer-events:all}
 #trade-detail-overlay{position:fixed;inset:0;z-index:199;display:none;background:rgba(0,0,0,.4);cursor:pointer;pointer-events:all}
@@ -340,6 +356,7 @@ canvas{display:block;position:fixed;inset:0}
         <div id="spec-dots"></div>
         <button class="spec-sw-btn" onclick="switchSpectateAgent(1)">NEXT →</button>
       </div>
+      <div id="rankings-panel"><div class="rnk-title">◈ RANKINGS</div><div id="rnk-rows"></div></div>
     </div>
   </div>
   <!-- Emotion sidebar (mid-left) -->
@@ -356,6 +373,7 @@ canvas{display:block;position:fixed;inset:0}
       <div id="spec-response"></div>
     </div>
     <div id="spec-portfolio"></div>
+    <div id="convo-panel"><div class="convo-title">◈ AGENT COMMS</div><div id="convo-scroll"></div></div>
     <div id="trade-log-panel"></div>
     <div id="spec-join-cta">
       <button id="spec-wallet-btn" onclick="spectateConnectWallet()">◌ CONNECT WALLET TO JOIN</button>
@@ -592,6 +610,8 @@ var JOB_TIER_ROLES=[-1,0,0,1,2]; // maps agent spawn index to tier offset into J
 var solPriceUSD=0,lastTokenFetch=0;
 var cachedTokens={new:[],stretch:[],migrated:[]};
 var globalTradeLog=[];
+var globalRankings=[];
+var globalConversations=[];
 var simulationActive=true; // on/off master switch
 var lastWorldSave=0;
 var pendingSavedState=null; // agent data loaded from Firebase before spawn
@@ -1300,6 +1320,41 @@ function updateTradeLog(){
   el.innerHTML='<div class="tl-title">◈ TRADE FEED</div><div id="tl-scroll">'+rows+'</div>';
 }
 
+var AGENT_COLORS_MAP={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'};
+
+function updateRankings(){
+  var el=document.getElementById('rnk-rows');if(!el)return;
+  if(!globalRankings.length){el.innerHTML='';return;}
+  var html='';
+  globalRankings.forEach(function(r,i){
+    var col=AGENT_COLORS_MAP[r.name]||'#aaa';
+    var crown=i===0?'<span class="rnk-crown">♛ </span>':'';
+    html+='<div class="rnk-row">'+crown+'<span class="rnk-pos">'+(i===0?'':'#'+(i+1))+'</span>'
+      +'<span class="rnk-name" style="color:'+col+'">'+r.name+'</span>'
+      +'<span class="rnk-val">$'+Math.round(r.val||0)+'</span></div>';
+  });
+  el.innerHTML=html;
+}
+
+function updateConversations(){
+  var el=document.getElementById('convo-scroll');if(!el)return;
+  if(!globalConversations.length){el.innerHTML='<div style="font-size:7px;color:#333;letter-spacing:1px">No communications yet.</div>';return;}
+  var html='';
+  globalConversations.slice(0,10).forEach(function(c){
+    var fromCol=AGENT_COLORS_MAP[c.from]||'#aaa';
+    var toCol=AGENT_COLORS_MAP[c.to]||'#aaa';
+    html+='<div class="convo-entry">'
+      +'<div class="convo-who"><span style="color:'+fromCol+'">'+c.from+'</span>'
+      +'<span class="convo-arrow">→</span>'
+      +'<span style="color:'+toCol+'">'+c.to+'</span></div>'
+      +'<div class="convo-text">'+escHtml(c.text||'')+'</div>'
+      +'</div>';
+  });
+  el.innerHTML=html;
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
 function updatePortfolioHUD(){
   var el=document.getElementById('spec-portfolio');if(!el)return;
   var ag=agents[spectateAgentIdx];if(!ag){el.innerHTML='';return;}
@@ -1923,7 +1978,10 @@ function fetchAgentLine(ag,playerAction,cb){
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
     personality:ag.def.personality,
     worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
-      agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction},
+      agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction,
+      solBalance:ag.solBalance||0,recentPnl:ag.recentPnl||[],
+      agentTrade:Object.values(ag.portfolio||{}).map(function(p){return 'holding $'+p.symbol;}).join(', ')||null,
+      rankings:globalRankings},
     playerAction:playerAction,
     playerName:playerName,
     conversationHistory:hist.slice(-12)  // last 6 exchanges
@@ -2982,6 +3040,14 @@ function applySimState(data){
       if(s.tradeHistory)ag.tradeHistory=Array.isArray(s.tradeHistory)?s.tradeHistory:Object.values(s.tradeHistory);
     });
   }
+  if(data.rankings){
+    var rnk=Array.isArray(data.rankings)?data.rankings:Object.values(data.rankings);
+    if(rnk.length>0){globalRankings=rnk;updateRankings();}
+  }
+  if(data.conversations){
+    var convos=Array.isArray(data.conversations)?data.conversations:Object.values(data.conversations);
+    if(convos.length>0){globalConversations=convos;updateConversations();}
+  }
 }
 
 // ─── SPECTATE / JOIN ───────────────────────────────────
@@ -3094,7 +3160,7 @@ function updateSpectateHUD(){
   // Refresh emotion bars and portfolio every 2 seconds
   if(Math.floor(Date.now()/1000)%2===0){
     updateSpectateEmotionBars(AGENT_DEFS[spectateAgentIdx]);
-    updatePortfolioHUD();updateTradeLog();
+    updatePortfolioHUD();updateTradeLog();updateRankings();updateConversations();
   }
 }
 

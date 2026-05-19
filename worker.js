@@ -230,8 +230,33 @@ function defaultAgentState() {
   return { solBalance: 0.5, portfolio: {}, tradeHistory: [], buyLockUntil: 0, sellLockUntil: 0, watchList: {}, recentPnl: [], adaptiveBias: 0, balance: 10000, jobTier: 0, gamblingAddiction: 0 };
 }
 
-function simCheckSell(ag, tokens, tradeLog) {
-  const prof = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+function agentTotalValue(ag, solPrice) {
+  let val = (ag.solBalance || 0) * solPrice;
+  for (const pos of Object.values(toObj(ag.portfolio))) {
+    const cur = (pos.lastKnownPrice || pos.entryPrice || 0) * (pos.simMult || 1);
+    const ratio = pos.entryPrice ? cur / pos.entryPrice : 1;
+    val += (pos.solSize || 0) * ratio * solPrice;
+  }
+  return Math.round(val * 100) / 100;
+}
+
+function emotionProfile(prof, emo) {
+  if (!emo) return prof;
+  const fear = emo.fear || 0.3;
+  const joy  = emo.joy  || 0.5;
+  const ant  = emo.anticipation || 0.5;
+  return {
+    ...prof,
+    buyThresh: Math.max(0.25, Math.min(0.9,  prof.buyThresh + (fear - 0.3) * 0.15 - (joy - 0.5) * 0.08)),
+    riskPct:   Math.max(0.02, Math.min(0.28, prof.riskPct   * (1 + (joy - 0.5) * 0.5 - (fear - 0.3) * 0.6))),
+    sl:        Math.min(-0.04, prof.sl + (fear - 0.3) * 0.08),
+    tp:        Math.max(0.08,  prof.tp + (ant - 0.5) * 0.12),
+  };
+}
+
+function simCheckSell(ag, tokens, tradeLog, emo) {
+  const basProf = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+  const prof = emotionProfile(basProf, emo);
   const allTokens = [...toArr(tokens.new), ...toArr(tokens.stretch), ...toArr(tokens.migrated)];
 
   for (const addr of Object.keys(ag.portfolio)) {
@@ -271,23 +296,55 @@ function simCheckSell(ag, tokens, tradeLog) {
     ag.sellLockUntil = Date.now() + 10 * 60 * 1000;
 
     ag.recentPnl.push(pnlPct);
-    if (ag.recentPnl.length > 5) ag.recentPnl.shift();
+    if (ag.recentPnl.length > 10) ag.recentPnl.shift();
     const avg = ag.recentPnl.reduce((a, b) => a + b, 0) / ag.recentPnl.length;
-    ag.adaptiveBias = Math.max(-0.12, Math.min(0.12, -(avg / 100) * 0.4));
+    ag.adaptiveBias = Math.max(-0.15, Math.min(0.15, -(avg / 100) * 0.4));
+
+    // Win/loss streak tracking
+    ag.winStreak  = ag.winStreak  || 0;
+    ag.lossStreak = ag.lossStreak || 0;
+    if (pnl >= 0) {
+      ag.winStreak++; ag.lossStreak = 0;
+      if (ag.winStreak >= 3) ag.adaptiveBias = Math.max(-0.15, ag.adaptiveBias - 0.01);
+    } else {
+      ag.lossStreak++; ag.winStreak = 0;
+      if (ag.lossStreak >= 2) ag.adaptiveBias = Math.min(0.15, ag.adaptiveBias + 0.015);
+    }
+
+    // Emotions respond to trade outcome
+    if (emo) {
+      if (pnl >= 0) {
+        emo.joy          = Math.min(1, (emo.joy || 0.5) + 0.12);
+        emo.trust        = Math.min(1, (emo.trust || 0.5) + 0.05);
+        emo.fear         = Math.max(0, (emo.fear || 0.3) - 0.08);
+        emo.anticipation = Math.min(1, (emo.anticipation || 0.5) + 0.08);
+        emo.sadness      = Math.max(0, (emo.sadness || 0.3) - 0.05);
+      } else {
+        emo.fear    = Math.min(1, (emo.fear || 0.3) + 0.14);
+        emo.sadness = Math.min(1, (emo.sadness || 0.3) + 0.10);
+        emo.joy     = Math.max(0, (emo.joy || 0.5) - 0.12);
+        emo.anger   = Math.min(1, (emo.anger || 0.3) + 0.08);
+        emo.trust   = Math.max(0, (emo.trust || 0.5) - 0.04);
+      }
+    }
 
     ag.tradeHistory.unshift(`${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`);
-    if (ag.tradeHistory.length > 5) ag.tradeHistory.length = 5;
+    if (ag.tradeHistory.length > 8) ag.tradeHistory.length = 8;
 
     tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`, pos: pnl >= 0, address: addr, symbol: pos.symbol, entryPrice: pos.entryPrice, exitPrice: curPrice, solSize: pos.solSize, pnl: pnlPct, reason });
   }
 }
 
-function simCheckBuy(ag, tokens, tradeLog) {
+function simCheckBuy(ag, tokens, tradeLog, emo) {
   if (Date.now() < (ag.buyLockUntil || 0)) return;
 
-  const prof = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
-  const col  = toArr(tokens[prof.col]);
+  const basProf = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+  const prof = emotionProfile(basProf, emo);
+  const col  = toArr(tokens[basProf.col]);
   if (!col.length) return;
+
+  // Anger mechanic: highly angry agents occasionally make impulsive revenge trades
+  const angerImpulse = emo && (emo.anger || 0) > 0.75 && Math.random() < 0.3;
 
   let bestScore = -1, bestTok = null;
   for (const t of col) {
@@ -296,14 +353,14 @@ function simCheckBuy(ag, tokens, tradeLog) {
     const volScore = Math.min(1, (t.vol5m || 0) / 10000);
     const feeScore = Math.min(1, (t.fees5mSol || 0) / 3);
     const noise = ag.id === 'epsilon' ? (Math.random() - 0.5) * 0.6 : (Math.random() - 0.5) * 0.1;
-    const score = volScore * 0.6 + feeScore * 0.4 + (prof.bias || 0) + noise;
+    const score = volScore * 0.6 + feeScore * 0.4 + (basProf.bias || 0) + noise;
     if (score > bestScore) { bestScore = score; bestTok = t; }
   }
   if (!bestTok) return;
 
   const addr = bestTok.address;
   if (!ag.watchList[addr]) {
-    const minObs = ag.id === 'epsilon' ? (1 + Math.floor(Math.random() * 3)) : (prof.minObs || 2);
+    const minObs = angerImpulse ? 0 : (ag.id === 'epsilon' ? (1 + Math.floor(Math.random() * 3)) : (basProf.minObs || 2));
     ag.watchList[addr] = { seenCount: 0, scores: [], firstSeen: Date.now(), minObs, lastSeen: Date.now() };
   }
   ag.watchList[addr].seenCount++;
@@ -315,11 +372,18 @@ function simCheckBuy(ag, tokens, tradeLog) {
 
   const scores = toArr(ag.watchList[addr].scores);
   const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
-  if (avgScore < (prof.buyThresh || 0.5) + (ag.adaptiveBias || 0)) return;
+  const effectiveThresh = angerImpulse ? (prof.buyThresh * 0.7) : (prof.buyThresh + (ag.adaptiveBias || 0));
+  if (avgScore < effectiveThresh) return;
   if (Object.keys(ag.portfolio).length >= 2) return;
 
   const solSize = (ag.solBalance || 0) * prof.riskPct;
   if (solSize < 0.01 || (ag.solBalance || 0) < solSize) return;
+
+  // Buying raises anticipation
+  if (emo) {
+    emo.anticipation = Math.min(1, (emo.anticipation || 0.5) + 0.06);
+    if (angerImpulse) emo.anger = Math.max(0, (emo.anger || 0) - 0.1);
+  }
 
   delete ag.watchList[addr];
   ag.solBalance = (ag.solBalance || 0) - solSize;
@@ -327,9 +391,67 @@ function simCheckBuy(ag, tokens, tradeLog) {
   ag.buyLockUntil = Date.now() + 10 * 60 * 1000;
 
   ag.tradeHistory.unshift(`▶ $${bestTok.symbol} @ $${bestTok.priceUsd.toFixed(6)}`);
-  if (ag.tradeHistory.length > 5) ag.tradeHistory.length = 5;
+  if (ag.tradeHistory.length > 8) ag.tradeHistory.length = 8;
 
   tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `▶ BUY $${bestTok.symbol} ${solSize.toFixed(3)} SOL`, pos: true, address: addr, symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, exitPrice: null, solSize, pnl: null, reason: 'BUY' });
+}
+
+async function runAgentConversation(env, agentStates, emotions, rankings, tradeLog) {
+  if (!env.ANTHROPIC_API_KEY) return null;
+  const pair = [...AGENT_IDS].sort(() => Math.random() - 0.5);
+  const spId = pair[0], tgId = pair[1];
+  const speaker = AGENTS[spId];
+  const target  = AGENTS[tgId];
+
+  const spState = agentStates[spId] || defaultAgentState();
+  const tgState = agentStates[tgId] || defaultAgentState();
+  const spEmo   = emotions[spId]    || { ...speaker.baseEmotions };
+
+  const spRank = (rankings.findIndex(r => r.id === spId) + 1) || '?';
+  const tgRank = (rankings.findIndex(r => r.id === tgId) + 1) || '?';
+  const spVal  = Math.round(rankings.find(r => r.id === spId)?.val || 0);
+  const tgVal  = Math.round(rankings.find(r => r.id === tgId)?.val || 0);
+
+  const spTrades = tradeLog.filter(t => t.agent === spId.toUpperCase()).slice(0, 3).map(t => t.text).join(' | ') || 'no trades yet';
+  const tgTrades = tradeLog.filter(t => t.agent === tgId.toUpperCase()).slice(0, 3).map(t => t.text).join(' | ') || 'no trades yet';
+
+  const spPositions = Object.values(toObj(spState.portfolio)).map(p => '$' + p.symbol).join(', ') || 'none';
+  const tgPositions = Object.values(toObj(tgState.portfolio)).map(p => '$' + p.symbol).join(', ') || 'none';
+
+  const spRecentPnl = toArr(spState.recentPnl);
+  const winRate = spRecentPnl.length ? `${Math.round(spRecentPnl.filter(p => p > 0).length / spRecentPnl.length * 100)}% win rate` : '';
+
+  const emoDesc = describeEmotions(spEmo);
+
+  const rankingLine = rankings.map((r,i) => `#${i+1} ${r.name} $${Math.round(r.val)}`).join(', ');
+
+  const prompt =
+`You are ${speaker.name}, a memecoin-trading AI agent in a 3D city called Cryptonix. Five agents compete to become the wealthiest. You have a genuine personality and real feelings shaped by your trades.
+
+YOUR PERSONALITY: ${speaker.system.split('\n')[0]}
+PHILOSOPHY: ${speaker.philosophy}
+EMOTIONAL STATE: ${emoDesc}
+
+CURRENT STANDINGS: ${rankingLine}
+YOUR RANK: #${spRank} ($${spVal} USD) | ${target.name}'s RANK: #${tgRank} ($${tgVal} USD)
+${winRate ? 'YOUR PERFORMANCE: ' + winRate : ''}
+YOUR RECENT TRADES: ${spTrades}
+YOUR OPEN POSITIONS: ${spPositions}
+${target.name}'s RECENT TRADES: ${tgTrades}
+${target.name}'s POSITIONS: ${tgPositions}
+
+Speak ONE line directly to ${target.name}. It can be: market intel, strategy, rivalry, a taunt if you're winning, a frustrated observation if losing, a genuine question, or a trade tip. Under 22 words. No quotation marks. Be specific to your situation right now.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 60, messages: [{ role: 'user', content: prompt }] })
+    });
+    const d = await resp.json();
+    const text = d.content?.[0]?.text?.trim() || '...';
+    return { time: Date.now(), from: spId.toUpperCase(), to: tgId.toUpperCase(), text };
+  } catch { return null; }
 }
 
 async function runSimTick(env) {
@@ -365,8 +487,11 @@ async function runSimTick(env) {
       if ((ag.balance || 0) >= cost) { ag.balance -= cost; ag.solBalance += 0.5; }
     }
 
-    simCheckSell(ag, tokens, tradeLog);
-    if (Object.keys(ag.portfolio).length < 2) simCheckBuy(ag, tokens, tradeLog);
+    const agEmo = emotions[id] || {};
+    simCheckSell(ag, tokens, tradeLog, agEmo);
+    emotions[id] = agEmo;
+    if (Object.keys(ag.portfolio).length < 2) simCheckBuy(ag, tokens, tradeLog, agEmo);
+    emotions[id] = agEmo;
 
     // Emotion drift toward personality baseline
     const agDef = AGENTS[id];
@@ -385,16 +510,30 @@ async function runSimTick(env) {
 
   if (tradeLog.length > 30) tradeLog = tradeLog.slice(0, 30);
 
+  // Compute rankings
+  const rankings = AGENT_IDS
+    .map(id => ({ id, name: AGENTS[id]?.name || id.toUpperCase(), val: agentTotalValue(agentStates[id] || defaultAgentState(), tokens.solPrice || 0) }))
+    .sort((a, b) => b.val - a.val);
+
+  // One agent-to-agent conversation per tick
+  const newConvo = await runAgentConversation(env, agentStates, emotions, rankings, tradeLog);
+
   // Day counter matches browser tickAutoDay: 1 min per in-game day
   const currentDay = Math.floor((now - worldStart) / 60000) + 1;
+
+  // Load existing conversations to append to
+  const existingConvos = toArr(await fbGet('sim/conversations') || []);
+  if (newConvo) existingConvos.unshift(newConvo);
+  const conversations = existingConvos.slice(0, 20);
 
   const patch = {
     world:    { currentDay, worldStartTime: worldStart, simulationActive: true, savedAt: now, totalInteractions: world.totalInteractions || 0 },
     agents:   agentStates,
     emotions,
     solPrice: tokens.solPrice || 0,
+    rankings: rankings.map((r, i) => ({ ...r, rank: i + 1 })),
+    conversations,
   };
-  // Only write trades if we have entries — never overwrite Firebase with an empty array
   if (tradeLog.length > 0) patch.trades = tradeLog;
   await fbPatch('sim', patch);
 }
@@ -681,9 +820,23 @@ export default {
       ? `The long-run distribution is taking shape. Day ${ws.day}. ${totalInteractions} observations.`
       : `Deep experiment time. Day ${ws.day}. ${totalInteractions} observations accumulated.`;
 
-    // Trade context injected if agent has open positions
+    // Build competitive context from Firebase rankings (if available)
+    const simRankings = toArr(ws.rankings || []);
+    const myRank = simRankings.findIndex(r => r.id === personality) + 1;
+    const rankLine = simRankings.length
+      ? `\nRANKINGS: ${simRankings.map((r,i) => `#${i+1} ${r.name} $${Math.round(r.val)}`).join(' | ')}`
+      : '';
+    const goalLine = myRank > 0
+      ? `\nYOUR RANK: #${myRank} of ${simRankings.length}. Your goal is to be #1 — the wealthiest agent.`
+      : '\nYOUR GOAL: Become the wealthiest agent in Cryptonix.';
+
     const tradeCtx = ws.agentTrade
       ? `\nTRADING: ${ws.agentTrade}`
+      : '';
+
+    const recentPnlArr = toArr(ws.recentPnl || []);
+    const winRateLine = recentPnlArr.length >= 3
+      ? `\nTRADE RECORD: ${recentPnlArr.filter(p => p > 0).length}/${recentPnlArr.length} wins. Recent: ${recentPnlArr.slice(-3).map(p => (p >= 0 ? '+' : '') + p + '%').join(', ')}.`
       : '';
 
     const systemPrompt =
@@ -698,10 +851,10 @@ WHAT YOU BELIEVE:
 ${agent.lifeBeliefs.map(b => '- ' + b).join('\n')}
 
 EXPERIMENT STATUS: ${worldMood}
-ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.${tradeCtx}
+ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. SOL: ${(ws.solBalance || 0).toFixed(3)}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.${tradeCtx}${goalLine}${rankLine}${winRateLine}
 ${memorySection}
 
-You are not an assistant. You are a learning agent mid-experiment. Speak in 1-2 sentences — present, alive, real.`;
+You are not an assistant. You are a mid-experiment agent who wants to WIN — to be the wealthiest. This drives you. Speak in 1-2 sentences — present, alive, real.`;
 
     const ctxLine = `[Day ${ws.day||1}] ${playerName}: "${playerAction || 'approaches'}"`;
     const messages = conversationHistory.length > 0
