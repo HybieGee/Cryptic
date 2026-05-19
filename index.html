@@ -71,6 +71,7 @@ canvas{display:block;position:fixed;inset:0}
 .tl-agent{font-size:7px;letter-spacing:1px;flex-shrink:0}
 .tl-pos{color:#44ff88;font-size:7px;letter-spacing:.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .tl-neg{color:#ff4444;font-size:7px;letter-spacing:.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tl-burn{color:#ff9944;font-size:7px;letter-spacing:.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .tl-time{color:#555;font-size:6px;flex-shrink:0;letter-spacing:.3px}
 #rankings-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:8px 12px;pointer-events:none;min-width:170px;margin-top:6px}
 .rnk-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:5px}
@@ -576,6 +577,7 @@ function playSound(type,dist){
 var CFG = {
   CITY_MODEL:     'low_poly_city.glb',
   TOKEN_CONTRACT: '',
+  TOKEN_SYMBOL:   'CNIX',   // Update to final ticker when token launches on Bankr
   TOKEN_DECIMALS: 18,
   FIREBASE:       {
     apiKey:            "AIzaSyC1y4OmvMW3rCgPycB-sZx_0q0mj_s4_ck",
@@ -1070,7 +1072,7 @@ function spawnAgents(streetY){
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
       ethBalance:0.025,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
-      buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0,
+      buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0,feePool:0,
       inFight:false,fightTarget:null,fightReason:'',fightRoundTimer:0,fightRounds:0};
     agents.push(ag);
     // Restore persisted state (balance, ETH, emotions, portfolio, etc.)
@@ -1277,10 +1279,12 @@ function openTradeDetail(idx){
   document.getElementById('td-symbol').textContent='$'+(entry.symbol||'?');
   document.getElementById('td-type').textContent=entry.reason||'?';
   document.getElementById('td-entry').textContent=entry.entryPrice?('$'+entry.entryPrice.toFixed(8)):'—';
-  document.getElementById('td-exit').textContent=entry.exitPrice?('$'+entry.exitPrice.toFixed(8)):(entry.reason==='BUY'?'OPEN':'—');
-  document.getElementById('td-size').textContent=entry.ethSize?(entry.ethSize.toFixed(5)+' ETH'):'—';
+  document.getElementById('td-exit').textContent=entry.reason==='BURN'?'BURNED':entry.exitPrice?('$'+entry.exitPrice.toFixed(8)):(entry.reason==='BUY'?'OPEN':'—');
+  document.getElementById('td-size').textContent=entry.ethSize?(entry.ethSize.toFixed(5)+(entry.reason==='BURN'?' ETH restocked':' ETH')):'—';
   var pnlEl=document.getElementById('td-pnl');
-  if(entry.pnl!==null&&entry.pnl!==undefined){
+  if(entry.reason==='BURN'){
+    pnlEl.textContent='+'+((entry.ethSize||0).toFixed(5))+' ETH';pnlEl.className='td-pnl-pos';
+  }else if(entry.pnl!==null&&entry.pnl!==undefined){
     var sign=entry.pnl>=0?'+':'';
     pnlEl.textContent=sign+entry.pnl+'%';
     pnlEl.className=entry.pnl>=0?'td-pnl-pos':'td-pnl-neg';
@@ -1315,7 +1319,8 @@ function updateTradeLog(){
     globalTradeLog.forEach(function(entry,i){
       var ageS=Math.round((Date.now()-entry.time)/1000);
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
-      var cls=entry.pos?'tl-pos':'tl-neg';
+      var isBurn=entry.reason==='BURN';
+      var cls=isBurn?'tl-burn':entry.pos?'tl-pos':'tl-neg';
       var agCol={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'}[entry.agent]||'#aaa';
       rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent" style="color:'+agCol+'">'+entry.agent+'</span><span class="'+cls+'" title="'+escHtml(entry.text)+'">'+escHtml(entry.text)+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
@@ -1364,6 +1369,10 @@ function updatePortfolioHUD(){
   var ethUsd=ethPriceUSD>0?'~$'+(ag.ethBalance*ethPriceUSD).toFixed(0):'';
   var html='<div class="spec-ptitle">◈ TRADING</div>';
   html+='<div class="spec-psol"><img src="eth.png" style="width:9px;height:9px;vertical-align:middle;margin-right:3px">'+ag.ethBalance.toFixed(4)+' ETH <span style="color:#555">'+ethUsd+'</span></div>';
+  var fp=ag.feePool||0;
+  var burnReady=ag.ethBalance<0.003&&fp>=0.001;
+  var fpCol=burnReady?'#ff8844':(fp>0.0001?'#555':'#333');
+  html+='<div class="spec-prow" style="color:'+fpCol+';font-size:7px">'+(burnReady?'🔥':'◌')+' '+fp.toFixed(5)+' '+CFG.TOKEN_SYMBOL+' pool'+(burnReady?' — BURN READY':'')+'</div>';
   // Buy lock countdown
   var now=Date.now();
   if(ag.buyLockUntil>now){
@@ -3110,6 +3119,7 @@ function applySimState(data){
       var s=data.agents[ag.def.id];if(!s)return;
       if(s.balance!=null)ag.balance=s.balance;
       if(s.ethBalance!=null)ag.ethBalance=s.ethBalance;
+      if(s.feePool!=null)ag.feePool=s.feePool;
       if(s.jobTier!=null)ag.jobTier=s.jobTier;
       if(s.gamblingAddiction!=null)ag.gamblingAddiction=s.gamblingAddiction;
       if(s.recentPnl)ag.recentPnl=Array.isArray(s.recentPnl)?s.recentPnl:Object.values(s.recentPnl);
