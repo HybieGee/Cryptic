@@ -2058,6 +2058,7 @@ function scheduleIdleBubble(ag){
       fetchAgentLine(ag2,thought,function(text){
         if(ag2.bubbleEl&&!ag2.knockedOut){
           showBubble(ag2,text,7);
+          if(!gameRunning&&agents[spectateAgentIdx]===ag2)speakText(text,ag2.def);
         }
       });
     }
