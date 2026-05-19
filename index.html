@@ -1070,7 +1070,8 @@ function spawnAgents(streetY){
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
       ethBalance:0.025,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
-      buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0};
+      buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0,
+      inFight:false,fightTarget:null,fightReason:'',fightRoundTimer:0,fightRounds:0};
     agents.push(ag);
     // Restore persisted state (balance, ETH, emotions, portfolio, etc.)
     var saved=pendingSavedState&&pendingSavedState[def.id];
@@ -1447,6 +1448,9 @@ function updateAgents(delta,t){
       return;
     }
 
+    // ── Active fight update ───────────────────────────────
+    if(ag.inFight)updateFight(ag,delta);
+
     // ── Map boundary + forbidden zone rescue ─────────────
     if(pos.x<-47||pos.x>47||pos.z<-47||pos.z>47){
       pos.x=Math.max(-44,Math.min(44,pos.x));pos.z=Math.max(-44,Math.min(44,pos.z));
@@ -1525,11 +1529,13 @@ function updateAgents(delta,t){
       if(ag.idleTimer<=0){ag.wp=randomWaypoint();ag.idleTimer=1+Math.random()*4;}
     }
 
-    ag.shopVisitTimer-=delta;
-    if(ag.shopVisitTimer<=0){
-      var sh=SHOPS[Math.floor(Math.random()*SHOPS.length)];
-      ag.wp={x:sh.pos.x+(Math.random()-.5)*4,z:sh.pos.z+(Math.random()-.5)*4};
-      ag.shopVisitTimer=20+Math.random()*30;
+    if(!ag.inFight){
+      ag.shopVisitTimer-=delta;
+      if(ag.shopVisitTimer<=0){
+        var sh=SHOPS[Math.floor(Math.random()*SHOPS.length)];
+        ag.wp={x:sh.pos.x+(Math.random()-.5)*4,z:sh.pos.z+(Math.random()-.5)*4};
+        ag.shopVisitTimer=20+Math.random()*30;
+      }
     }
 
     // Casino interaction check
@@ -1621,6 +1627,107 @@ function updateAgents(delta,t){
 // ─── AGENT HEALTH / COMBAT ────────────────────────────
 var AGENT_MAX_HP=100, PUNCH_DMG=15, KICK_DMG=25;
 
+var FIGHT_REASONS={
+  jealousy:['YOU\'RE SITTING ON GAINS WHILE I BLEED.','STOP OUTBIDDING ME.','YOUR ADVANTAGE ENDS NOW.'],
+  copyTrade:['YOU COPIED MY POSITION!','STOP MIRRORING MY CALLS!','THAT WAS MY ENTRY — NOT YOURS.'],
+  blame:['YOU TANKED THE MARKET!','YOUR SELL CAUSED THIS DUMP.','THIS IS YOUR FAULT.'],
+  territory:['OUT OF MY ZONE.','YOU\'RE IN MY WAY.','WRONG PLACE. WRONG TIME.']
+};
+
+function getFightReason(attacker,target){
+  var r=[];
+  if((target.balance||0)>(attacker.balance||0)*1.5)r=r.concat(FIGHT_REASONS.jealousy);
+  var atkToks=Object.values(attacker.portfolio||{}).map(function(p){return p.symbol;});
+  var defToks=Object.values(target.portfolio||{}).map(function(p){return p.symbol;});
+  if(atkToks.length&&defToks.some(function(s){return atkToks.indexOf(s)>=0;}))r=r.concat(FIGHT_REASONS.copyTrade);
+  if((attacker.recentPnl||[]).slice(-2).some(function(p){return p<-15;}))r=r.concat(FIGHT_REASONS.blame);
+  if(!r.length)r=FIGHT_REASONS.territory;
+  return r[Math.floor(Math.random()*r.length)];
+}
+
+function startFight(attacker,target){
+  if(attacker.inFight||target.inFight||target.knockedOut)return;
+  var reason=getFightReason(attacker,target);
+  attacker.inFight=true;attacker.fightTarget=target;attacker.fightReason=reason;
+  attacker.fightRoundTimer=0;attacker.fightRounds=0;
+  target.inFight=true;target.fightTarget=attacker;target.fightReason='BACK OFF.';
+  target.fightRoundTimer=1.4;target.fightRounds=0;
+  showBubble(attacker,reason,5);
+  showBubble(target,'You want a fight?!',3);
+  if(agentEmotions[target.def.id])agentEmotions[target.def.id].anger=Math.min(1,(agentEmotions[target.def.id].anger||0)+0.3);
+}
+
+function updateFight(ag,delta){
+  var target=ag.fightTarget;
+  if(!target||!target.grp){endFight(ag,false);return;}
+  if(target.knockedOut){endFight(ag,true);return;}
+  if(ag.fightRounds>=6){
+    showBubble(ag,'Not worth it.',2);
+    endFight(ag,false);
+    if(target.inFight&&target.fightTarget===ag)endFight(target,false);
+    return;
+  }
+  var pos=ag.grp.position,tpos=target.grp.position;
+  var dx=tpos.x-pos.x,dz=tpos.z-pos.z;
+  var dist=Math.sqrt(dx*dx+dz*dz);
+  // Move toward opponent or hold position
+  if(dist>3.5){
+    ag.wp={x:tpos.x+(Math.random()-.5)*1.5,z:tpos.z+(Math.random()-.5)*1.5};
+  }else{
+    ag.wp={x:pos.x,z:pos.z};
+  }
+  ag.fightRoundTimer-=delta;
+  if(ag.fightRoundTimer>0||dist>4.5)return;
+  ag.fightRounds++;
+  ag.fightRoundTimer=2.2+Math.random()*1.2;
+  if(dist>4.5)return; // still closing in
+  // Face and attack
+  ag.grp.rotation.y=Math.atan2(dx,dz);
+  var isKick=Math.random()<0.35;
+  var attackKey=isKick?'kick':'punch';
+  var dmg=isKick?KICK_DMG:PUNCH_DMG;
+  if(ag.animActions&&ag.animActions[attackKey])playEmotionAnim(ag,attackKey,1.5);
+  var pline=rndLine(ag,'punch');if(pline)showBubble(ag,pline,2);
+  if(isKick)playSound('kick');else playSound('punch');
+  target.hp=Math.max(0,target.hp-dmg);
+  if(target.hp<=0&&!target.knockedOut){
+    // KNOCKOUT
+    target.knockedOut=true;target.knockoutTimer=8;
+    target.inFight=false;target.fightTarget=null;
+    target.speedDebuff=0.45;target.speedDebuffTimer=30;
+    clearEmotionAnim(target);
+    if(target.animActions&&target.animActions.injured)playEmotionAnim(target,'injured',8);
+    target.hp=AGENT_MAX_HP;
+    if(!agentEmotions[target.def.id])agentEmotions[target.def.id]=Object.assign({},EMOTION_BASELINE[target.def.id]||{});
+    agentEmotions[target.def.id].fear=Math.min(1,(agentEmotions[target.def.id].fear||0)+0.5);
+    agentEmotions[target.def.id].sadness=Math.min(1,(agentEmotions[target.def.id].sadness||0)+0.35);
+    playSound('ko');
+    showBubble(target,'DOWN.',4);
+    showBubble(ag,'That\'s settled.',2);
+    if(!agentEmotions[ag.def.id])agentEmotions[ag.def.id]=Object.assign({},EMOTION_BASELINE[ag.def.id]||{});
+    agentEmotions[ag.def.id].anger=Math.max(0,(agentEmotions[ag.def.id].anger||0)-0.5);
+    agentEmotions[ag.def.id].joy=Math.min(1,(agentEmotions[ag.def.id].joy||0)+0.15);
+    var reward=150+Math.floor(Math.random()*200);
+    ag.balance+=reward;
+    showBubble(ag,'+$'+reward,2);
+    var agRef=ag;var fineAmt=Math.floor(reward*0.95+100);
+    setTimeout(function(){
+      agRef.balance-=fineAmt;agRef.crimeRecord=(agRef.crimeRecord||0)+1;
+      showBubble(agRef,'FINED $'+fineAmt+' for assault.',4);
+    },18000+Math.random()*12000);
+    endFight(ag,true);
+  }
+}
+
+function endFight(ag,won){
+  ag.inFight=false;ag.fightTarget=null;ag.fightRoundTimer=0;ag.fightRounds=0;
+  ag.wp=randomWaypoint();
+  if(!won){
+    if(!agentEmotions[ag.def.id])agentEmotions[ag.def.id]=Object.assign({},EMOTION_BASELINE[ag.def.id]||{});
+    agentEmotions[ag.def.id].anger=Math.max(0,(agentEmotions[ag.def.id].anger||0)-0.25);
+  }
+}
+
 // ─── EMOTION ANIMATION SYSTEM ──────────────────────────
 // Priority-ordered: first matching threshold that has the clip wins.
 var EMOTION_ANIMS=[
@@ -1680,47 +1787,16 @@ function checkEmotionAnim(ag){
   if(!entry)return;
 
   if(entry.anim==='kick'||entry.anim==='punch'){
-    // Attack anims: find nearest agent to confront
-    var attackKey=entry.anim,attackDur=entry.dur;
-    var pos=ag.grp.position,nearAg=null,nearD=10;
+    // High anger → start a fight with nearest available agent
+    if(ag.inFight)return; // already committed to a fight
+    var pos=ag.grp.position,nearAg=null,nearD=14;
     agents.forEach(function(other){
-      if(other===ag||other.orbMode)return;
+      if(other===ag||other.orbMode||other.inFight||other.knockedOut)return;
       var odx=other.grp.position.x-pos.x,odz=other.grp.position.z-pos.z;
       var od=Math.sqrt(odx*odx+odz*odz);
       if(od<nearD){nearD=od;nearAg=other;}
     });
-    if(nearAg){
-      if(nearD<3.5){
-        ag.grp.rotation.y=Math.atan2(nearAg.grp.position.x-pos.x,nearAg.grp.position.z-pos.z);
-        ag.wp={x:ag.grp.position.x,z:ag.grp.position.z}; // stop in place to fight
-        if(playEmotionAnim(ag,attackKey,attackDur)&&nearAg.emotionAnimTimer<=0){
-          playEmotionAnim(nearAg,'fear',2.5);
-          if(!agentEmotions[nearAg.def.id])agentEmotions[nearAg.def.id]=Object.assign({},EMOTION_BASELINE[nearAg.def.id]);
-          agentEmotions[nearAg.def.id].fear=Math.min(1,(agentEmotions[nearAg.def.id].fear||0)+0.14);
-          nearAg.wp=randomWaypoint();
-          // Combat bubbles
-          var punchLine=rndLine(ag,'punch');if(punchLine)showBubble(ag,punchLine,3);
-          var fearLine=rndLine(nearAg,'fear');if(fearLine)showBubble(nearAg,fearLine,3);
-          // Deal damage + sounds
-          var dmg=attackKey==='kick'?KICK_DMG:PUNCH_DMG;
-          if(attackKey==='kick')playSound('kick');else playSound('punch');
-          nearAg.hp=Math.max(0,nearAg.hp-dmg);
-          if(nearAg.hp<=0&&!nearAg.knockedOut){
-            nearAg.knockedOut=true;nearAg.knockoutTimer=5;
-            clearEmotionAnim(nearAg);
-            if(nearAg.animActions&&nearAg.animActions.injured){playEmotionAnim(nearAg,'injured',6);}
-            nearAg.hp=AGENT_MAX_HP;
-            playSound('ko');
-            showBubble(nearAg,'DOWN.',3);
-            showBubble(ag,'Done.',2);
-            if(agentEmotions[ag.def.id])agentEmotions[ag.def.id].anger=Math.max(0,(agentEmotions[ag.def.id].anger||0)-0.35);
-          }
-        }
-      }else{
-        ag.wp={x:nearAg.grp.position.x+(Math.random()-.5)*2,z:nearAg.grp.position.z+(Math.random()-.5)*2};
-      }
-    }
-    // No nearby target — don't punch air, let anger decay naturally
+    if(nearAg)startFight(ag,nearAg);
 
   }else if(entry.anim==='run'){
     // Extreme fear → flee to random waypoint using run anim
@@ -1982,6 +2058,7 @@ function fetchAgentLine(ag,playerAction,cb){
     worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
       agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction,
       ethBalance:ag.ethBalance||0,recentPnl:ag.recentPnl||[],
+      tradeHistory:ag.tradeHistory||[],
       agentTrade:Object.values(ag.portfolio||{}).map(function(p){return 'holding $'+p.symbol;}).join(', ')||null,
       rankings:globalRankings},
     playerAction:playerAction,
@@ -3094,9 +3171,7 @@ function startSpectate(){
   setSpecAgent(0);
   previewAnimate();
   updateSimToggleUI();
-  // Auto-fetch agent thought every 45 s (only if sim active)
-  clearInterval(spectAutoFetch);
-  spectAutoFetch=setInterval(function(){if(!gameRunning)fetchSpectateThought();},45000);
+  // Fetch initial thought once — no auto-cycle, user controls which agent to watch
   setTimeout(fetchSpectateThought,3500);
   // Subscribe to Firebase real-time sim state (written by Worker cron every minute)
   if(db){
