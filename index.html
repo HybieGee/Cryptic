@@ -607,8 +607,8 @@ var JOB_TIERS=[
 var JOB_TIER_ROLES=[-1,0,0,1,2]; // maps agent spawn index to tier offset into JOB_TIERS
 
 // ── Memecoin trading ─────────────────────────────────────────────────────────
-var solPriceUSD=0,lastTokenFetch=0;
-var cachedTokens={new:[],stretch:[],migrated:[]};
+var ethPriceUSD=0,lastTokenFetch=0;
+var cachedTokens={new:[],hot:[],established:[]};
 var globalTradeLog=[];
 var globalRankings=[];
 var globalConversations=[];
@@ -616,11 +616,11 @@ var simulationActive=true; // on/off master switch
 var lastWorldSave=0;
 var pendingSavedState=null; // agent data loaded from Firebase before spawn
 var TRADE_PROFILE={
-  alpha:  {col:'stretch', buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
-  beta:   {col:'migrated',buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
-  gamma:  {col:'new',     buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18, minObs:1},
-  delta:  {col:'stretch', buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14, minObs:3},
-  epsilon:{col:'new',     buyThresh:0.40, bias:0,     tp:0.60, sl:-0.30, maxHold:600,  riskPct:0.15, minObs:0},
+  alpha:  {col:'hot',         buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
+  beta:   {col:'established', buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
+  gamma:  {col:'new',         buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18, minObs:1},
+  delta:  {col:'hot',         buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14, minObs:3},
+  epsilon:{col:'new',         buyThresh:0.40, bias:0,     tp:0.60, sl:-0.30, maxHold:600,  riskPct:0.15, minObs:0},
 };
 
 var AGENT_DEFS=[
@@ -1069,14 +1069,14 @@ function spawnAgents(streetY){
       stepTimer:0,
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
-      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
+      ethBalance:0.025,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
       buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0};
     agents.push(ag);
-    // Restore persisted state (balance, SOL, emotions, portfolio, etc.)
+    // Restore persisted state (balance, ETH, emotions, portfolio, etc.)
     var saved=pendingSavedState&&pendingSavedState[def.id];
     if(saved){
       if(saved.balance!=null)ag.balance=saved.balance;
-      if(saved.solBalance!=null)ag.solBalance=saved.solBalance;
+      if(saved.ethBalance!=null)ag.ethBalance=saved.ethBalance;
       if(saved.jobTier!=null)ag.jobTier=saved.jobTier;
       if(saved.gamblingAddiction!=null)ag.gamblingAddiction=saved.gamblingAddiction;
       if(saved.recentPnl)ag.recentPnl=saved.recentPnl;
@@ -1119,33 +1119,33 @@ function pollTokens(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.new)cachedTokens.new=d.new;
-      if(d.stretch)cachedTokens.stretch=d.stretch;
-      if(d.migrated)cachedTokens.migrated=d.migrated;
-      if(d.solPrice&&d.solPrice>0)solPriceUSD=d.solPrice;
-      console.log('[TRADE] new:'+cachedTokens.new.length+' stretch:'+cachedTokens.stretch.length+' migrated:'+cachedTokens.migrated.length+' SOL:$'+solPriceUSD.toFixed(2));
+      if(d.hot)cachedTokens.hot=d.hot;
+      if(d.established)cachedTokens.established=d.established;
+      if(d.ethPrice&&d.ethPrice>0)ethPriceUSD=d.ethPrice;
+      console.log('[TRADE] new:'+cachedTokens.new.length+' hot:'+cachedTokens.hot.length+' established:'+cachedTokens.established.length+' ETH:$'+ethPriceUSD.toFixed(2));
     })
     .catch(function(){});
 }
 
 function getTokenCurrentPrice(addr){
-  var all=cachedTokens.new.concat(cachedTokens.stretch,cachedTokens.migrated);
+  var all=cachedTokens.new.concat(cachedTokens.hot,cachedTokens.established);
   for(var i=0;i<all.length;i++){if(all[i].address===addr)return all[i].priceUsd;}
   return null;
 }
 
-function checkSolTopup(ag){
-  if(ag.solBalance>=0.05||solPriceUSD<=0)return;
-  var buyAmt=0.5;
-  var cost=buyAmt*solPriceUSD;
+function checkEthTopup(ag){
+  if(ag.ethBalance>=0.005||ethPriceUSD<=0)return;
+  var buyAmt=0.025;
+  var cost=buyAmt*ethPriceUSD;
   if(ag.balance<cost){
-    // Can't afford 0.5 SOL — try 0.1 SOL minimum
-    buyAmt=0.1;cost=buyAmt*solPriceUSD;
+    // Can't afford 0.025 ETH — try 0.005 ETH minimum
+    buyAmt=0.005;cost=buyAmt*ethPriceUSD;
     if(ag.balance<cost)return;
   }
   ag.balance-=cost;
-  ag.solBalance+=buyAmt;
-  showBubble(ag,'Bought '+buyAmt+' SOL @ $'+Math.round(solPriceUSD),3);
-  ag.tradeHistory.unshift('BOUGHT '+buyAmt+' SOL @ $'+Math.round(solPriceUSD));
+  ag.ethBalance+=buyAmt;
+  showBubble(ag,'Bought '+buyAmt+' ETH @ $'+Math.round(ethPriceUSD),3);
+  ag.tradeHistory.unshift('BOUGHT '+buyAmt+' ETH @ $'+Math.round(ethPriceUSD));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
 }
 
@@ -1173,7 +1173,7 @@ function checkSell(ag,addr){
   if(!reason)return;
   var pnlPct=Math.round(pnl*100);
   var sign=pnl>=0?'+':'';
-  ag.solBalance+=pos.solSize*(1+pnl);
+  ag.ethBalance+=pos.ethSize*(1+pnl);
   delete ag.portfolio[addr];
   ag.sellLockUntil=Date.now()+10*60*1000;
   // Adaptive learning: adjust entry threshold based on rolling PnL
@@ -1189,7 +1189,7 @@ function checkSell(ag,addr){
   ag.tradeHistory.unshift((pnl>=0?'▲':'▼')+' $'+pos.symbol+' '+sign+pnlPct+'%');
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
   var glyph=pnl>=0?'▲':'▼';
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0,address:addr,symbol:pos.symbol,entryPrice:pos.entryPrice,exitPrice:curPrice,solSize:pos.solSize,pnl:pnlPct,reason:reason});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0,address:addr,symbol:pos.symbol,entryPrice:pos.entryPrice,exitPrice:curPrice,ethSize:pos.ethSize,pnl:pnlPct,reason:reason});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
@@ -1204,8 +1204,8 @@ function checkBuy(ag){
     var t=col[i];
     if(!t.address||!t.priceUsd)continue;
     if(ag.portfolio[t.address])continue;
-    var volScore=Math.min(1,(t.vol5m||0)/10000);
-    var feeScore=Math.min(1,(t.fees5mSol||0)/3);
+    var volScore=Math.min(1,(t.vol5m||0)/5000);
+    var feeScore=Math.min(1,(t.feesEth||0)/0.5);
     var noise=ag.def.id==='epsilon'?(Math.random()-0.5)*0.6:(Math.random()-0.5)*0.1;
     var score=volScore*0.6+feeScore*0.4+prof.bias+noise;
     if(score>bestScore){bestScore=score;bestTok=t;}
@@ -1229,24 +1229,24 @@ function checkBuy(ag){
   var threshold=(prof.buyThresh||0.5)+ag.adaptiveBias;
   if(avgScore<threshold)return;
   if(Object.keys(ag.portfolio).length>=2)return;
-  var solSize=ag.solBalance*prof.riskPct;
-  if(solSize<0.01||ag.solBalance<solSize)return;
+  var ethSize=ag.ethBalance*prof.riskPct;
+  if(ethSize<0.0005||ag.ethBalance<ethSize)return;
   var obsCount=ag.watchList[addr].seenCount;
   delete ag.watchList[addr];
-  ag.solBalance-=solSize;
-  ag.portfolio[addr]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,solSize:solSize,entryTime:Date.now(),simMult:1};
+  ag.ethBalance-=ethSize;
+  ag.portfolio[addr]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,ethSize:ethSize,entryTime:Date.now(),simMult:1};
   ag.buyLockUntil=Date.now()+10*60*1000;
   var obsStr=obsCount>1?' ('+obsCount+' checks)':'';
-  showBubble(ag,'Entered $'+bestTok.symbol+obsStr+' — '+solSize.toFixed(3)+' SOL',3);
-  ag.tradeHistory.unshift('▶ $'+bestTok.symbol+' @ $'+bestTok.priceUsd.toFixed(6));
+  showBubble(ag,'Entered $'+bestTok.symbol+obsStr+' — '+ethSize.toFixed(4)+' ETH',3);
+  ag.tradeHistory.unshift('▶ $'+bestTok.symbol+' @ $'+bestTok.priceUsd.toFixed(8));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(3)+' SOL',pos:true,address:addr,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,solSize:solSize,pnl:null,reason:'BUY'});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+ethSize.toFixed(4)+' ETH',pos:true,address:addr,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,ethSize:ethSize,pnl:null,reason:'BUY'});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
 function evaluateTrades(ag,dt){
   if(!agentsSpawned||!simulationActive)return;
-  checkSolTopup(ag);
+  checkEthTopup(ag);
   // Drop watchList entries for tokens gone stale (> 25 min without a sighting)
   var now=Date.now();
   Object.keys(ag.watchList).forEach(function(a){
@@ -1277,7 +1277,7 @@ function openTradeDetail(idx){
   document.getElementById('td-type').textContent=entry.reason||'?';
   document.getElementById('td-entry').textContent=entry.entryPrice?('$'+entry.entryPrice.toFixed(8)):'—';
   document.getElementById('td-exit').textContent=entry.exitPrice?('$'+entry.exitPrice.toFixed(8)):(entry.reason==='BUY'?'OPEN':'—');
-  document.getElementById('td-size').textContent=entry.solSize?(entry.solSize.toFixed(4)+' SOL'):'—';
+  document.getElementById('td-size').textContent=entry.ethSize?(entry.ethSize.toFixed(5)+' ETH'):'—';
   var pnlEl=document.getElementById('td-pnl');
   if(entry.pnl!==null&&entry.pnl!==undefined){
     var sign=entry.pnl>=0?'+':'';
@@ -1360,9 +1360,9 @@ function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 function updatePortfolioHUD(){
   var el=document.getElementById('spec-portfolio');if(!el)return;
   var ag=agents[spectateAgentIdx];if(!ag){el.innerHTML='';return;}
-  var solUsd=solPriceUSD>0?'~$'+(ag.solBalance*solPriceUSD).toFixed(0):'';
+  var ethUsd=ethPriceUSD>0?'~$'+(ag.ethBalance*ethPriceUSD).toFixed(0):'';
   var html='<div class="spec-ptitle">◈ TRADING</div>';
-  html+='<div class="spec-psol">'+ag.solBalance.toFixed(3)+' SOL <span style="color:#555">'+solUsd+'</span></div>';
+  html+='<div class="spec-psol">'+ag.ethBalance.toFixed(4)+' ETH <span style="color:#555">'+ethUsd+'</span></div>';
   // Buy lock countdown
   var now=Date.now();
   if(ag.buyLockUntil>now){
@@ -1796,9 +1796,9 @@ function updateLabels(){
     var b=ag.balance||0;
     var col=b>5000?'#44ff88':b>2000?'#ffcc00':b>500?'#ff8844':'#ff3333';
     ag.balLabelEl.style.color=col;
-    var solStr=ag.solBalance!=null?('<br><span style="color:#88ccff;font-size:8px">◎ '+(ag.solBalance).toFixed(3)+'</span>'):'';
+    var ethStr=ag.ethBalance!=null?('<br><span style="color:#88ccff;font-size:8px">Ξ '+(ag.ethBalance).toFixed(4)+'</span>'):'';
     ag.balLabelEl.style.textAlign='center';
-    ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+solStr;
+    ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+ethStr;
   });
 
   SHOPS.forEach(function(sh){
@@ -1981,7 +1981,7 @@ function fetchAgentLine(ag,playerAction,cb){
     personality:ag.def.personality,
     worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
       agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction,
-      solBalance:ag.solBalance||0,recentPnl:ag.recentPnl||[],
+      ethBalance:ag.ethBalance||0,recentPnl:ag.recentPnl||[],
       agentTrade:Object.values(ag.portfolio||{}).map(function(p){return 'holding $'+p.symbol;}).join(', ')||null,
       rankings:globalRankings},
     playerAction:playerAction,
@@ -3020,7 +3020,7 @@ function applySimState(data){
     if(data.world.totalInteractions!=null)totalInteractions=data.world.totalInteractions;
     if(data.world.simulationActive!==undefined){simulationActive=!!data.world.simulationActive;updateSimToggleUI();}
   }
-  if(data.solPrice&&data.solPrice>0)solPriceUSD=data.solPrice;
+  if(data.ethPrice&&data.ethPrice>0)ethPriceUSD=data.ethPrice;
   if(data.trades){
     var arr=Array.isArray(data.trades)?data.trades:Object.values(data.trades);
     if(arr.length>0){globalTradeLog=arr;updateTradeLog();}
@@ -3032,7 +3032,7 @@ function applySimState(data){
     agents.forEach(function(ag){
       var s=data.agents[ag.def.id];if(!s)return;
       if(s.balance!=null)ag.balance=s.balance;
-      if(s.solBalance!=null)ag.solBalance=s.solBalance;
+      if(s.ethBalance!=null)ag.ethBalance=s.ethBalance;
       if(s.jobTier!=null)ag.jobTier=s.jobTier;
       if(s.gamblingAddiction!=null)ag.gamblingAddiction=s.gamblingAddiction;
       if(s.recentPnl)ag.recentPnl=Array.isArray(s.recentPnl)?s.recentPnl:Object.values(s.recentPnl);
