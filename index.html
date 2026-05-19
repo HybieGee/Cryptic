@@ -1362,7 +1362,7 @@ function updatePortfolioHUD(){
   var ag=agents[spectateAgentIdx];if(!ag){el.innerHTML='';return;}
   var ethUsd=ethPriceUSD>0?'~$'+(ag.ethBalance*ethPriceUSD).toFixed(0):'';
   var html='<div class="spec-ptitle">◈ TRADING</div>';
-  html+='<div class="spec-psol">'+ag.ethBalance.toFixed(4)+' ETH <span style="color:#555">'+ethUsd+'</span></div>';
+  html+='<div class="spec-psol"><img src="eth.png" style="width:9px;height:9px;vertical-align:middle;margin-right:3px">'+ag.ethBalance.toFixed(4)+' ETH <span style="color:#555">'+ethUsd+'</span></div>';
   // Buy lock countdown
   var now=Date.now();
   if(ag.buyLockUntil>now){
@@ -1796,7 +1796,7 @@ function updateLabels(){
     var b=ag.balance||0;
     var col=b>5000?'#44ff88':b>2000?'#ffcc00':b>500?'#ff8844':'#ff3333';
     ag.balLabelEl.style.color=col;
-    var ethStr=ag.ethBalance!=null?('<br><span style="color:#88ccff;font-size:8px">Ξ '+(ag.ethBalance).toFixed(4)+'</span>'):'';
+    var ethStr=ag.ethBalance!=null?('<br><span style="color:#88ccff;font-size:8px"><img src="eth.png" style="width:8px;height:8px;vertical-align:middle;margin-right:2px"> '+(ag.ethBalance).toFixed(4)+'</span>'):'';
     ag.balLabelEl.style.textAlign='center';
     ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+ethStr;
   });
