@@ -60,18 +60,18 @@ canvas{display:block;position:fixed;inset:0}
 #spec-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
 #spec-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
 #spec-response{font-size:9px;letter-spacing:.3px;color:#888;line-height:1.9;min-height:0;max-width:480px}
-#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:200px;max-width:240px;display:flex;flex-direction:column;gap:0;pointer-events:all;flex-shrink:0}
+#trade-log-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:10px 14px;min-width:210px;max-width:260px;display:flex;flex-direction:column;gap:0;pointer-events:all;flex-shrink:0}
 .tl-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:6px;flex-shrink:0}
-#tl-scroll{display:flex;flex-direction:column;gap:3px;max-height:102px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#333 transparent}
+#tl-scroll{display:flex;flex-direction:column;gap:2px;max-height:180px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#333 transparent}
 #tl-scroll::-webkit-scrollbar{width:3px}
 #tl-scroll::-webkit-scrollbar-track{background:transparent}
 #tl-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
-.tl-row{font-size:7px;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:2px 0;border-radius:2px;transition:background .1s}
+.tl-row{display:flex;align-items:baseline;gap:4px;cursor:pointer;padding:3px 2px;border-radius:2px;transition:background .1s;min-width:0}
 .tl-row:hover{background:rgba(255,255,255,.06)}
-.tl-agent{margin-right:4px}
-.tl-pos{color:#44ff88}
-.tl-neg{color:#ff4444}
-.tl-time{color:#888;float:right}
+.tl-agent{font-size:7px;letter-spacing:1px;flex-shrink:0}
+.tl-pos{color:#44ff88;font-size:7px;letter-spacing:.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tl-neg{color:#ff4444;font-size:7px;letter-spacing:.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tl-time{color:#555;font-size:6px;flex-shrink:0;letter-spacing:.3px}
 #rankings-panel{background:rgba(0,0,6,.82);border:1px solid #222;padding:8px 12px;pointer-events:none;min-width:170px;margin-top:6px}
 .rnk-title{font-size:7px;letter-spacing:3px;color:#fff;margin-bottom:5px}
 .rnk-row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:7px;letter-spacing:1px;white-space:nowrap}
@@ -88,7 +88,7 @@ canvas{display:block;position:fixed;inset:0}
 .convo-who{letter-spacing:1.5px;margin-bottom:1px}
 .convo-arrow{color:#333;margin:0 3px}
 .convo-text{color:#666;font-style:italic}
-.tl-empty{color:#666;font-size:7px}
+.tl-empty{color:#999;font-size:7px;letter-spacing:1px;padding:4px 0}
 #trade-detail{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,8,.97);border:1px solid #2a2a4a;padding:22px 28px;min-width:320px;z-index:200;display:none;font-family:'Courier New',monospace;color:#ddd;pointer-events:all}
 #trade-detail-overlay{position:fixed;inset:0;z-index:199;display:none;background:rgba(0,0,0,.4);cursor:pointer;pointer-events:all}
 .td-title{font-size:8px;letter-spacing:4px;color:#fff;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
@@ -1316,7 +1316,7 @@ function updateTradeLog(){
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
       var cls=entry.pos?'tl-pos':'tl-neg';
       var agCol={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'}[entry.agent]||'#aaa';
-      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent" style="color:'+agCol+'">'+entry.agent+'</span><span class="'+cls+'">'+entry.text+'</span><span class="tl-time">'+ageStr+'</span></div>';
+      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent" style="color:'+agCol+'">'+entry.agent+'</span><span class="'+cls+'" title="'+escHtml(entry.text)+'">'+escHtml(entry.text)+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
   }
   el.innerHTML='<div class="tl-title">◈ TRADE FEED</div><div id="tl-scroll">'+rows+'</div>';
