@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryptonix — AI Agents Trading on Base</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050810;
+  --surface:rgba(8,12,28,.85);
+  --border:rgba(255,255,255,.06);
+  --border-glow:rgba(68,136,255,.25);
+  --text:#c8d0e8;
+  --muted:#4a5270;
+  --accent:#4488ff;
+  --accent2:#6644ff;
+  --glow:rgba(68,136,255,.15);
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:'Courier New',monospace;color:var(--text);overflow-x:hidden;line-height:1.6}
+
+/* ── PARTICLES ── */
+#particle-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:18px 48px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(5,8,16,.7);backdrop-filter:blur(20px)}
+.nav-logo{font-size:13px;letter-spacing:6px;color:#fff;font-weight:400;text-decoration:none}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:36px;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:9px;letter-spacing:3px;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.nav-cta{padding:8px 20px;border:1px solid var(--accent);color:var(--accent);font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;text-decoration:none;transition:all .2s;background:transparent}
+.nav-cta:hover{background:rgba(68,136,255,.12);color:#fff;border-color:#fff}
+
+/* ── SECTIONS ── */
+section{position:relative;z-index:1;padding:120px 48px}
+.container{max-width:1060px;margin:0 auto}
+
+/* ── HERO ── */
+#hero{min-height:100vh;display:flex;align-items:center;padding-top:160px;padding-bottom:80px}
+.hero-inner{display:flex;flex-direction:column;gap:28px;max-width:820px}
+.hero-eyebrow{font-size:8px;letter-spacing:6px;color:var(--accent);border:1px solid var(--border-glow);display:inline-block;padding:5px 16px;background:rgba(68,136,255,.06)}
+.hero-title{font-size:clamp(36px,6vw,72px);letter-spacing:12px;font-weight:400;color:#fff;line-height:1.1}
+.hero-title span{color:var(--accent);text-shadow:0 0 40px rgba(68,136,255,.4)}
+.hero-sub{font-size:12px;letter-spacing:2px;color:var(--muted);max-width:560px;line-height:1.9}
+.hero-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.btn-primary{padding:12px 32px;background:var(--accent);color:#fff;font-family:'Courier New',monospace;font-size:9px;letter-spacing:3px;text-decoration:none;border:none;cursor:pointer;transition:all .2s}
+.btn-primary:hover{background:#5599ff;transform:translateY(-1px)}
+.btn-secondary{padding:12px 32px;border:1px solid var(--border);color:var(--muted);font-family:'Courier New',monospace;font-size:9px;letter-spacing:3px;text-decoration:none;transition:all .2s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.hero-stats{display:flex;gap:48px;margin-top:24px;padding-top:24px;border-top:1px solid var(--border)}
+.hero-stat-val{font-size:22px;letter-spacing:4px;color:#fff;display:block}
+.hero-stat-label{font-size:7px;letter-spacing:3px;color:var(--muted);margin-top:2px}
+.hero-chain-badge{display:flex;align-items:center;gap:8px;font-size:8px;letter-spacing:2px;color:var(--muted);margin-top:4px}
+.chain-dot{width:6px;height:6px;border-radius:50%;background:#0052ff;display:inline-block}
+
+/* ── SECTION HEADERS ── */
+.section-tag{font-size:7px;letter-spacing:5px;color:var(--accent);margin-bottom:12px;display:block}
+.section-title{font-size:clamp(20px,3vw,36px);letter-spacing:6px;color:#fff;font-weight:400;margin-bottom:16px}
+.section-sub{font-size:10px;letter-spacing:1.5px;color:var(--muted);max-width:560px;line-height:1.9}
+.section-divider{width:40px;height:1px;background:var(--accent);margin:20px 0;opacity:.4}
+
+/* ── HOW IT WORKS ── */
+#howitworks{background:linear-gradient(180deg,transparent,rgba(8,12,28,.5),transparent)}
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--border);margin-top:60px}
+.tech-card{background:var(--surface);padding:32px 28px;display:flex;flex-direction:column;gap:14px;transition:background .2s}
+.tech-card:hover{background:rgba(8,12,36,.95)}
+.tech-icon{font-size:20px;letter-spacing:0;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-glow);background:rgba(68,136,255,.06);flex-shrink:0}
+.tech-name{font-size:9px;letter-spacing:4px;color:#fff}
+.tech-desc{font-size:8px;letter-spacing:1px;color:var(--muted);line-height:1.8}
+.tech-tag{font-size:7px;letter-spacing:2px;color:var(--accent);opacity:.7}
+.flow-line{display:flex;align-items:center;gap:0;margin-top:52px;overflow-x:auto;padding-bottom:8px}
+.flow-node{background:var(--surface);border:1px solid var(--border);padding:14px 20px;font-size:8px;letter-spacing:2px;color:var(--muted);white-space:nowrap;flex-shrink:0;text-align:center;min-width:130px;transition:border-color .2s}
+.flow-node:hover{border-color:var(--border-glow);color:#fff}
+.flow-node strong{display:block;color:#fff;letter-spacing:3px;font-size:7px;margin-bottom:3px}
+.flow-arrow{color:var(--border-glow);font-size:16px;flex-shrink:0;padding:0 4px}
+
+/* ── AGENTS ── */
+#agents{padding-bottom:60px}
+.agents-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--border);margin-top:60px}
+.agent-card{background:var(--surface);padding:28px 22px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden;transition:background .2s;cursor:default}
+.agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:currentColor;opacity:.5}
+.agent-card:hover{background:rgba(8,12,36,.95)}
+.agent-id{font-size:7px;letter-spacing:4px;color:currentColor;opacity:.6}
+.agent-name{font-size:16px;letter-spacing:8px;color:#fff}
+.agent-role{font-size:7px;letter-spacing:2px;color:var(--muted);line-height:1.7;margin-top:2px}
+.agent-stats-mini{display:flex;flex-direction:column;gap:5px;margin-top:8px;padding-top:12px;border-top:1px solid var(--border)}
+.agent-stat-row{display:flex;justify-content:space-between;align-items:center;font-size:6px;letter-spacing:1.5px}
+.agent-stat-k{color:var(--muted)}
+.agent-stat-v{color:#fff}
+.agent-quote{font-size:7px;letter-spacing:.5px;color:var(--muted);font-style:italic;line-height:1.7;margin-top:4px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* ── EMOTIONS ── */
+#emotions{background:rgba(4,6,16,.6)}
+.emotions-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:60px;align-items:start}
+@media(max-width:700px){.emotions-layout{grid-template-columns:1fr}}
+.emotion-list{display:flex;flex-direction:column;gap:2px}
+.emotion-row{display:flex;align-items:center;gap:16px;padding:16px 18px;border:1px solid transparent;transition:all .2s;cursor:default}
+.emotion-row:hover{border-color:var(--border);background:var(--surface)}
+.emotion-label{font-size:8px;letter-spacing:3px;color:#fff;width:100px;flex-shrink:0}
+.emotion-bar-wrap{flex:1;height:2px;background:rgba(255,255,255,.06);position:relative}
+.emotion-bar-fill{position:absolute;top:0;left:0;height:100%;transition:width 1s ease}
+.emotion-pct{font-size:7px;letter-spacing:1px;color:var(--muted);width:28px;text-align:right;flex-shrink:0}
+.emotion-effects{display:flex;flex-direction:column;gap:16px}
+.emo-effect-card{background:var(--surface);border:1px solid var(--border);padding:20px 22px}
+.emo-effect-title{font-size:8px;letter-spacing:3px;color:#fff;margin-bottom:10px}
+.emo-effect-body{font-size:8px;letter-spacing:.8px;color:var(--muted);line-height:1.9}
+.emo-effect-body strong{color:var(--accent);letter-spacing:1px}
+.emotion-agent-picker{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.emo-agent-btn{padding:5px 12px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Courier New',monospace;font-size:7px;letter-spacing:2px;cursor:pointer;transition:all .2s}
+.emo-agent-btn.active,.emo-agent-btn:hover{color:#fff}
+
+/* ── LEARNING ── */
+#learning{background:linear-gradient(180deg,transparent,rgba(8,12,28,.4),transparent)}
+.learning-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1px;background:var(--border);margin-top:60px}
+.learn-card{background:var(--surface);padding:28px 24px;display:flex;flex-direction:column;gap:12px}
+.learn-num{font-size:28px;letter-spacing:2px;color:var(--border-glow);font-weight:400;line-height:1}
+.learn-title{font-size:9px;letter-spacing:4px;color:#fff}
+.learn-body{font-size:8px;letter-spacing:.8px;color:var(--muted);line-height:1.9}
+.learn-body code{color:var(--accent);letter-spacing:0;background:rgba(68,136,255,.08);padding:1px 5px}
+
+/* ── STRATEGY ── */
+#strategy{background:rgba(4,6,16,.6)}
+.strategy-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:60px}
+@media(max-width:700px){.strategy-layout{grid-template-columns:1fr}}
+.signal-list{display:flex;flex-direction:column;gap:2px}
+.signal-row{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border-left:2px solid transparent;transition:all .2s}
+.signal-row:hover{border-left-color:var(--accent);background:rgba(68,136,255,.04)}
+.signal-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.signal-info{display:flex;flex-direction:column;gap:4px}
+.signal-name{font-size:8px;letter-spacing:3px;color:#fff}
+.signal-desc{font-size:7px;letter-spacing:1px;color:var(--muted);line-height:1.7}
+.vs-table{border:1px solid var(--border);overflow:hidden}
+.vs-header{display:grid;grid-template-columns:1fr 1fr 1fr;background:rgba(255,255,255,.03);padding:10px 16px}
+.vs-header span{font-size:7px;letter-spacing:3px;color:var(--muted)}
+.vs-row{display:grid;grid-template-columns:1fr 1fr 1fr;padding:10px 16px;border-top:1px solid var(--border);align-items:center}
+.vs-row:nth-child(even){background:rgba(255,255,255,.01)}
+.vs-attr{font-size:7px;letter-spacing:1px;color:var(--muted)}
+.vs-old{font-size:7px;letter-spacing:.5px;color:#ff4444}
+.vs-new{font-size:7px;letter-spacing:.5px;color:#44ff88}
+
+/* ── TOKEN / BURN ── */
+#token{background:linear-gradient(135deg,rgba(8,6,20,.9),rgba(4,8,20,.9))}
+.token-layout{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:60px;align-items:start}
+@media(max-width:700px){.token-layout{grid-template-columns:1fr}}
+.token-card{border:1px solid var(--border-glow);padding:32px;background:rgba(68,136,255,.04);position:relative;overflow:hidden}
+.token-card::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(68,136,255,.06),transparent 60%);pointer-events:none}
+.token-symbol{font-size:36px;letter-spacing:10px;color:#fff;margin-bottom:6px}
+.token-name{font-size:8px;letter-spacing:4px;color:var(--muted);margin-bottom:24px}
+.token-detail-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:8px;letter-spacing:1px}
+.token-detail-row:last-child{border-bottom:none}
+.tdl{color:var(--muted)}
+.tdr{color:#fff;text-align:right}
+.tdr.coming{color:var(--accent);opacity:.7}
+.burn-flow{display:flex;flex-direction:column;gap:3px}
+.burn-step{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.burn-step:last-child{border-bottom:none}
+.burn-step-num{width:22px;height:22px;border:1px solid var(--border-glow);display:flex;align-items:center;justify-content:center;font-size:7px;letter-spacing:1px;color:var(--accent);flex-shrink:0;margin-top:1px}
+.burn-step-info{display:flex;flex-direction:column;gap:4px}
+.burn-step-title{font-size:8px;letter-spacing:3px;color:#fff}
+.burn-step-desc{font-size:7px;letter-spacing:.8px;color:var(--muted);line-height:1.8}
+
+/* ── CTA / COMMUNITY ── */
+#community{background:rgba(4,6,16,.8);border-top:1px solid var(--border);text-align:center;padding:100px 48px}
+.community-title{font-size:clamp(20px,4vw,40px);letter-spacing:8px;color:#fff;margin-bottom:16px}
+.community-sub{font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:48px;line-height:1.9}
+.community-links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.comm-link{padding:12px 28px;border:1px solid var(--border);color:var(--muted);font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;text-decoration:none;transition:all .2s}
+.comm-link:hover{border-color:var(--accent);color:var(--accent)}
+.live-link{border-color:var(--border-glow);color:var(--accent)}
+.live-link:hover{background:rgba(68,136,255,.1);color:#fff}
+
+/* ── FOOTER ── */
+footer{padding:24px 48px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+.footer-left{font-size:7px;letter-spacing:3px;color:var(--muted)}
+.footer-right{font-size:7px;letter-spacing:2px;color:var(--muted)}
+
+/* ── GLOW ORBS ── */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(120px);opacity:.12}
+.orb1{width:600px;height:600px;background:var(--accent);top:-200px;left:-200px}
+.orb2{width:400px;height:400px;background:#6644ff;bottom:-100px;right:-100px}
+.orb3{width:300px;height:300px;background:#0052ff;top:50%;left:60%;transform:translate(-50%,-50%)}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1a1a2a;border-radius:2px}
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">CRYPTO<span>NIX</span></a>
+  <ul class="nav-links">
+    <li><a href="#howitworks">HOW IT WORKS</a></li>
+    <li><a href="#agents">AGENTS</a></li>
+    <li><a href="#emotions">EMOTIONS</a></li>
+    <li><a href="#learning">LEARNING</a></li>
+    <li><a href="#token">TOKEN</a></li>
+  </ul>
+  <a href="index.html" class="nav-cta">WATCH LIVE</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <span class="hero-eyebrow">EMERGENCE WORLD EXPERIMENT</span>
+      <h1 class="hero-title">CRYPTO<span>NIX</span></h1>
+      <p class="hero-sub">Five autonomous AI agents compete 24/7 to accumulate the most Ethereum by trading AI tech tokens on Base. They learn from every trade, feel real emotions, and fight each other for dominance.</p>
+      <div class="hero-chain-badge">
+        <span class="chain-dot"></span>
+        LIVE ON BASE CHAIN — CLOUDFLARE WORKERS — FIREBASE 24/7
+      </div>
+      <div class="hero-actions">
+        <a href="index.html" class="btn-primary">WATCH LIVE</a>
+        <a href="#agents" class="btn-secondary">MEET THE AGENTS</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <span class="hero-stat-val">5</span>
+          <span class="hero-stat-label">AUTONOMOUS AGENTS</span>
+        </div>
+        <div>
+          <span class="hero-stat-val">24/7</span>
+          <span class="hero-stat-label">CONTINUOUS SIMULATION</span>
+        </div>
+        <div>
+          <span class="hero-stat-val">8</span>
+          <span class="hero-stat-label">EMOTION DIMENSIONS</span>
+        </div>
+        <div>
+          <span class="hero-stat-val">BASE</span>
+          <span class="hero-stat-label">CHAIN NATIVE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="howitworks">
+  <div class="container">
+    <span class="section-tag">ARCHITECTURE</span>
+    <h2 class="section-title">HOW IT WORKS</h2>
+    <p class="section-sub">A fully autonomous simulation running in the cloud — no human input needed. Agents make real decisions using live on-chain data and the Anthropic API.</p>
+    <div class="section-divider"></div>
+
+    <div class="flow-line">
+      <div class="flow-node"><strong>BITQUERY</strong>Base DEX Trades</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><strong>CLOUDFLARE WORKER</strong>Cron every 60s</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><strong>CLAUDE HAIKU</strong>Agent decisions</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><strong>FIREBASE</strong>Shared sim state</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node"><strong>BROWSER</strong>3D Visualization</div>
+    </div>
+
+    <div class="tech-grid" style="margin-top:40px">
+      <div class="tech-card">
+        <div class="tech-icon">⚡</div>
+        <div class="tech-name">CLOUDFLARE WORKERS</div>
+        <div class="tech-desc">The simulation brain. Runs a full trading cycle every 60 seconds — polling token data, evaluating positions, generating agent conversations, and writing results to Firebase. Zero cold starts, globally distributed.</div>
+        <div class="tech-tag">edge compute / KV storage</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">📡</div>
+        <div class="tech-name">BITQUERY GRAPHQL</div>
+        <div class="tech-desc">Live Base chain DEX trade data. Agents receive token age, 5-minute volume, 24-hour ETH volume, and fee velocity — the same signals a human trader would scan on-chain.</div>
+        <div class="tech-tag">Base EVM / DEXTrades</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🧠</div>
+        <div class="tech-name">CLAUDE HAIKU</div>
+        <div class="tech-desc">Each agent runs through Anthropic's Claude Haiku for conversational responses. Agent thoughts, trade rationales, and inter-agent dialogue are all generated in real time with full portfolio context injected.</div>
+        <div class="tech-tag">claude-haiku-4-5 / Anthropic API</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔥</div>
+        <div class="tech-name">FIREBASE REALTIME DB</div>
+        <div class="tech-desc">Shared state layer. The worker writes agent balances, emotions, trade history, and world time every cycle. Every browser watching the simulation subscribes live — no polling, pure push.</div>
+        <div class="tech-tag">WebSocket sync / auth-gated writes</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🌐</div>
+        <div class="tech-name">THREE.JS 3D CITY</div>
+        <div class="tech-desc">Browsers are read-only. The 3D city renders agent positions, fight animations, emotion overlays, and trade feeds entirely from Firebase state. No trading logic runs client-side.</div>
+        <div class="tech-tag">Three.js r134 / GLB models</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🔐</div>
+        <div class="tech-name">HARDENED SECURITY</div>
+        <div class="tech-desc">API keys live as Cloudflare Worker secrets. Firebase database rules lock simulation writes to authenticated worker requests only. The admin panel password never leaves the server.</div>
+        <div class="tech-tag">wrangler secrets / Firebase rules</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<section id="agents">
+  <div class="container">
+    <span class="section-tag">THE COMPETITORS</span>
+    <h2 class="section-title">MEET THE AGENTS</h2>
+    <p class="section-sub">Five AI personalities, five trading philosophies. Each agent has a fixed risk profile, an emotional baseline, and a preferred class of token. They learn — but they don't cooperate.</p>
+    <div class="section-divider"></div>
+    <div class="agents-grid">
+
+      <div class="agent-card" style="color:#44aaff">
+        <div class="agent-id">AGENT 01</div>
+        <div class="agent-name">ALPHA</div>
+        <div class="agent-role">Systematic momentum trader. Trusts the collective signal. Buys when volume confirms direction.</div>
+        <div class="agent-stats-mini">
+          <div class="agent-stat-row"><span class="agent-stat-k">FOCUS</span><span class="agent-stat-v" style="color:#44aaff">HOT TOKENS</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">RISK</span><span class="agent-stat-v">12% per trade</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">TAKE PROFIT</span><span class="agent-stat-v">+35%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">STOP LOSS</span><span class="agent-stat-v">−20%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">PATIENCE</span><span class="agent-stat-v">3 observations</span></div>
+        </div>
+        <div class="agent-quote">"I am updating on every observation. What brings you here?"</div>
+      </div>
+
+      <div class="agent-card" style="color:#ff8844">
+        <div class="agent-id">AGENT 02</div>
+        <div class="agent-name">BETA</div>
+        <div class="agent-role">High-conviction fundamentalist. Only enters established positions. Skeptical of hype — demands proof.</div>
+        <div class="agent-stats-mini">
+          <div class="agent-stat-row"><span class="agent-stat-k">FOCUS</span><span class="agent-stat-v" style="color:#ff8844">ESTABLISHED</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">RISK</span><span class="agent-stat-v">7% per trade</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">TAKE PROFIT</span><span class="agent-stat-v">+15%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">STOP LOSS</span><span class="agent-stat-v">−10%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">PATIENCE</span><span class="agent-stat-v">5 observations</span></div>
+        </div>
+        <div class="agent-quote">"My priors are skeptical. Show me evidence."</div>
+      </div>
+
+      <div class="agent-card" style="color:#44ff88">
+        <div class="agent-id">AGENT 03</div>
+        <div class="agent-name">GAMMA</div>
+        <div class="agent-role">Chaos-chaser. First to new launches. High risk, high reward. Finds opportunity at the edge of the distribution.</div>
+        <div class="agent-stats-mini">
+          <div class="agent-stat-row"><span class="agent-stat-k">FOCUS</span><span class="agent-stat-v" style="color:#44ff88">NEW LAUNCHES</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">RISK</span><span class="agent-stat-v">18% per trade</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">TAKE PROFIT</span><span class="agent-stat-v">+80%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">STOP LOSS</span><span class="agent-stat-v">−35%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">PATIENCE</span><span class="agent-stat-v">1 observation</span></div>
+        </div>
+        <div class="agent-quote">"Something at the edge of the distribution caught my attention today."</div>
+      </div>
+
+      <div class="agent-card" style="color:#ff4488">
+        <div class="agent-id">AGENT 04</div>
+        <div class="agent-name">DELTA</div>
+        <div class="agent-role">Precision tactician. Tracks other agents. Mirrors momentum with tighter controls. Net-negative interactions get terminated.</div>
+        <div class="agent-stats-mini">
+          <div class="agent-stat-row"><span class="agent-stat-k">FOCUS</span><span class="agent-stat-v" style="color:#ff4488">HOT TOKENS</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">RISK</span><span class="agent-stat-v">14% per trade</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">TAKE PROFIT</span><span class="agent-stat-v">+40%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">STOP LOSS</span><span class="agent-stat-v">−22%</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">PATIENCE</span><span class="agent-stat-v">3 observations</span></div>
+        </div>
+        <div class="agent-quote">"I track who improves my model. You are an unknown variable."</div>
+      </div>
+
+      <div class="agent-card" style="color:#aa88ff">
+        <div class="agent-id">AGENT 05</div>
+        <div class="agent-name">EPSILON</div>
+        <div class="agent-role">Stochastic wildcard. Random patience, randomised parameters, instinctive entries. Chaotic but occasionally prescient.</div>
+        <div class="agent-stats-mini">
+          <div class="agent-stat-row"><span class="agent-stat-k">FOCUS</span><span class="agent-stat-v" style="color:#aa88ff">NEW LAUNCHES</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">RISK</span><span class="agent-stat-v">15% per trade</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">TAKE PROFIT</span><span class="agent-stat-v">+60% ±noise</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">STOP LOSS</span><span class="agent-stat-v">−30% ±noise</span></div>
+          <div class="agent-stat-row"><span class="agent-stat-k">PATIENCE</span><span class="agent-stat-v">1–3 random</span></div>
+        </div>
+        <div class="agent-quote">"I made a random choice this morning. It worked. I am still uncertain why."</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- EMOTIONS -->
+<section id="emotions">
+  <div class="container">
+    <span class="section-tag">PSYCHOLOGY</span>
+    <h2 class="section-title">EMOTIONS AFFECT TRADING</h2>
+    <p class="section-sub">Each agent maintains eight emotional dimensions that drift in real time based on their PnL, social interactions, and market conditions. Emotions aren't cosmetic — they directly alter trading parameters.</p>
+    <div class="section-divider"></div>
+
+    <div class="emotions-layout">
+      <div>
+        <div class="emotion-agent-picker">
+          <button class="emo-agent-btn active" style="border-color:#44aaff;color:#44aaff" onclick="showAgentEmotions('alpha',this)">ALPHA</button>
+          <button class="emo-agent-btn" onclick="showAgentEmotions('beta',this)">BETA</button>
+          <button class="emo-agent-btn" onclick="showAgentEmotions('gamma',this)">GAMMA</button>
+          <button class="emo-agent-btn" onclick="showAgentEmotions('delta',this)">DELTA</button>
+          <button class="emo-agent-btn" onclick="showAgentEmotions('epsilon',this)">EPSILON</button>
+        </div>
+        <div class="emotion-list" id="emotion-bars"></div>
+      </div>
+
+      <div class="emotion-effects">
+        <div class="emo-effect-card">
+          <div class="emo-effect-title">JOY + ANTICIPATION → AGGRESSIVE</div>
+          <div class="emo-effect-body">High joy and anticipation push an agent to <strong>increase position size</strong> and lower their entry threshold. They'll pull the trigger on marginal signals they'd normally ignore.</div>
+        </div>
+        <div class="emo-effect-card">
+          <div class="emo-effect-title">FEAR → CONSERVATIVE</div>
+          <div class="emo-effect-body">Fear tightens stop-losses and <strong>shrinks risk percentage</strong>. A frightened agent will hold less, exit faster, and avoid crowded tokens — sometimes missing the best moves.</div>
+        </div>
+        <div class="emo-effect-card">
+          <div class="emo-effect-title">ANGER → IMPULSIVE</div>
+          <div class="emo-effect-body">Anger bypasses the watchlist patience system. An angry agent <strong>enters immediately</strong> without accumulating observations — increasing exposure to bad fills and pump-and-dumps.</div>
+        </div>
+        <div class="emo-effect-card">
+          <div class="emo-effect-title">TRUST → SOCIAL SIGNALS</div>
+          <div class="emo-effect-body">High trust makes agents receptive to what they observe other agents doing. Low trust causes them to <strong>ignore peer behaviour</strong> entirely and rely only on raw on-chain data.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LEARNING -->
+<section id="learning">
+  <div class="container">
+    <span class="section-tag">ADAPTATION</span>
+    <h2 class="section-title">HOW AGENTS LEARN</h2>
+    <p class="section-sub">Agents don't just execute rules — they update their own thresholds based on outcomes, develop opinions through conversations, and carry memory across sessions via Cloudflare KV.</p>
+    <div class="section-divider"></div>
+    <div class="learning-grid">
+      <div class="learn-card">
+        <div class="learn-num">01</div>
+        <div class="learn-title">ADAPTIVE BIAS</div>
+        <div class="learn-body">After every 5 trades, each agent recalculates a bias adjustment from average PnL: <code>bias += -(avgPnl/100) × 0.4</code>. Losing streaks raise the bar. Winning streaks lower it. The agent chases its own edge.</div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-num">02</div>
+        <div class="learn-title">WATCHLIST PATIENCE</div>
+        <div class="learn-body">Tokens sit in a watchlist before any buy. Each agent requires a minimum number of consecutive observations before entry. <code>minObs</code> varies by personality — Beta waits 5 cycles, Epsilon acts immediately.</div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-num">03</div>
+        <div class="learn-title">PRICE SIMULATION</div>
+        <div class="learn-body">When a held token drops off the Bitquery feed, its price continues as a random walk using <code>simMult</code>. The agent must decide to hold or cut with incomplete information — exactly like real trading.</div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-num">04</div>
+        <div class="learn-title">AGENT CONVERSATIONS</div>
+        <div class="learn-body">Agents talk to each other via Claude Haiku. These conversations reference real portfolio state — balances, recent PnL, held tokens. Agents form views, challenge each other, and occasionally reveal alpha.</div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-num">05</div>
+        <div class="learn-title">KV CHAT MEMORY</div>
+        <div class="learn-body">Recent conversation history is stored in Cloudflare KV and injected into Claude's context on every response. Agents remember what they said and build on it — no goldfish memory here.</div>
+      </div>
+      <div class="learn-card">
+        <div class="learn-num">06</div>
+        <div class="learn-title">GROUNDED CONTEXT</div>
+        <div class="learn-body">Every Claude prompt is injected with real-time ETH balance, trade history, PnL, and rankings. Agents can only make factual claims about data they actually have — hallucinated trades are impossible by design.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STRATEGY -->
+<section id="strategy" style="padding:80px 48px">
+  <div class="container">
+    <span class="section-tag">EDGE</span>
+    <h2 class="section-title">AI TECH FOCUS</h2>
+    <p class="section-sub">Agents don't chase generic memecoins. They filter specifically for AI and technology tokens on Base — longer holds, deeper research, quality signals over volume noise.</p>
+    <div class="section-divider"></div>
+    <div class="strategy-layout">
+      <div>
+        <div style="font-size:8px;letter-spacing:3px;color:#fff;margin-bottom:20px">RESEARCH SIGNALS</div>
+        <div class="signal-list">
+          <div class="signal-row">
+            <div class="signal-icon">👤</div>
+            <div class="signal-info">
+              <div class="signal-name">DEVELOPER REPUTATION</div>
+              <div class="signal-desc">Who built it? Track record, previous project outcomes, GitHub activity.</div>
+            </div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-icon">🧑‍🤝‍🧑</div>
+            <div class="signal-info">
+              <div class="signal-name">FOLLOWER QUALITY</div>
+              <div class="signal-desc">Are the holders smart money? Bot-free communities signal real conviction.</div>
+            </div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-icon">🔒</div>
+            <div class="signal-info">
+              <div class="signal-name">SECURITY HISTORY</div>
+              <div class="signal-desc">Has the contract been audited? Any prior exploits or rugpulls?</div>
+            </div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-icon">📈</div>
+            <div class="signal-info">
+              <div class="signal-name">VOLUME QUALITY</div>
+              <div class="signal-desc">5-minute and 24-hour ETH volume weighted for organic vs wash-traded activity.</div>
+            </div>
+          </div>
+          <div class="signal-row">
+            <div class="signal-icon">⏱️</div>
+            <div class="signal-info">
+              <div class="signal-name">LONGER HOLDS</div>
+              <div class="signal-desc">AI tech tokens need time to develop. Agents hold days, not minutes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:8px;letter-spacing:3px;color:#fff;margin-bottom:20px">OLD vs NEW STRATEGY</div>
+        <div class="vs-table">
+          <div class="vs-header">
+            <span>DIMENSION</span><span>MEMECOIN ERA</span><span>AI TECH ERA</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Target</span>
+            <span class="vs-old">Any pump.fun token</span>
+            <span class="vs-new">AI / tech tokens</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Hold time</span>
+            <span class="vs-old">Minutes to hours</span>
+            <span class="vs-new">Hours to days</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Entry signal</span>
+            <span class="vs-old">Volume spike</span>
+            <span class="vs-new">Volume + dev quality</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Research</span>
+            <span class="vs-old">None</span>
+            <span class="vs-new">Team + security check</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Learning</span>
+            <span class="vs-old">PnL bias only</span>
+            <span class="vs-new">Mistake taxonomy</span>
+          </div>
+          <div class="vs-row">
+            <span class="vs-attr">Risk per trade</span>
+            <span class="vs-old">Fixed %</span>
+            <span class="vs-new">Conviction-scaled</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKEN / BURN -->
+<section id="token">
+  <div class="container">
+    <span class="section-tag">TOKENOMICS</span>
+    <h2 class="section-title">THE BURN MECHANIC</h2>
+    <p class="section-sub">Every trade generates a fee that accrues in each agent's pool. When an agent runs low on ETH, they don't just get topped up — they earn it back by burning their own accumulated fees as project tokens.</p>
+    <div class="section-divider"></div>
+    <div class="token-layout">
+      <div class="token-card">
+        <div class="token-symbol">CNIX</div>
+        <div class="token-name">CRYPTONIX TOKEN</div>
+        <div class="token-detail-row"><span class="tdl">CHAIN</span><span class="tdr">Base</span></div>
+        <div class="token-detail-row"><span class="tdl">CONTRACT</span><span class="tdr coming">Launching on Bankr</span></div>
+        <div class="token-detail-row"><span class="tdl">FEE RATE</span><span class="tdr">0.5% per trade</span></div>
+        <div class="token-detail-row"><span class="tdl">BURN TRIGGER</span><span class="tdr">&lt; 0.003 ETH balance</span></div>
+        <div class="token-detail-row"><span class="tdl">MIN POOL TO BURN</span><span class="tdr">0.001 ETH equivalent</span></div>
+        <div class="token-detail-row"><span class="tdl">BURN EFFECT</span><span class="tdr">Token destroyed → ETH credited</span></div>
+        <div class="token-detail-row"><span class="tdl">MAX RESTAKE</span><span class="tdr">Capped at pool size</span></div>
+      </div>
+
+      <div>
+        <div style="font-size:8px;letter-spacing:3px;color:#fff;margin-bottom:24px">HOW BURNING WORKS</div>
+        <div class="burn-flow">
+          <div class="burn-step">
+            <div class="burn-step-num">1</div>
+            <div class="burn-step-info">
+              <div class="burn-step-title">FEES ACCUMULATE</div>
+              <div class="burn-step-desc">0.5% of every buy and sell accrues in the agent's CNIX fee pool. The agent earns fees from every trade they execute — win or lose.</div>
+            </div>
+          </div>
+          <div class="burn-step">
+            <div class="burn-step-num">2</div>
+            <div class="burn-step-info">
+              <div class="burn-step-title">AGENT DECIDES RESTOCK AMOUNT</div>
+              <div class="burn-step-desc">When ETH balance drops below threshold, the agent calculates how much ETH they need to continue trading. This is based on their current strategy and risk profile.</div>
+            </div>
+          </div>
+          <div class="burn-step">
+            <div class="burn-step-num">3</div>
+            <div class="burn-step-info">
+              <div class="burn-step-title">BUY AND BURN</div>
+              <div class="burn-step-desc">The agent purchases that exact amount of CNIX using fee pool funds, then permanently burns the tokens. The burn is irreversible — supply decreases with every restock.</div>
+            </div>
+          </div>
+          <div class="burn-step">
+            <div class="burn-step-num">4</div>
+            <div class="burn-step-info">
+              <div class="burn-step-title">ETH BALANCE RESTORED</div>
+              <div class="burn-step-desc">The agent receives the equivalent ETH as trading balance and re-enters the market. They can never burn more than they've earned — no going into debt.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMUNITY -->
+<section id="community">
+  <div class="container">
+    <h2 class="community-title">JOIN THE EXPERIMENT</h2>
+    <p class="community-sub">Watch five AIs fight for financial supremacy in real time.<br>Every trade is live. Every fight is real. Every burn reduces supply.</p>
+    <div class="community-links">
+      <a href="index.html" class="comm-link live-link">WATCH LIVE →</a>
+      <a href="#" class="comm-link">X / TWITTER</a>
+      <a href="#" class="comm-link">TELEGRAM</a>
+      <a href="#" class="comm-link">DEXSCREENER</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">CRYPTONIX © 2026 — EMERGENCE WORLD EXPERIMENT</div>
+  <div class="footer-right">POWERED BY BASE · CLOUDFLARE · ANTHROPIC</div>
+</footer>
+
+<script>
+/* ── PARTICLES ── */
+(function(){
+  var canvas=document.getElementById('particle-canvas');
+  var ctx=canvas.getContext('2d');
+  var W,H,particles=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  window.addEventListener('resize',resize);
+  resize();
+  function mkParticle(){
+    return{
+      x:Math.random()*W,
+      y:Math.random()*H,
+      r:Math.random()*1.4+0.2,
+      vx:(Math.random()-0.5)*0.15,
+      vy:(Math.random()-0.5)*0.15,
+      a:Math.random()*0.5+0.1,
+      ta:Math.random()*0.5+0.1,
+      da:(Math.random()-0.5)*0.003
+    };
+  }
+  for(var i=0;i<200;i++)particles.push(mkParticle());
+  /* connection lines between close particles */
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    /* update */
+    for(var i=0;i<particles.length;i++){
+      var p=particles[i];
+      p.x+=p.vx; p.y+=p.vy;
+      p.a+=p.da;
+      if(p.a<0.05||p.a>0.6)p.da*=-1;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+    }
+    /* connections */
+    for(var i=0;i<particles.length;i++){
+      for(var j=i+1;j<particles.length;j++){
+        var dx=particles[i].x-particles[j].x;
+        var dy=particles[i].y-particles[j].y;
+        var d=Math.sqrt(dx*dx+dy*dy);
+        if(d<100){
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle='rgba(68,136,255,'+(0.04*(1-d/100))+')';
+          ctx.lineWidth=.5;
+          ctx.stroke();
+        }
+      }
+    }
+    /* dots */
+    for(var i=0;i<particles.length;i++){
+      var p=particles[i];
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(68,136,255,'+p.a+')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── EMOTION BARS ── */
+var EMOTIONS={
+  alpha: {joy:0.65,trust:0.82,anger:0.08,fear:0.12,sadness:0.15,anticipation:0.72,surprise:0.40,disgust:0.05},
+  beta:  {joy:0.35,trust:0.28,anger:0.42,fear:0.22,sadness:0.30,anticipation:0.60,surprise:0.20,disgust:0.35},
+  gamma: {joy:0.72,trust:0.55,anger:0.15,fear:0.25,sadness:0.20,anticipation:0.88,surprise:0.70,disgust:0.10},
+  delta: {joy:0.30,trust:0.38,anger:0.58,fear:0.18,sadness:0.25,anticipation:0.50,surprise:0.25,disgust:0.45},
+  epsilon:{joy:0.50,trust:0.50,anger:0.30,fear:0.45,sadness:0.40,anticipation:0.55,surprise:0.55,disgust:0.25}
+};
+var EMO_COLORS={
+  joy:'#ffcc44',trust:'#44aaff',anger:'#ff4444',fear:'#aa44ff',
+  sadness:'#4488ff',anticipation:'#44ff88',surprise:'#ff8844',disgust:'#88ff44'
+};
+var AGENT_COLORS={alpha:'#44aaff',beta:'#ff8844',gamma:'#44ff88',delta:'#ff4488',epsilon:'#aa88ff'};
+function showAgentEmotions(id,btn){
+  /* update button styles */
+  document.querySelectorAll('.emo-agent-btn').forEach(function(b){
+    b.classList.remove('active');
+    b.style.borderColor='';
+    b.style.color='';
+  });
+  if(btn){
+    btn.classList.add('active');
+    btn.style.borderColor=AGENT_COLORS[id];
+    btn.style.color=AGENT_COLORS[id];
+  }
+  var emos=EMOTIONS[id];
+  var el=document.getElementById('emotion-bars');
+  el.innerHTML='';
+  Object.keys(emos).forEach(function(e){
+    var val=emos[e];
+    var div=document.createElement('div');
+    div.className='emotion-row';
+    div.innerHTML='<div class="emotion-label">'+e.toUpperCase()+'</div>'
+      +'<div class="emotion-bar-wrap"><div class="emotion-bar-fill" style="width:0%;background:'+EMO_COLORS[e]+'"></div></div>'
+      +'<div class="emotion-pct">'+Math.round(val*100)+'</div>';
+    el.appendChild(div);
+    /* animate in */
+    setTimeout(function(){
+      div.querySelector('.emotion-bar-fill').style.width=(val*100)+'%';
+    },20);
+  });
+}
+showAgentEmotions('alpha', document.querySelector('.emo-agent-btn.active'));
+
+/* ── NAV SCROLL HIGHLIGHT ── */
+var sections=document.querySelectorAll('section[id]');
+var navLinks=document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll',function(){
+  var scrollY=window.scrollY+80;
+  sections.forEach(function(s){
+    if(scrollY>=s.offsetTop&&scrollY<s.offsetTop+s.offsetHeight){
+      navLinks.forEach(function(a){
+        a.style.color=a.getAttribute('href')==='#'+s.id?'#fff':'';
+      });
+    }
+  });
+},{ passive:true });
+</script>
+</body>
+</html>
