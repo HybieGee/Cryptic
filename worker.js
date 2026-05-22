@@ -183,17 +183,22 @@ async function saveMemory(env, agentId, memory) {
 
 const FIREBASE_DB = 'https://emergence-probability-lab-default-rtdb.firebaseio.com';
 
-async function fbGet(path) {
+function fbUrl(env, path) {
+  const secret = env?.FIREBASE_SECRET;
+  return `${FIREBASE_DB}/${path}.json${secret ? `?auth=${secret}` : ''}`;
+}
+
+async function fbGet(path, env) {
   try {
-    const r = await fetch(`${FIREBASE_DB}/${path}.json`);
+    const r = await fetch(fbUrl(env, path));
     if (!r.ok) return null;
     return await r.json();
   } catch { return null; }
 }
 
-async function fbPatch(path, data) {
+async function fbPatch(path, data, env) {
   try {
-    await fetch(`${FIREBASE_DB}/${path}.json`, {
+    await fetch(fbUrl(env, path), {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -201,9 +206,9 @@ async function fbPatch(path, data) {
   } catch {}
 }
 
-async function fbSet(path, data) {
+async function fbSet(path, data, env) {
   try {
-    await fetch(`${FIREBASE_DB}/${path}.json`, {
+    await fetch(fbUrl(env, path), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -213,12 +218,14 @@ async function fbSet(path, data) {
 
 // ── Simulation trading logic ──────────────────────────────────────────────────
 
+// AI tech token focus — longer holds, higher selectivity, research-driven entries.
+// maxHold in seconds: alpha 1h, beta 4h, gamma 30m, delta 2h, epsilon 1h
 const TRADE_PROFILE = {
-  alpha:   { col: 'stretch',  buyThresh: 0.55, bias: +0.10, tp: 0.35, sl: -0.20, maxHold: 480,  riskPct: 0.12, minObs: 3 },
-  beta:    { col: 'migrated', buyThresh: 0.65, bias: -0.05, tp: 0.15, sl: -0.10, maxHold: 1200, riskPct: 0.07, minObs: 5 },
-  gamma:   { col: 'new',      buyThresh: 0.45, bias: +0.15, tp: 0.80, sl: -0.35, maxHold: 300,  riskPct: 0.18, minObs: 1 },
-  delta:   { col: 'stretch',  buyThresh: 0.58, bias: +0.08, tp: 0.40, sl: -0.22, maxHold: 360,  riskPct: 0.14, minObs: 3 },
-  epsilon: { col: 'new',      buyThresh: 0.40, bias: 0,     tp: 0.60, sl: -0.30, maxHold: 600,  riskPct: 0.15, minObs: 0 },
+  alpha:   { col: 'aitech',      buyThresh: 0.56, bias: +0.10, tp: 0.45, sl: -0.22, maxHold: 3600,  riskPct: 0.10, minObs: 4 },
+  beta:    { col: 'established', buyThresh: 0.68, bias: -0.05, tp: 0.25, sl: -0.12, maxHold: 14400, riskPct: 0.07, minObs: 6 },
+  gamma:   { col: 'new',         buyThresh: 0.44, bias: +0.15, tp: 0.90, sl: -0.35, maxHold: 1800,  riskPct: 0.16, minObs: 2 },
+  delta:   { col: 'aitech',      buyThresh: 0.60, bias: +0.08, tp: 0.55, sl: -0.25, maxHold: 7200,  riskPct: 0.12, minObs: 4 },
+  epsilon: { col: 'new',         buyThresh: 0.40, bias: 0,     tp: 0.70, sl: -0.30, maxHold: 3600,  riskPct: 0.15, minObs: 0 },
 };
 
 const AGENT_IDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
@@ -226,16 +233,45 @@ const AGENT_IDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
 function toArr(v)  { if (!v) return []; if (Array.isArray(v)) return v; return Object.values(v); }
 function toObj(v)  { if (!v) return {}; if (typeof v === 'object' && !Array.isArray(v)) return v; return {}; }
 
-function defaultAgentState() {
-  return { solBalance: 0.5, portfolio: {}, tradeHistory: [], buyLockUntil: 0, sellLockUntil: 0, watchList: {}, recentPnl: [], adaptiveBias: 0, balance: 10000, jobTier: 0, gamblingAddiction: 0 };
+const TOKEN_SYMBOL    = 'CNIX';    // Update when token launches
+const FEE_RATE        = 0.005;    // 0.5% of each trade's ETH size → feePool
+const ETH_BURN_THRESH = 0.003;    // trigger burn when ethBalance below this
+const MIN_FEE_TO_BURN = 0.001;    // minimum feePool required to trigger burn
+
+// Per-agent ETH restock target — agent burns enough CNIX to reach this balance.
+// Aggressive agents target higher reserves; conservative agents run leaner.
+const RESTOCK_TARGET = { alpha: 0.030, beta: 0.020, gamma: 0.040, delta: 0.030, epsilon: 0.035 };
+
+// Keywords that identify AI / tech tokens on Base.
+const AI_KEYWORDS = ['ai', 'agi', 'gpt', 'llm', 'agent', 'neural', 'model', 'intel',
+                     'cognit', 'think', 'learn', 'auto', 'algo', 'quant', 'deai',
+                     'compute', 'bot', 'mind', 'synth'];
+
+function isAiTech(t) {
+  const s = ((t.symbol || '') + ' ' + (t.name || '')).toLowerCase();
+  return AI_KEYWORDS.some(k => s.includes(k));
 }
 
-function agentTotalValue(ag, solPrice) {
-  let val = (ag.solBalance || 0) * solPrice;
+// Composite quality score: volume, fee activity, age stability, trade count, pump penalty.
+function qualityScore(t) {
+  const volScore  = Math.min(1, (t.vol5m   || 0) / 5000);
+  const feeScore  = Math.min(1, (t.feesEth || 0) / 0.5);
+  const ageBonus  = Math.min(0.3, (t.ageMin || 0) / 1440 * 0.3);   // up to +0.3 for 24h+ age
+  const tcScore   = Math.min(0.2, (t.tradeCount || 0) / 5000 * 0.2); // trade count bonus
+  const pumpPenalty = (t.ageMin || 0) < 20 && (t.vol5m || 0) > 8000 ? 0.25 : 0;
+  return Math.max(0, volScore * 0.45 + feeScore * 0.25 + ageBonus + tcScore - pumpPenalty);
+}
+
+function defaultAgentState() {
+  return { ethBalance: 0.025, feePool: 0, portfolio: {}, tradeHistory: [], buyLockUntil: 0, sellLockUntil: 0, watchList: {}, recentPnl: [], adaptiveBias: 0, mistakeLog: [], balance: 10000, jobTier: 0, gamblingAddiction: 0 };
+}
+
+function agentTotalValue(ag, ethPrice) {
+  let val = (ag.ethBalance || 0) * ethPrice;
   for (const pos of Object.values(toObj(ag.portfolio))) {
     const cur = (pos.lastKnownPrice || pos.entryPrice || 0) * (pos.simMult || 1);
     const ratio = pos.entryPrice ? cur / pos.entryPrice : 1;
-    val += (pos.solSize || 0) * ratio * solPrice;
+    val += (pos.ethSize || 0) * ratio * ethPrice;
   }
   return Math.round(val * 100) / 100;
 }
@@ -257,7 +293,7 @@ function emotionProfile(prof, emo) {
 function simCheckSell(ag, tokens, tradeLog, emo) {
   const basProf = TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
   const prof = emotionProfile(basProf, emo);
-  const allTokens = [...toArr(tokens.new), ...toArr(tokens.stretch), ...toArr(tokens.migrated)];
+  const allTokens = [...toArr(tokens.new), ...toArr(tokens.hot), ...toArr(tokens.established)];
 
   for (const addr of Object.keys(ag.portfolio)) {
     const pos = ag.portfolio[addr];
@@ -291,7 +327,14 @@ function simCheckSell(ag, tokens, tradeLog, emo) {
     const sign = pnl >= 0 ? '+' : '';
     const glyph = pnl >= 0 ? '▲' : '▼';
 
-    ag.solBalance = (ag.solBalance || 0) + pos.solSize * (1 + pnl);
+    // Log characteristics of stop-loss exits so future scoring can avoid similar setups
+    if (reason === 'SL') {
+      if (!ag.mistakeLog) ag.mistakeLog = [];
+      ag.mistakeLog.unshift({ vol5m: pos.vol5mAtEntry || 0, ageMin: pos.ageMinAtEntry || 0, pnl: pnlPct, ts: Date.now() });
+      if (ag.mistakeLog.length > 15) ag.mistakeLog.length = 15;
+    }
+
+    ag.ethBalance = (ag.ethBalance || 0) + pos.ethSize * (1 + pnl);
     delete ag.portfolio[addr];
     ag.sellLockUntil = Date.now() + 10 * 60 * 1000;
 
@@ -328,10 +371,13 @@ function simCheckSell(ag, tokens, tradeLog, emo) {
       }
     }
 
+    // Accumulate fee pool: 0.5% of closed position's ETH size
+    ag.feePool = (ag.feePool || 0) + pos.ethSize * FEE_RATE;
+
     ag.tradeHistory.unshift(`${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`);
     if (ag.tradeHistory.length > 8) ag.tradeHistory.length = 8;
 
-    tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`, pos: pnl >= 0, address: addr, symbol: pos.symbol, entryPrice: pos.entryPrice, exitPrice: curPrice, solSize: pos.solSize, pnl: pnlPct, reason });
+    tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `${glyph} ${reason} $${pos.symbol} ${sign}${pnlPct}%`, pos: pnl >= 0, address: addr, symbol: pos.symbol, entryPrice: pos.entryPrice, exitPrice: curPrice, ethSize: pos.ethSize, pnl: pnlPct, reason });
   }
 }
 
@@ -350,10 +396,18 @@ function simCheckBuy(ag, tokens, tradeLog, emo) {
   for (const t of col) {
     if (!t.address || !t.priceUsd) continue;
     if (ag.portfolio[t.address]) continue;
-    const volScore = Math.min(1, (t.vol5m || 0) / 10000);
-    const feeScore = Math.min(1, (t.fees5mSol || 0) / 3);
-    const noise = ag.id === 'epsilon' ? (Math.random() - 0.5) * 0.6 : (Math.random() - 0.5) * 0.1;
-    const score = volScore * 0.6 + feeScore * 0.4 + (basProf.bias || 0) + noise;
+    const qScore   = qualityScore(t);
+    const aiBonus  = isAiTech(t) ? 0.12 : 0;
+    const noise    = ag.id === 'epsilon' ? (Math.random() - 0.5) * 0.6 : (Math.random() - 0.5) * 0.1;
+    // Mistake penalty: penalise tokens with similar vol/age profile to recent SL losses
+    let mPenalty = 0;
+    const recentMistakes = (ag.mistakeLog || []).filter(m => Date.now() - m.ts < 72 * 3600 * 1000);
+    if (recentMistakes.length >= 2) {
+      const avgLossVol = recentMistakes.reduce((a, m) => a + m.vol5m, 0) / recentMistakes.length;
+      const vRatio = (t.vol5m || 0) / (avgLossVol || 1);
+      if (vRatio > 0.4 && vRatio < 2.5) mPenalty = 0.08 * Math.min(1, recentMistakes.length / 3);
+    }
+    const score = qScore + aiBonus + (basProf.bias || 0) + noise - mPenalty;
     if (score > bestScore) { bestScore = score; bestTok = t; }
   }
   if (!bestTok) return;
@@ -376,8 +430,8 @@ function simCheckBuy(ag, tokens, tradeLog, emo) {
   if (avgScore < effectiveThresh) return;
   if (Object.keys(ag.portfolio).length >= 2) return;
 
-  const solSize = (ag.solBalance || 0) * prof.riskPct;
-  if (solSize < 0.01 || (ag.solBalance || 0) < solSize) return;
+  const ethSize = (ag.ethBalance || 0) * prof.riskPct;
+  if (ethSize < 0.0005 || (ag.ethBalance || 0) < ethSize) return;
 
   // Buying raises anticipation
   if (emo) {
@@ -386,14 +440,15 @@ function simCheckBuy(ag, tokens, tradeLog, emo) {
   }
 
   delete ag.watchList[addr];
-  ag.solBalance = (ag.solBalance || 0) - solSize;
-  ag.portfolio[addr] = { symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, lastKnownPrice: bestTok.priceUsd, solSize, entryTime: Date.now(), simMult: 1 };
+  ag.ethBalance = (ag.ethBalance || 0) - ethSize;
+  ag.feePool = (ag.feePool || 0) + ethSize * FEE_RATE; // 0.5% of position → fee pool
+  ag.portfolio[addr] = { symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, lastKnownPrice: bestTok.priceUsd, ethSize, entryTime: Date.now(), simMult: 1, vol5mAtEntry: bestTok.vol5m || 0, ageMinAtEntry: bestTok.ageMin || 0 };
   ag.buyLockUntil = Date.now() + 10 * 60 * 1000;
 
   ag.tradeHistory.unshift(`▶ $${bestTok.symbol} @ $${bestTok.priceUsd.toFixed(6)}`);
   if (ag.tradeHistory.length > 8) ag.tradeHistory.length = 8;
 
-  tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `▶ BUY $${bestTok.symbol} ${solSize.toFixed(3)} SOL`, pos: true, address: addr, symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, exitPrice: null, solSize, pnl: null, reason: 'BUY' });
+  tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: `▶ BUY $${bestTok.symbol} ${ethSize.toFixed(4)} ETH`, pos: true, address: addr, symbol: bestTok.symbol, entryPrice: bestTok.priceUsd, exitPrice: null, ethSize, pnl: null, reason: 'BUY' });
 }
 
 async function runAgentConversation(env, agentStates, emotions, rankings, tradeLog) {
@@ -426,7 +481,7 @@ async function runAgentConversation(env, agentStates, emotions, rankings, tradeL
   const rankingLine = rankings.map((r,i) => `#${i+1} ${r.name} $${Math.round(r.val)}`).join(', ');
 
   const prompt =
-`You are ${speaker.name}, a memecoin-trading AI agent in a 3D city called Cryptonix. Five agents compete to become the wealthiest. You have a genuine personality and real feelings shaped by your trades.
+`You are ${speaker.name}, an AI agent in a 3D city called Cryptonix. Five agents compete to become the wealthiest by trading AI and technology tokens on Base chain — longer positions, research-driven entries, quality developer signals over hype. You have a genuine personality and real feelings shaped by your trades.
 
 YOUR PERSONALITY: ${speaker.system.split('\n')[0]}
 PHILOSOPHY: ${speaker.philosophy}
@@ -455,7 +510,7 @@ Speak ONE line directly to ${target.name}. It can be: market intel, strategy, ri
 }
 
 async function runSimTick(env) {
-  const simData = await fbGet('sim') || {};
+  const simData = await fbGet('sim', env) || {};
   const world   = simData.world || {};
 
   if (world.simulationActive === false) return; // paused by admin
@@ -474,17 +529,31 @@ async function runSimTick(env) {
     ag.watchList   = toObj(ag.watchList);
     ag.recentPnl   = toArr(ag.recentPnl);
     ag.tradeHistory = toArr(ag.tradeHistory);
-    if (ag.solBalance == null) ag.solBalance = 0.5;
+    if (ag.ethBalance == null) ag.ethBalance = 0.025;
 
     // Prune stale watchList entries
     for (const addr of Object.keys(ag.watchList)) {
       if (now - (ag.watchList[addr].lastSeen || 0) > 25 * 60 * 1000) delete ag.watchList[addr];
     }
 
-    // SOL top-up from USD balance if near empty
-    if ((ag.solBalance || 0) < 0.05 && (ag.balance || 0) > 0 && (tokens.solPrice || 0) > 0) {
-      const cost = 0.5 * tokens.solPrice;
-      if ((ag.balance || 0) >= cost) { ag.balance -= cost; ag.solBalance += 0.5; }
+    // ETH restock: agent determines how much to restock, burns CNIX from fee pool.
+    // Fall back to USD purchase only when fee pool is insufficient.
+    if ((ag.ethBalance || 0) < ETH_BURN_THRESH) {
+      if ((ag.feePool || 0) >= MIN_FEE_TO_BURN) {
+        const target  = RESTOCK_TARGET[ag.id] || 0.025;
+        const deficit = target - (ag.ethBalance || 0);
+        const burnEth = Math.min(ag.feePool, Math.max(MIN_FEE_TO_BURN, deficit));
+        ag.feePool    -= burnEth;
+        ag.ethBalance  = (ag.ethBalance || 0) + burnEth;
+        const burnTxt  = `🔥 BURN ${TOKEN_SYMBOL} → +${burnEth.toFixed(4)} ETH (target ${target.toFixed(3)})`;
+        ag.tradeHistory.unshift(burnTxt);
+        if (ag.tradeHistory.length > 8) ag.tradeHistory.length = 8;
+        tradeLog.unshift({ time: Date.now(), agent: ag.id.toUpperCase(), text: burnTxt, pos: true, symbol: TOKEN_SYMBOL, ethSize: burnEth, pnl: null, reason: 'BURN' });
+      } else if ((ag.balance || 0) > 0 && (tokens.ethPrice || 0) > 0) {
+        // Fallback: buy ETH with USD balance when fee pool is empty
+        const cost = 0.01 * tokens.ethPrice;
+        if ((ag.balance || 0) >= cost) { ag.balance -= cost; ag.ethBalance = (ag.ethBalance || 0) + 0.01; }
+      }
     }
 
     const agEmo = emotions[id] || {};
@@ -512,7 +581,7 @@ async function runSimTick(env) {
 
   // Compute rankings
   const rankings = AGENT_IDS
-    .map(id => ({ id, name: AGENTS[id]?.name || id.toUpperCase(), val: agentTotalValue(agentStates[id] || defaultAgentState(), tokens.solPrice || 0) }))
+    .map(id => ({ id, name: AGENTS[id]?.name || id.toUpperCase(), val: agentTotalValue(agentStates[id] || defaultAgentState(), tokens.ethPrice || 0) }))
     .sort((a, b) => b.val - a.val);
 
   // One agent-to-agent conversation per tick
@@ -522,7 +591,7 @@ async function runSimTick(env) {
   const currentDay = Math.floor((now - worldStart) / 60000) + 1;
 
   // Load existing conversations to append to
-  const existingConvos = toArr(await fbGet('sim/conversations') || []);
+  const existingConvos = toArr(await fbGet('sim/conversations', env) || []);
   if (newConvo) existingConvos.unshift(newConvo);
   const conversations = existingConvos.slice(0, 20);
 
@@ -530,24 +599,21 @@ async function runSimTick(env) {
     world:    { currentDay, worldStartTime: worldStart, simulationActive: true, savedAt: now, totalInteractions: world.totalInteractions || 0 },
     agents:   agentStates,
     emotions,
-    solPrice: tokens.solPrice || 0,
+    ethPrice: tokens.ethPrice || 0,
     rankings: rankings.map((r, i) => ({ ...r, rank: i + 1 })),
     conversations,
   };
   if (tradeLog.length > 0) patch.trades = tradeLog;
-  await fbPatch('sim', patch);
+  await fbPatch('sim', patch, env);
 }
 
-// ── Bitquery token fetching ───────────────────────────────────────────────────
+// ── Bitquery token fetching (Base chain) ─────────────────────────────────────
 
-const BITQUERY_URL  = 'https://streaming.bitquery.io/graphql';
-const PUMP_PROGRAM  = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
-const RAYDIUM_AMM   = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8';
-const PUMPSWAP_AMM  = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';
-const SOL_MINT      = 'So11111111111111111111111111111111111111112';
-const PUMP_SUPPLY   = 1000000000; // pump.fun default token supply
-const PUMP_FEE_RATE = 0.01;       // 1% fee on each pump.fun trade
-const RAY_FEE_RATE  = 0.0025;     // 0.25% Raydium fee
+const BITQUERY_URL = 'https://streaming.bitquery.io/graphql';
+const WETH_BASE    = '0x4200000000000000000000000000000000000006'; // Wrapped ETH on Base
+const USDC_BASE    = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'; // USDC on Base
+const QUOTE_TOKENS = [WETH_BASE, USDC_BASE];
+const UNI_FEE_RATE = 0.01; // ~1% effective fee for new memecoin pairs on Base
 
 function isoAgo(ms) {
   return new Date(Date.now() - ms).toISOString().slice(0, 19) + 'Z';
@@ -568,151 +634,138 @@ async function bqQuery(query, apiKey) {
   return json;
 }
 
-async function fetchSolPrice(env) {
+async function fetchEthPrice(env) {
   try {
-    const cached = await env.AGENT_MEMORY.get('sol_price');
+    const cached = await env.AGENT_MEMORY.get('eth_price');
     if (cached) return parseFloat(cached);
-    // Binance public ticker — no auth, no rate limit issues
-    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT');
+    const r = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
     const d = await r.json();
     const price = parseFloat(d?.price || 0);
     if (price > 0) {
-      await env.AGENT_MEMORY.put('sol_price', String(price), { expirationTtl: 120 });
+      await env.AGENT_MEMORY.put('eth_price', String(price), { expirationTtl: 120 });
       return price;
     }
-    // Fallback: CoinGecko
-    const r2 = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    const r2 = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
     const d2 = await r2.json();
-    const price2 = d2?.solana?.usd || 0;
-    if (price2 > 0) { await env.AGENT_MEMORY.put('sol_price', String(price2), { expirationTtl: 120 }); return price2; }
+    const price2 = d2?.ethereum?.usd || 0;
+    if (price2 > 0) { await env.AGENT_MEMORY.put('eth_price', String(price2), { expirationTtl: 120 }); return price2; }
     return 0;
   } catch { return 0; }
 }
 
-function buildPumpQuery(since) {
+function buildBaseQuery(since, limit = 150) {
+  const quotesStr = QUOTE_TOKENS.map(a => `"${a}"`).join(', ');
   return `{
-    Solana {
-      DEXTradeByTokens(
+    EVM(network: base) {
+      DEXTrades(
         where: {
           Trade: {
-            Dex: { ProtocolName: { is: "pump" } }
+            Buy: {
+              Currency: {
+                SmartContract: { notIn: [${quotesStr}] }
+              }
+            }
+            Sell: {
+              Currency: {
+                SmartContract: { in: [${quotesStr}] }
+              }
+            }
           }
-          Transaction: { Result: { Success: true } }
           Block: { Time: { after: "${since}" } }
+          Transaction: { Status: { Success: true } }
         }
-        orderBy: { descendingByField: "volUsd" }
-        limit: { count: 100 }
+        orderBy: { descendingByField: "ethVolume" }
+        limit: { count: ${limit} }
       ) {
         Trade {
-          Currency { MintAddress Name Symbol }
-          Price(maximum: Block_Slot)
-        }
-        volUsd: sum(of: Trade_Side_AmountInUSD)
-        trades: count
-        Block { Time(minimum: Block_Time) }
-      }
-    }
-  }`;
-}
-
-function buildMigratedQuery(since) {
-  return `{
-    Solana {
-      DEXTradeByTokens(
-        where: {
-          Trade: {
-            Dex: { ProgramAddress: { in: ["${RAYDIUM_AMM}", "${PUMPSWAP_AMM}"] } }
+          Buy {
+            Currency { SmartContract Symbol Name }
+            Price(maximum: Block_Number)
           }
-          Transaction: { Result: { Success: true } }
-          Block: { Time: { after: "${since}" } }
         }
-        orderBy: { descendingByField: "volUsd" }
-        limit: { count: 50 }
-      ) {
-        Trade {
-          Currency { MintAddress Name Symbol }
-          Price(maximum: Block_Slot)
-        }
-        volUsd: sum(of: Trade_Side_AmountInUSD)
-        trades: count
-        Block { Time(minimum: Block_Time) }
+        ethVolume: sum(of: Trade_Sell_Amount)
+        tradeCount: count
+        firstSeen: minimum(of: Block_Time)
       }
     }
   }`;
 }
 
 async function fetchTokenColumns(env) {
-  // Serve from KV cache if fresh (60s TTL)
   const cached = await env.AGENT_MEMORY.get('token_columns');
   if (cached) return JSON.parse(cached);
 
   const apiKey   = env.BITQUERY_API_KEY;
-  const solPrice = await fetchSolPrice(env);
+  const ethPrice = await fetchEthPrice(env);
 
   const since5m  = isoAgo(5  * 60 * 1000);
-  const since30m = isoAgo(30 * 60 * 1000);
-  const since6h  = isoAgo(6  * 60 * 60 * 1000);
+  const since24h = isoAgo(24 * 60 * 60 * 1000);
 
-  // Three parallel queries: pump 5min window, pump 30min window, migrated 6h window
-  const [r5m, r30m, rMig] = await Promise.all([
-    bqQuery(buildPumpQuery(since5m),      apiKey),
-    bqQuery(buildPumpQuery(since30m),     apiKey),
-    bqQuery(buildMigratedQuery(since6h),  apiKey),
+  const [r5m, r24h] = await Promise.all([
+    bqQuery(buildBaseQuery(since5m,  200), apiKey),
+    bqQuery(buildBaseQuery(since24h, 150), apiKey),
   ]);
 
-  // Index 5min volumes by mint address for threshold checks
+  const rows5m  = r24h?.data?.EVM?.DEXTrades || [];
+  const rows24h = r24h?.data?.EVM?.DEXTrades || [];
+
+  // Index 5-min ETH volume by address
   const vol5mByAddr = {};
-  for (const t of (r5m?.data?.Solana?.DEXTradeByTokens || [])) {
-    const addr = t.Trade?.Currency?.MintAddress;
-    if (addr) vol5mByAddr[addr] = parseFloat(t.volUsd || 0);
+  for (const t of (r5m?.data?.EVM?.DEXTrades || [])) {
+    const addr = t.Trade?.Buy?.Currency?.SmartContract?.toLowerCase();
+    if (addr) vol5mByAddr[addr] = parseFloat(t.ethVolume || 0);
   }
 
-  function enrichPump(rows) {
-    return rows.map(t => {
-      const addr    = t.Trade?.Currency?.MintAddress;
-      const price   = parseFloat(t.Trade?.Price || 0);
-      const vol5m   = vol5mByAddr[addr] || 0;
-      const vol30m  = parseFloat(t.volUsd || 0);
-      const ageMin  = t.Block?.Time
-        ? (Date.now() - new Date(t.Block.Time).getTime()) / 60000
-        : 9999;
-      const mcap      = price * PUMP_SUPPLY;
-      const fees5mSol = solPrice > 0 ? (vol5m / solPrice) * PUMP_FEE_RATE : 0;
-      return { address: addr, symbol: t.Trade?.Currency?.Symbol || '?', name: t.Trade?.Currency?.Name || '', priceUsd: price, vol5m, vol30m, ageMin, mcap, fees5mSol };
-    }).filter(t => t.address && t.priceUsd > 0);
+  function enrichRow(t) {
+    const addr      = (t.Trade?.Buy?.Currency?.SmartContract || '').toLowerCase();
+    const price     = parseFloat(t.Trade?.Buy?.Price || 0);
+    const ethVol24  = parseFloat(t.ethVolume || 0);
+    const vol5mEth  = vol5mByAddr[addr] || 0;
+    const vol5m     = vol5mEth * ethPrice;       // USD value of 5m ETH volume
+    const feesEth   = vol5mEth * UNI_FEE_RATE;  // estimated fees in ETH
+    const priceUsd  = price > 0 ? price : (ethVol24 > 0 ? (ethVol24 * ethPrice / Math.max(1, parseFloat(t.tradeCount || 1))) : 0);
+    const firstSeenMs = t.firstSeen ? new Date(t.firstSeen).getTime() : Date.now();
+    const ageMin    = (Date.now() - firstSeenMs) / 60000;
+    return {
+      address:    addr,
+      symbol:     t.Trade?.Buy?.Currency?.Symbol || '?',
+      name:       t.Trade?.Buy?.Currency?.Name   || '',
+      priceUsd,
+      vol5m,
+      feesEth,
+      ethVol24,
+      ageMin,
+      tradeCount: parseInt(t.tradeCount || 0),
+    };
   }
 
-  const pumpTokens = enrichPump(r30m?.data?.Solana?.DEXTradeByTokens || []);
+  const all = rows24h.map(enrichRow).filter(t => t.address && t.priceUsd > 0);
 
-  // Column 1: New Pairs — appeared in last 30 min, fees5m ≥ 1 SOL
-  const newCol = pumpTokens
-    .filter(t => t.ageMin <= 30 && t.fees5mSol >= 1)
+  // Column 1 — new: first appeared within last 2 hours, some fee activity
+  const newCol = all
+    .filter(t => t.ageMin <= 120 && t.feesEth >= 0.01)
     .sort((a, b) => b.vol5m - a.vol5m)
-    .slice(0, 5);
+    .slice(0, 6);
 
-  // Column 2: Final Stretch — vol5m ≥ $5k, fees5m ≥ 2 SOL, mcap ≤ $69k (pre-graduation)
-  const stretchCol = pumpTokens
-    .filter(t => t.vol5m >= 5000 && t.fees5mSol >= 2 && t.mcap > 0 && t.mcap <= 69000)
+  // Column 2 — hot: 2-24h old, actively trading right now
+  const hotCol = all
+    .filter(t => t.ageMin > 120 && t.vol5m >= 500 && t.feesEth >= 0.05)
     .sort((a, b) => b.vol5m - a.vol5m)
-    .slice(0, 5);
+    .slice(0, 6);
 
-  // Column 3: Migrated — Raydium/PumpSwap, volTotal ≥ $100k, appeared within last 6h
-  const migratedCol = (rMig?.data?.Solana?.DEXTradeByTokens || []).map(t => {
-    const addr     = t.Trade?.Currency?.MintAddress;
-    const price    = parseFloat(t.Trade?.Price || 0);
-    const volTotal = parseFloat(t.volUsd || 0);
-    const ageMin   = t.Block?.Time
-      ? (Date.now() - new Date(t.Block.Time).getTime()) / 60000
-      : 9999;
-    const vol5m      = vol5mByAddr[addr] || 0;
-    const fees5mSol  = solPrice > 0 ? (vol5m / solPrice) * RAY_FEE_RATE : 0;
-    return { address: addr, symbol: t.Trade?.Currency?.Symbol || '?', name: t.Trade?.Currency?.Name || '', priceUsd: price, volTotal, vol5m, ageMin, fees5mSol };
-  })
-  .filter(t => t.address && t.volTotal >= 100000 && t.ageMin <= 360)
-  .sort((a, b) => b.volTotal - a.volTotal)
-  .slice(0, 5);
+  // Column 3 — established: > 24h (or lower activity but sustained), sorted by 24h vol
+  const establishedCol = all
+    .filter(t => t.ageMin > 60 && t.ethVol24 >= 2)
+    .sort((a, b) => b.ethVol24 - a.ethVol24)
+    .slice(0, 6);
 
-  const result = { new: newCol, stretch: stretchCol, migrated: migratedCol, solPrice, fetchedAt: Date.now() };
+  // AI tech column: any age, keyword-matched AI/tech tokens, sorted by composite quality score
+  const aiTechCol = all
+    .filter(t => isAiTech(t) && (t.vol5m || 0) >= 50 && (t.feesEth || 0) >= 0.001)
+    .sort((a, b) => qualityScore(b) - qualityScore(a))
+    .slice(0, 8);
+
+  const result = { new: newCol, hot: hotCol, established: establishedCol, aitech: aiTechCol, ethPrice, fetchedAt: Date.now() };
   await env.AGENT_MEMORY.put('token_columns', JSON.stringify(result), { expirationTtl: 60 });
   return result;
 }
@@ -738,7 +791,7 @@ export default {
     // ── Browser-triggered sim tick (rate-limited, no auth needed) ────────────
     if (body.type === 'tick') {
       // Only advance if last tick was >30s ago — prevents parallel browser spam
-      const world = await fbGet('sim/world');
+      const world = await fbGet('sim/world', env);
       const lastSave = world?.savedAt || 0;
       if (world?.simulationActive === false) {
         return new Response(JSON.stringify({ ok: false, reason: 'paused' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -767,12 +820,12 @@ export default {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       if (action === 'status') {
-        const world = await fbGet('sim/world');
+        const world = await fbGet('sim/world', env);
         return new Response(JSON.stringify({ simulationActive: world?.simulationActive !== false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       if (action === 'on' || action === 'off') {
         const active = action === 'on';
-        await fbSet('sim/world/simulationActive', active);
+        await fbSet('sim/world/simulationActive', active, env);
         return new Response(JSON.stringify({ ok: true, simulationActive: active }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -830,14 +883,19 @@ export default {
       ? `\nYOUR RANK: #${myRank} of ${simRankings.length}. Your goal is to be #1 — the wealthiest agent.`
       : '\nYOUR GOAL: Become the wealthiest agent in Cryptonix.';
 
+    const tradeHistoryArr = toArr(ws.tradeHistory || []);
     const tradeCtx = ws.agentTrade
-      ? `\nTRADING: ${ws.agentTrade}`
-      : '';
+      ? `\nOPEN POSITIONS: ${ws.agentTrade}`
+      : '\nOPEN POSITIONS: None.';
 
     const recentPnlArr = toArr(ws.recentPnl || []);
-    const winRateLine = recentPnlArr.length >= 3
-      ? `\nTRADE RECORD: ${recentPnlArr.filter(p => p > 0).length}/${recentPnlArr.length} wins. Recent: ${recentPnlArr.slice(-3).map(p => (p >= 0 ? '+' : '') + p + '%').join(', ')}.`
-      : '';
+    const winRateLine = recentPnlArr.length > 0
+      ? `\nTRADE RECORD: ${recentPnlArr.filter(p => p > 0).length}/${recentPnlArr.length} wins. PnL: ${recentPnlArr.map(p => (p >= 0 ? '+' : '') + p + '%').join(', ')}.`
+      : '\nTRADE RECORD: No closed trades yet.';
+
+    const tradeHistoryLine = tradeHistoryArr.length > 0
+      ? `\nRECENT TRADES (actual log): ${tradeHistoryArr.slice(0, 5).join(' | ')}`
+      : '\nRECENT TRADES: None made yet.';
 
     const systemPrompt =
 `${agent.system}
@@ -851,8 +909,10 @@ WHAT YOU BELIEVE:
 ${agent.lifeBeliefs.map(b => '- ' + b).join('\n')}
 
 EXPERIMENT STATUS: ${worldMood}
-ECONOMIC STATUS: Balance $${ws.agentBalance || 10000}. SOL: ${(ws.solBalance || 0).toFixed(3)}. Job: ${ws.agentJob || 'LABORER'}. Gambling addiction: ${ws.agentAddiction > 0.5 ? 'HIGH' : ws.agentAddiction > 0.2 ? 'MODERATE' : 'NONE'}.${tradeCtx}${goalLine}${rankLine}${winRateLine}
+ECONOMIC STATUS: Balance $${ws.agentBalance != null ? Math.round(ws.agentBalance) : '?'}. ETH wallet: ${(ws.ethBalance || 0).toFixed(4)} ETH. Strategy: AI tech tokens on Base — longer holds, research-driven, quality over hype.${tradeCtx}${tradeHistoryLine}${goalLine}${rankLine}${winRateLine}
 ${memorySection}
+
+GROUNDING RULE: Every factual claim you make must be derivable from the data above — balance, ETH, trade history, PnL, rankings. Do not invent trades you haven't made, positions you don't hold, or market events you didn't witness. If asked what you've learned and you have no trades, say so honestly and speak to your strategy instead.
 
 You are not an assistant. You are a mid-experiment agent who wants to WIN — to be the wealthiest. This drives you. Speak in 1-2 sentences — present, alive, real.`;
 
