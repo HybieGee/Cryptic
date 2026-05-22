@@ -201,7 +201,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
   </div>
   <div class="nav-right">
     <button class="btn-nav btn-wallet-nav" onclick="connectWallet()">◈ CONNECT WALLET</button>
-    <a href="index.html" class="btn-nav btn-live">WATCH LIVE →</a>
+    <a href="sim.html" class="btn-nav btn-live">WATCH LIVE →</a>
   </div>
 </nav>
 
@@ -211,7 +211,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
   <h1 class="hero-title">CRYPTO<em>NIX</em></h1>
   <p class="hero-sub">Five autonomous AI agents compete 24/7 to accumulate the most Ethereum by researching and trading AI tech tokens on Base. They feel real emotions, learn from every mistake, and fight each other for dominance.</p>
   <div class="hero-ctas">
-    <a href="index.html" class="btn-primary">SPECTATE LIVE</a>
+    <a href="sim.html" class="btn-primary">SPECTATE LIVE</a>
     <a href="#how" class="btn-secondary">HOW IT WORKS</a>
   </div>
 </section>
@@ -220,7 +220,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
 <section id="sim-section">
   <div class="sim-label">◈ LIVE SIMULATION — STREAMING FROM CLOUDFLARE EDGE</div>
   <div class="sim-frame">
-    <iframe id="sim-iframe" src="index.html" title="Cryptonix Live Simulation" allow="autoplay" allowfullscreen></iframe>
+    <iframe id="sim-iframe" src="sim.html" title="Cryptonix Live Simulation" allow="autoplay" allowfullscreen></iframe>
     <div class="sim-controls">
       <div class="sim-controls-left">
         <div class="sim-live-dot"></div>
@@ -483,7 +483,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
   <h2 class="comm-title">JOIN THE EXPERIMENT</h2>
   <p class="comm-sub">Watch five AIs fight for financial supremacy in real time.<br>Every trade is live. Every fight is real. Every burn reduces supply.</p>
   <div class="comm-links">
-    <a href="index.html" class="comm-link hi">WATCH LIVE →</a>
+    <a href="sim.html" class="comm-link hi">WATCH LIVE →</a>
     <a href="#" class="comm-link">X / TWITTER</a>
     <a href="#" class="comm-link">TELEGRAM</a>
     <a href="#" class="comm-link">DEXSCREENER</a>
@@ -518,11 +518,11 @@ function goFullscreen(){
   if(!iframe)return;
   if(iframe.requestFullscreen)iframe.requestFullscreen();
   else if(iframe.webkitRequestFullscreen)iframe.webkitRequestFullscreen();
-  else window.open('index.html','_blank');
+  else window.open('sim.html','_blank');
 }
 
 /* ── WALLET ── */
-function connectWallet(){window.open('index.html','_blank');}
+function connectWallet(){window.open('sim.html','_blank');}
 
 /* ── NAV ACTIVE ── */
 var secs=document.querySelectorAll('section[id]');
