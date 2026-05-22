@@ -330,6 +330,11 @@ canvas{display:block;position:fixed;inset:0}
 .anm-who{font-size:8px;letter-spacing:3px;display:block;margin-bottom:4px}
 .anm-delta{font-size:9px;letter-spacing:1px;color:#ff4400}
 .anm-detail{font-size:8px;letter-spacing:1px;color:#2a2a2a;margin-top:3px}
+
+/* ── EMBED MODE — hide panels extracted to parent page ── */
+body.embedded #spec-left-bottom,
+body.embedded #trade-log-panel,
+body.embedded #convo-panel { display:none !important; }
 </style>
 </head>
 <body>
@@ -538,6 +543,8 @@ canvas{display:block;position:fixed;inset:0}
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script>
 'use strict';
+// Embed mode: hide chat/trade panels when loaded inside landing page
+(function(){if(new URLSearchParams(location.search).get('embed')==='1')document.body.classList.add('embedded');})();
 
 var audioCtx=null;
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}

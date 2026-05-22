@@ -53,9 +53,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:16px 40px;display:fl
 /* ── SIMULATION EMBED ── */
 #sim-section{position:relative;z-index:1;padding:0 40px 60px}
 .sim-label{text-align:center;font-size:7px;letter-spacing:5px;color:var(--muted);margin-bottom:16px}
-.sim-frame{position:relative;max-width:1100px;margin:0 auto;border:1px solid var(--border-hi);background:#000;box-shadow:0 0 80px rgba(68,136,255,.08)}
-.sim-frame iframe{display:block;width:100%;height:62vh;min-height:400px;border:none}
-.sim-controls{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);background:rgba(4,6,14,.95)}
+.sim-layout{display:flex;align-items:stretch;max-width:1420px;margin:0 auto;border:1px solid var(--border-hi);box-shadow:0 0 80px rgba(68,136,255,.08);background:#000;height:calc(62vh + 41px);min-height:441px}
+.sim-side-panel{width:220px;flex-shrink:0;display:flex;flex-direction:column;background:rgba(0,0,6,.92);overflow:hidden}
+.sim-side-panel.left{border-right:1px solid var(--border)}
+.sim-side-panel.right{border-left:1px solid var(--border)}
+.sim-panel-header{padding:10px 12px;border-bottom:1px solid var(--border);font-size:7px;letter-spacing:4px;color:#fff;flex-shrink:0;background:rgba(4,6,14,.9)}
+.sim-frame-wrap{flex:1;display:flex;flex-direction:column;min-width:0}
+.sim-frame-wrap iframe{display:block;width:100%;flex:1;min-height:0;border:none}
+.sim-controls{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);background:rgba(4,6,14,.95);flex-shrink:0}
 .sim-controls-left{display:flex;align-items:center;gap:8px}
 .sim-live-dot{width:6px;height:6px;border-radius:50%;background:#44ff88;animation:pulse 2s ease-in-out infinite;flex-shrink:0}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -65,6 +70,47 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:16px 40px;display:fl
 .sim-btn:hover{border-color:var(--accent);color:var(--accent)}
 .sim-btn.primary{border-color:var(--accent);color:var(--accent)}
 .sim-btn.primary:hover{background:rgba(68,136,255,.1);color:#fff}
+
+/* ── CHAT PANEL ── */
+.ext-agent-picker{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.ext-dot{width:10px;height:10px;border-radius:50%;cursor:pointer;border:1px solid transparent;transition:all .15s;flex-shrink:0}
+.ext-dot.active{border-color:currentColor;transform:scale(1.35)}
+.ext-dot:hover{transform:scale(1.2)}
+.ext-agent-label{padding:0 12px 6px;font-size:7px;letter-spacing:2px;flex-shrink:0}
+.ext-thought-wrap{flex:1;overflow-y:auto;padding:10px 12px;scrollbar-width:thin;scrollbar-color:#1a1a30 transparent}
+.ext-thought-wrap::-webkit-scrollbar{width:3px}
+.ext-thought-wrap::-webkit-scrollbar-thumb{background:#1a1a30}
+#ext-thought{font-size:8px;letter-spacing:.3px;color:#aaa;line-height:1.9;font-style:italic;min-height:40px}
+#ext-response{font-size:8px;letter-spacing:.3px;color:#888;line-height:1.85;margin-top:8px}
+.ext-input-area{border-top:1px solid var(--border);padding:10px 12px;flex-shrink:0;background:rgba(0,0,6,.6)}
+#ext-cooldown{font-size:6px;letter-spacing:2px;color:#555;margin-bottom:6px}
+#ext-cooldown.ready{color:#44ff88}
+.ext-prompt-row{display:flex;gap:6px}
+#ext-prompt-input{flex:1;background:rgba(255,255,255,.04);border:1px solid #1a1a2a;color:#fff;font-family:'Courier New',monospace;font-size:8px;letter-spacing:.5px;padding:6px 8px;outline:none;min-width:0}
+#ext-prompt-input:focus{border-color:#2a2a3a}
+#ext-prompt-input::placeholder{color:#1a1a2a}
+#ext-prompt-input:disabled{opacity:.3}
+#ext-send-btn{padding:6px 10px;background:transparent;border:1px solid #4488ff;color:#4488ff;font-family:'Courier New',monospace;font-size:7px;letter-spacing:1px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
+#ext-send-btn:hover:not(:disabled){background:rgba(68,136,255,.1)}
+#ext-send-btn:disabled{opacity:.25;cursor:default;border-color:#1a1a2a;color:#1a1a2a}
+
+/* ── TRADE PANEL ── */
+.ext-trade-scroll{flex:1;overflow-y:auto;padding:8px 12px;scrollbar-width:thin;scrollbar-color:#1a1a30 transparent;display:flex;flex-direction:column;gap:2px}
+.ext-trade-scroll::-webkit-scrollbar{width:3px}
+.ext-trade-scroll::-webkit-scrollbar-thumb{background:#1a1a30}
+.ext-tl-row{display:flex;align-items:baseline;gap:4px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.ext-tl-pos{color:#44ff88;font-size:7px;letter-spacing:.4px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ext-tl-neg{color:#ff4444;font-size:7px;letter-spacing:.4px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ext-tl-burn{color:#ff9944;font-size:7px;letter-spacing:.4px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ext-tl-time{color:#444;font-size:6px;flex-shrink:0}
+.ext-tl-empty{color:#444;font-size:7px;letter-spacing:1px;padding:8px 0}
+.ext-rnk-divider{border-top:1px solid var(--border);margin:0 12px;flex-shrink:0}
+.ext-rankings{padding:8px 12px;flex-shrink:0}
+.ext-rnk-row{display:flex;align-items:center;gap:5px;padding:2px 0;font-size:7px;letter-spacing:1px;white-space:nowrap}
+.ext-rnk-pos{color:#333;min-width:10px;text-align:right}
+.ext-rnk-crown{color:#ffcc00}
+.ext-rnk-name{flex:1;letter-spacing:2px}
+.ext-rnk-val{color:#555;font-size:6px}
 
 /* ── STATS ROW ── */
 .stats-row{display:flex;justify-content:center;gap:0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 40px;position:relative;z-index:1}
@@ -183,6 +229,8 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
 .orb1{width:700px;height:700px;background:rgba(68,136,255,.07);top:-300px;left:-200px}
 .orb2{width:500px;height:500px;background:rgba(102,68,255,.06);bottom:-200px;right:-150px}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -219,18 +267,51 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
 <!-- EMBEDDED SIMULATION -->
 <section id="sim-section">
   <div class="sim-label">◈ LIVE SIMULATION — STREAMING FROM CLOUDFLARE EDGE</div>
-  <div class="sim-frame">
-    <iframe id="sim-iframe" src="sim.html" title="Cryptonix Live Simulation" allow="autoplay" allowfullscreen></iframe>
-    <div class="sim-controls">
-      <div class="sim-controls-left">
-        <div class="sim-live-dot"></div>
-        <span class="sim-live-text">LIVE</span>
+  <div class="sim-layout">
+
+    <!-- LEFT: Chat panel -->
+    <div class="sim-side-panel left">
+      <div class="sim-panel-header">◈ SPECTATE CHAT</div>
+      <div class="ext-agent-picker" id="ext-agent-picker"></div>
+      <div class="ext-thought-wrap">
+        <div id="ext-thought"></div>
+        <div id="ext-response"></div>
       </div>
-      <div class="sim-controls-right">
-        <button class="sim-btn primary" onclick="goFullscreen()">⛶ FULLSCREEN SPECTATE</button>
-        <button class="sim-btn" onclick="connectWallet()">◈ CONNECT WALLET</button>
+      <div class="ext-input-area">
+        <div id="ext-cooldown" class="ready">FREE PROMPT AVAILABLE</div>
+        <div class="ext-prompt-row">
+          <input id="ext-prompt-input" type="text" maxlength="200" placeholder="Ask this agent..." autocomplete="off">
+          <button id="ext-send-btn" onclick="extSendPrompt()">SEND ◌</button>
+        </div>
       </div>
     </div>
+
+    <!-- CENTER: iframe -->
+    <div class="sim-frame-wrap">
+      <iframe id="sim-iframe" src="sim.html?embed=1" title="Cryptonix Live Simulation" allow="autoplay" allowfullscreen></iframe>
+      <div class="sim-controls">
+        <div class="sim-controls-left">
+          <div class="sim-live-dot"></div>
+          <span class="sim-live-text">LIVE</span>
+        </div>
+        <div class="sim-controls-right">
+          <button class="sim-btn primary" onclick="goFullscreen()">⛶ FULLSCREEN SPECTATE</button>
+          <button class="sim-btn" onclick="connectWallet()">◈ CONNECT WALLET</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Trade feed -->
+    <div class="sim-side-panel right">
+      <div class="sim-panel-header" id="ext-trade-header">◈ TRADE FEED</div>
+      <div class="ext-trade-scroll" id="ext-trade-scroll">
+        <div class="ext-tl-empty">connecting...</div>
+      </div>
+      <div class="ext-rnk-divider"></div>
+      <div class="sim-panel-header" style="border-top:none;border-bottom:none;padding-bottom:4px">◈ RANKINGS</div>
+      <div class="ext-rankings" id="ext-rankings"></div>
+    </div>
+
   </div>
 </section>
 
@@ -523,6 +604,250 @@ function goFullscreen(){
 
 /* ── WALLET ── */
 function connectWallet(){window.open('sim.html','_blank');}
+
+/* ── CHAT + TRADE PANEL ── */
+var EXT_CFG = {
+  FIREBASE: {
+    apiKey:            "AIzaSyC1y4OmvMW3rCgPycB-sZx_0q0mj_s4_ck",
+    authDomain:        "emergence-probability-lab.firebaseapp.com",
+    databaseURL:       "https://emergence-probability-lab-default-rtdb.firebaseio.com",
+    projectId:         "emergence-probability-lab",
+    storageBucket:     "emergence-probability-lab.firebasestorage.app",
+    messagingSenderId: "993218067646",
+    appId:             "1:993218067646:web:65fa6715b1b3eebbddf2ef"
+  },
+  WORKER_URL: 'https://emergence-world-agents.stealthbundlebot.workers.dev'
+};
+
+var EXT_AGENTS = [
+  {id:'alpha',  name:'ALPHA',   colorCSS:'#44aaff'},
+  {id:'beta',   name:'BETA',    colorCSS:'#ff8844'},
+  {id:'gamma',  name:'GAMMA',   colorCSS:'#44ff88'},
+  {id:'delta',  name:'DELTA',   colorCSS:'#ff4488'},
+  {id:'epsilon',name:'EPSILON', colorCSS:'#aa88ff'}
+];
+
+var extSpectIdx = 0;
+var extLastPromptTime = 0;
+var EXT_COOLDOWN = 5 * 60 * 1000;
+var extConvoHist = {};
+var extSimState = {};
+var extTradeLog = [];
+var extRankings = [];
+var extFirebaseDB = null;
+
+// Fallback lines if worker is unreachable
+function extFallback(id){
+  var l={alpha:'I am updating on every observation. What brings you here?',beta:'My priors are skeptical. Show me evidence.',gamma:'Something at the edge of the distribution caught my attention.',delta:'I track who improves my model. You are an unknown variable.',epsilon:'I made a random choice this morning. It worked. I am still uncertain why.'};
+  return l[id]||'...';
+}
+
+// Build agent picker dots
+function buildExtPicker(){
+  var wrap = document.getElementById('ext-agent-picker');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  EXT_AGENTS.forEach(function(ag, i){
+    var dot = document.createElement('div');
+    dot.className = 'ext-dot' + (i===0?' active':'');
+    dot.style.background = ag.colorCSS;
+    dot.style.color = ag.colorCSS;
+    dot.title = ag.name;
+    dot.onclick = function(){
+      extSpectIdx = i;
+      document.querySelectorAll('.ext-dot').forEach(function(d,j){
+        d.classList.toggle('active', j===i);
+      });
+      var nameEl = document.getElementById('ext-agent-label');
+      if(nameEl){ nameEl.textContent = ag.name; nameEl.style.color = ag.colorCSS; }
+      updateExtTradeLog();
+      document.getElementById('ext-thought').textContent = '';
+      document.getElementById('ext-response').textContent = '';
+      extFetchThought();
+    };
+    wrap.appendChild(dot);
+  });
+  // Agent name label
+  var lbl = document.createElement('div');
+  lbl.id = 'ext-agent-label';
+  lbl.className = 'ext-agent-label';
+  lbl.textContent = EXT_AGENTS[0].name;
+  lbl.style.color = EXT_AGENTS[0].colorCSS;
+  wrap.appendChild(lbl);
+}
+
+function extEscHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function updateExtTradeLog(){
+  var scroll = document.getElementById('ext-trade-scroll');
+  var header = document.getElementById('ext-trade-header');
+  if(!scroll) return;
+  var ag = EXT_AGENTS[extSpectIdx];
+  if(header) header.textContent = '◈ ' + ag.name;
+  var filtered = extTradeLog.filter(function(e){ return e.agent === ag.name; });
+  if(!filtered.length){
+    scroll.innerHTML = '<div class="ext-tl-empty">no trades yet...</div>';
+    return;
+  }
+  var html = '';
+  filtered.forEach(function(entry){
+    var ageS = Math.round((Date.now()-entry.time)/1000);
+    var ageStr = ageS<60 ? ageS+'s' : Math.round(ageS/60)+'m';
+    var isBurn = entry.reason==='BURN';
+    var cls = isBurn?'ext-tl-burn':entry.pos?'ext-tl-pos':'ext-tl-neg';
+    html += '<div class="ext-tl-row"><span class="'+cls+'" title="'+extEscHtml(entry.text)+'">'+extEscHtml(entry.text)+'</span><span class="ext-tl-time">'+ageStr+'</span></div>';
+  });
+  scroll.innerHTML = html;
+}
+
+function updateExtRankings(){
+  var el = document.getElementById('ext-rankings');
+  if(!el) return;
+  if(!extRankings.length){ el.innerHTML=''; return; }
+  var colMap = {ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'};
+  var html = '';
+  extRankings.forEach(function(r,i){
+    var col = colMap[r.name]||'#aaa';
+    var crown = i===0?'<span class="ext-rnk-crown">♛ </span>':'';
+    html += '<div class="ext-rnk-row">'+crown+'<span class="ext-rnk-pos">'+(i===0?'':'#'+(i+1))+'</span>'
+          +'<span class="ext-rnk-name" style="color:'+col+'">'+r.name+'</span>'
+          +'<span class="ext-rnk-val">$'+Math.round(r.val||0)+'</span></div>';
+  });
+  el.innerHTML = html;
+}
+
+function extUpdateCooldown(){
+  var cd = document.getElementById('ext-cooldown');
+  var inp = document.getElementById('ext-prompt-input');
+  var btn = document.getElementById('ext-send-btn');
+  if(!cd) return;
+  var rem = EXT_COOLDOWN - (Date.now() - extLastPromptTime);
+  if(rem<=0 || extLastPromptTime===0){
+    cd.textContent = 'FREE PROMPT AVAILABLE';
+    cd.className = 'ready';
+    if(inp) inp.disabled = false;
+    if(btn) btn.disabled = false;
+  } else {
+    var m = Math.floor(rem/60000), s = Math.ceil((rem%60000)/1000);
+    cd.textContent = 'NEXT PROMPT IN ' + m + ':' + (s<10?'0':'') + s;
+    cd.className = '';
+    if(inp) inp.disabled = true;
+    if(btn) btn.disabled = true;
+  }
+}
+
+function extFetchThought(){
+  var def = EXT_AGENTS[extSpectIdx];
+  if(!EXT_CFG.WORKER_URL) return;
+  var th = document.getElementById('ext-thought');
+  if(th){ th.textContent = '...'; th.style.opacity='0.4'; }
+  var agState = (extSimState.agents||{})[def.id]||{};
+  fetch(EXT_CFG.WORKER_URL, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      personality: def.id,
+      worldState: {
+        day: (extSimState.world||{}).currentDay||1,
+        totalInteractions: (extSimState.world||{}).totalInteractions||0,
+        agentCount: 5,
+        agentBalance: agState.balance||100,
+        agentJob: 'TRADER',
+        agentAddiction: agState.gamblingAddiction||0,
+        ethBalance: agState.ethBalance||0,
+        recentPnl: agState.recentPnl||[],
+        tradeHistory: agState.tradeHistory||[],
+        agentTrade: null,
+        rankings: extRankings
+      },
+      playerAction: 'thinking aloud — no one nearby',
+      playerName: 'SPECTATOR',
+      conversationHistory: []
+    })
+  }).then(function(r){ return r.json(); })
+  .then(function(d){
+    if(th){ th.textContent = '"'+(d.text||extFallback(def.id))+'"'; th.style.opacity='1'; }
+  }).catch(function(){
+    if(th){ th.textContent = '"'+extFallback(def.id)+'"'; th.style.opacity='1'; }
+  });
+}
+
+function extSendPrompt(){
+  if(extLastPromptTime!==0 && Date.now()-extLastPromptTime < EXT_COOLDOWN) return;
+  var inp = document.getElementById('ext-prompt-input');
+  var msg = inp ? inp.value.trim() : '';
+  if(!msg) return;
+  inp.value = ''; inp.disabled = true;
+  var btn = document.getElementById('ext-send-btn'); if(btn) btn.disabled = true;
+  var def = EXT_AGENTS[extSpectIdx];
+  var respEl = document.getElementById('ext-response');
+  if(respEl){ respEl.textContent = '...'; respEl.style.opacity='0.4'; }
+  var hist = extConvoHist[def.id]||[];
+  var agState = (extSimState.agents||{})[def.id]||{};
+  fetch(EXT_CFG.WORKER_URL, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      personality: def.id,
+      worldState: {
+        day: (extSimState.world||{}).currentDay||1,
+        totalInteractions: (extSimState.world||{}).totalInteractions||0,
+        agentCount: 5,
+        agentBalance: agState.balance||100,
+        agentJob: 'TRADER',
+        agentAddiction: agState.gamblingAddiction||0,
+        ethBalance: agState.ethBalance||0,
+        recentPnl: agState.recentPnl||[],
+        tradeHistory: agState.tradeHistory||[],
+        agentTrade: null,
+        rankings: extRankings
+      },
+      playerAction: msg,
+      playerName: 'SPECTATOR',
+      conversationHistory: hist.slice(-12)
+    })
+  }).then(function(r){ return r.json(); })
+  .then(function(d){
+    var text = d.text || extFallback(def.id);
+    extLastPromptTime = Date.now();
+    if(respEl){ respEl.textContent = def.name+': "'+text+'"'; respEl.style.opacity='1'; }
+    if(!extConvoHist[def.id]) extConvoHist[def.id]=[];
+    extConvoHist[def.id].push({role:'user',content:'[SPECTATOR] '+msg});
+    extConvoHist[def.id].push({role:'assistant',content:text});
+    if(extConvoHist[def.id].length>40) extConvoHist[def.id]=extConvoHist[def.id].slice(-40);
+    extUpdateCooldown();
+  }).catch(function(){
+    if(respEl){ respEl.textContent = '"'+extFallback(def.id)+'"'; respEl.style.opacity='1'; }
+    extUpdateCooldown();
+  });
+}
+
+// Listen for Enter key on the prompt input
+document.addEventListener('DOMContentLoaded', function(){
+  var inp = document.getElementById('ext-prompt-input');
+  if(inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') extSendPrompt(); });
+});
+
+// Init Firebase + subscribe to sim state
+(function initExtFirebase(){
+  try {
+    firebase.initializeApp(EXT_CFG.FIREBASE);
+    extFirebaseDB = firebase.database();
+    extFirebaseDB.ref('sim').on('value', function(snap){
+      var data = snap.val();
+      if(!data) return;
+      extSimState = data;
+      if(data.trades){
+        var arr = Array.isArray(data.trades)?data.trades:Object.values(data.trades);
+        if(arr.length>0){ extTradeLog=arr; updateExtTradeLog(); }
+      }
+      if(data.rankings){
+        var rnk = Array.isArray(data.rankings)?data.rankings:Object.values(data.rankings);
+        if(rnk.length>0){ extRankings=rnk; updateExtRankings(); }
+      }
+    });
+  } catch(e){}
+  buildExtPicker();
+  setTimeout(extFetchThought, 1500);
+  setInterval(extUpdateCooldown, 1000);
+  setInterval(updateExtTradeLog, 10000);
+})();
 
 /* ── NAV ACTIVE ── */
 var secs=document.querySelectorAll('section[id]');
