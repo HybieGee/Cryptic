@@ -958,8 +958,8 @@ function prepareAgentModel(def, gltf){
   if(Object.keys(agentPrepared).length===0)
     console.log('[AGENT MODEL] Clips:',clips.map(function(c){return c.name;}));
   // Catalog clips by emotional role — keyword-matched
-  var catalog={idle:null,walk:null,run:null,punch:null,kick:null,wave:null,fear:null,injured:null,sad:null,argue:null,dance:null,look:null};
-  var EXACT_KEYS={idle:1,walk:1,run:1,punch:1,kick:1,wave:1,fear:1,injured:1,sad:1,argue:1,dance:1,look:1};
+  var catalog={idle:null,walk:null,run:null,punch:null,kick:null,wave:null,fear:null,injured:null,sad:null,argue:null,dance:null,look:null,jump:null};
+  var EXACT_KEYS={idle:1,walk:1,run:1,punch:1,kick:1,wave:1,fear:1,injured:1,sad:1,argue:1,dance:1,look:1,jump:1};
   // Pass 1: keyword-match baked-in clips
   clips.forEach(function(clip){
     var n=clip.name.toLowerCase();
@@ -976,6 +976,7 @@ function prepareAgentModel(def, gltf){
     else if(!catalog.argue   &&(n.includes('point')||n.includes('argu')||n.includes('gesture')||n.includes('talk')))catalog.argue=clip;
     else if(!catalog.dance   &&(n.includes('danc')||n.includes('hip hop')||n.includes('joy')))catalog.dance=clip;
     else if(!catalog.look    &&(n.includes('look')||n.includes('survey')||n.includes('think')))catalog.look=clip;
+    else if(!catalog.jump    &&n.includes('jump'))catalog.jump=clip;
   });
   // Pass 2: exact-named clips from AGENT_ANIM_FILES always override
   clips.forEach(function(clip){
@@ -1649,8 +1650,19 @@ function updateAgents(delta,t){
       if(ag.emotionAnimTimer>0){
         // Emotion anim in progress — do nothing, let it finish
       }else{
+        // Jump takes priority over locomotion
+        if((ag.jumpVel||0)>0&&ag.animActions.jump){
+          if(ag.animState!=='jump'){
+            Object.keys(ag.animActions).forEach(function(k){
+              var a=ag.animActions[k];if(a&&a.isRunning()&&k!=='jump')a.fadeOut(0.1);
+            });
+            var jAct=ag.animActions.jump;
+            jAct.setLoop(THREE.LoopOnce,1);jAct.clampWhenFinished=true;
+            jAct.reset().setEffectiveWeight(1).fadeIn(0.1).play();
+            ag.animState='jump';
+          }
         // Locomotion: pick anim based on actual movement
-        if(moving){
+        }else if(moving){
           var useRun=ag.speed*ag.speedDebuff>3.5&&ag.animActions.run;
           transitionAnim(ag,useRun?'run':'walk',0.3);
           ag.stepTimer-=delta;
