@@ -348,7 +348,7 @@ canvas{display:block;position:fixed;inset:0}
     <div id="spec-agent-info">
       <div id="spec-watching">SPECTATING</div>
       <div id="spec-agent-name" style="color:#44aaff">ALPHA</div>
-      <div id="spec-world-status">DAY <span id="spec-day">1</span> &nbsp;·&nbsp; <span id="spec-online">—</span> ONLINE</div>
+      <div id="spec-world-status">DAY <span id="spec-day">1</span> &nbsp;·&nbsp; <span id="spec-online">—</span> ONLINE &nbsp;·&nbsp; <a id="spec-repo-link" href="#" target="_blank" style="color:#2a3a5a;text-decoration:none;font-size:7px;letter-spacing:2px;pointer-events:none">REPO ↗</a></div>
     </div>
     <div id="spec-top-right">
       <div id="sim-status">● SIM ACTIVE</div>
@@ -588,7 +588,9 @@ var CFG = {
     messagingSenderId: "993218067646",
     appId:             "1:993218067646:web:65fa6715b1b3eebbddf2ef"
   },
-  WORKER_URL:     'https://emergence-world-agents.stealthbundlebot.workers.dev'
+  WORKER_URL:     'https://emergence-world-agents.stealthbundlebot.workers.dev',
+  // Agent GitHub repos — populated when repos are created at end of project
+  AGENT_REPOS:    { alpha: '', beta: '', gamma: '', delta: '', epsilon: '' }
 };
 
 // No fixed narrative — Cryptonix generates its own history
@@ -1312,20 +1314,24 @@ function copyTradeAddr(){
 
 function updateTradeLog(){
   var el=document.getElementById('trade-log-panel');if(!el)return;
+  var spectAg=agents[spectateAgentIdx];
+  var spectName=spectAg?spectAg.def.name:null;
+  var filtered=spectName?globalTradeLog.filter(function(e){return e.agent===spectName;}):globalTradeLog;
   var rows='';
-  if(!globalTradeLog.length){
-    rows='<div class="tl-empty">awaiting trades...</div>';
+  if(!filtered.length){
+    rows='<div class="tl-empty">no trades yet...</div>';
   }else{
-    globalTradeLog.forEach(function(entry,i){
+    filtered.forEach(function(entry){
+      var globalIdx=globalTradeLog.indexOf(entry);
       var ageS=Math.round((Date.now()-entry.time)/1000);
       var ageStr=ageS<60?ageS+'s':(Math.round(ageS/60))+'m';
       var isBurn=entry.reason==='BURN';
       var cls=isBurn?'tl-burn':entry.pos?'tl-pos':'tl-neg';
-      var agCol={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'}[entry.agent]||'#aaa';
-      rows+='<div class="tl-row" onclick="openTradeDetail('+i+')"><span class="tl-agent" style="color:'+agCol+'">'+entry.agent+'</span><span class="'+cls+'" title="'+escHtml(entry.text)+'">'+escHtml(entry.text)+'</span><span class="tl-time">'+ageStr+'</span></div>';
+      rows+='<div class="tl-row" onclick="openTradeDetail('+globalIdx+')"><span class="'+cls+'" title="'+escHtml(entry.text)+'">'+escHtml(entry.text)+'</span><span class="tl-time">'+ageStr+'</span></div>';
     });
   }
-  el.innerHTML='<div class="tl-title">◈ TRADE FEED</div><div id="tl-scroll">'+rows+'</div>';
+  var title=spectName?('◈ '+spectName):'◈ TRADES';
+  el.innerHTML='<div class="tl-title">'+title+'</div><div id="tl-scroll">'+rows+'</div>';
 }
 
 var AGENT_COLORS_MAP={ALPHA:'#44aaff',BETA:'#ff8844',GAMMA:'#44ff88',DELTA:'#ff4488',EPSILON:'#aa88ff'};
@@ -1532,7 +1538,10 @@ function updateAgents(delta,t){
         // Completely blocked — abandon waypoint
         ag.wp=randomWaypoint();ag.idleTimer=0.5;ag.stuckTimer=0;
       }
-      ag.grp.rotation.y=Math.atan2(dx,dz);
+      // Smooth rotation to eliminate frame-by-frame jitter
+      var targetAngle=Math.atan2(dx,dz);
+      var diff=(((targetAngle-ag.grp.rotation.y)%(Math.PI*2))+Math.PI*3)%(Math.PI*2)-Math.PI;
+      ag.grp.rotation.y+=diff*Math.min(1,delta*8);
     }else{
       ag.idleTimer-=delta;
       if(ag.idleTimer<=0){ag.wp=randomWaypoint();ag.idleTimer=1+Math.random()*4;}
@@ -1862,9 +1871,9 @@ function updateLabels(){
     ag.labelEl.style.left=((_proj.x*.5+.5)*innerWidth)+'px';
     ag.labelEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
     ag.labelEl.style.display='block';
-    // Dialogue bubble
+    // Dialogue bubble — anchored higher than balance label to avoid overlap
     if(ag.bubbleEl){
-      _proj.set(ag.grp.position.x,ag.grp.position.y+4.5,ag.grp.position.z);_proj.project(camera);
+      _proj.set(ag.grp.position.x,ag.grp.position.y+6.5,ag.grp.position.z);_proj.project(camera);
       if(_proj.z>1){ag.bubbleEl.style.opacity='0';return;}
       ag.bubbleEl.style.left=((_proj.x*.5+.5)*innerWidth)+'px';
       ag.bubbleEl.style.top=((-_proj.y*.5+.5)*innerHeight)+'px';
@@ -3217,6 +3226,14 @@ function setSpecAgent(idx){
   var def=AGENT_DEFS[spectateAgentIdx];
   var nameEl=document.getElementById('spec-agent-name');
   if(nameEl){nameEl.textContent=def.name;nameEl.style.color=def.colorCSS;}
+  var repoLink=document.getElementById('spec-repo-link');
+  if(repoLink){
+    var repoUrl=CFG.AGENT_REPOS[def.id]||'';
+    repoLink.href=repoUrl||'#';
+    repoLink.style.color=repoUrl?'#4488ff':'#2a3a5a';
+    repoLink.style.pointerEvents=repoUrl?'all':'none';
+    repoLink.title=repoUrl?def.name+' repository':'Repository coming soon';
+  }
   buildSpecDots();
   updateSpectateEmotionBars(def);
   // Clear thought so it fetches fresh on next interval
