@@ -2,5 +2,17 @@ name = "emergence-world-agents"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+# Drives runSimTick() autonomously every minute (worker's scheduled handler).
+# Respects the simulationActive pause flag.
+[triggers]
+crons = ["*/1 * * * *"]
+
 [vars]
-# Add ANTHROPIC_API_KEY as a secret via: wrangler secret put ANTHROPIC_API_KEY
+# Secrets: wrangler secret put ANTHROPIC_API_KEY
+#          wrangler secret put BITQUERY_API_KEY
+#          wrangler secret put ADMIN_PASSWORD
+#          wrangler secret put CRON_SECRET
+
+[[kv_namespaces]]
+binding = "AGENT_MEMORY"
+id = "e351b1d9b20c43bc8a620d58740aa93a"

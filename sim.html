@@ -32,8 +32,12 @@ canvas{display:block;position:fixed;inset:0}
 .spec-sw-btn{padding:5px 14px;background:rgba(0,0,0,.6);border:1px solid #2a2a2a;color:#888;font-family:'Courier New',monospace;font-size:8px;letter-spacing:3px;cursor:pointer;transition:all .15s}
 .spec-sw-btn:hover{border-color:#aaa;color:#fff}
 #spec-dots{display:flex;gap:6px;align-items:center}
-.spec-dot{width:6px;height:6px;border-radius:50%;background:#1a1a1a;cursor:pointer;transition:all .2s;border:1px solid #2a2a2a}
+.spec-dot{width:6px;height:6px;border-radius:50%;background:#1a1a1a;cursor:pointer;transition:all .2s;border:1px solid #2a2a2a;color:#888}
 .spec-dot.active{transform:scale(1.5);border-color:currentColor}
+.spec-dot.speaking{animation:dotPulse 1.4s ease-out}
+#spec-agent-name.speaking{animation:nameGlow 1.4s ease-out}
+@keyframes dotPulse{0%{box-shadow:0 0 0 0 currentColor;background:currentColor}70%{box-shadow:0 0 0 10px transparent;background:currentColor}100%{box-shadow:0 0 0 0 transparent;background:#1a1a1a}}
+@keyframes nameGlow{0%,100%{text-shadow:none}40%{text-shadow:0 0 14px currentColor}}
 #spec-emotions{position:absolute;left:18px;top:50%;transform:translateY(-50%);pointer-events:none;display:flex;flex-direction:column;gap:6px}
 .spec-emo-row{display:flex;align-items:center;gap:12px}
 .spec-emo-label{font-size:9px;letter-spacing:2px;color:#fff;width:96px;text-align:right;flex-shrink:0;text-shadow:0 0 6px #000,1px 1px 0 #000}
@@ -48,7 +52,18 @@ canvas{display:block;position:fixed;inset:0}
 .spec-ppnl-neg{color:#ff4444}
 .spec-plast{font-size:7px;letter-spacing:1px;color:#aaa;margin-top:2px;font-style:italic}
 #spec-left-bottom{display:flex;flex-direction:column;gap:8px;flex:1;max-width:520px;background:rgba(0,0,6,.82);border:1px solid #111;padding:12px 16px}
-#spec-thought{font-size:9px;letter-spacing:.4px;color:#ccc;line-height:1.9;font-style:italic;min-height:16px}
+#spec-lesson{font-size:8px;letter-spacing:.3px;line-height:1.6;padding:6px 8px;border-left:2px solid #2a2a3a;background:rgba(255,255,255,.015);margin-bottom:6px;display:none;max-width:520px}
+#spec-lesson .lesson-tag{font-size:7px;letter-spacing:2.5px;display:block;margin-bottom:3px}
+#spec-lesson .lesson-body{color:#bbb;font-style:italic}
+#spec-chat-thread{font-size:9px;letter-spacing:.3px;color:#aaa;line-height:1.7;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:6px 2px;min-height:40px}
+#spec-chat-thread::-webkit-scrollbar{width:4px}
+#spec-chat-thread::-webkit-scrollbar-thumb{background:#222}
+.chat-msg{display:block}
+.chat-msg .chat-name{font-size:8px;letter-spacing:1px;color:#666;margin-right:6px}
+.chat-msg.agent .chat-name{color:currentColor}
+.chat-msg.agent .chat-text{color:#ddd;font-style:italic}
+.chat-msg.user .chat-text{color:#aaa}
+#spec-response{display:none}
 #spec-cooldown{font-size:8px;letter-spacing:3px;color:#888}
 #spec-cooldown.ready{color:#44ff88}
 #spec-prompt-row{display:flex;gap:8px}
@@ -370,20 +385,20 @@ body.embedded #convo-panel { display:none !important; }
   <!-- Bottom row -->
   <div id="spec-bottom">
     <div id="spec-left-bottom">
-      <div id="spec-thought"></div>
+      <div id="spec-lesson"></div>
+      <div id="spec-chat-thread"></div>
       <div id="spec-cooldown" class="ready">FREE PROMPT AVAILABLE</div>
       <div id="spec-prompt-row">
-        <input id="spec-prompt-input" type="text" maxlength="200" placeholder="Ask this agent something..." autocomplete="off">
+        <input id="spec-prompt-input" type="text" maxlength="200" placeholder="Say something to this agent (everyone sees it)..." autocomplete="off">
         <button id="spec-send-btn" onclick="sendSpectatePrompt()">SEND ◌</button>
       </div>
-      <div id="spec-response"></div>
     </div>
     <div id="spec-portfolio"></div>
     <div id="convo-panel"><div class="convo-title">◈ AGENT COMMS</div><div id="convo-scroll"></div></div>
     <div id="trade-log-panel"></div>
     <div id="spec-join-cta">
       <button id="spec-wallet-btn" onclick="spectateConnectWallet()">◌ CONNECT WALLET TO JOIN</button>
-      <div id="spec-nw">No wallet detected. Install MetaMask to join.</div>
+      <div id="spec-nw">No wallet detected. Install Phantom to join.</div>
       <div id="spec-join">
         <input id="spec-name-input" type="text" maxlength="18" placeholder="CHOOSE A UNIQUE NAME" autocomplete="off" spellcheck="false">
         <div id="spec-name-error"></div>
@@ -584,7 +599,7 @@ function playSound(type,dist){
 var CFG = {
   CITY_MODEL:     'low_poly_city.glb',
   TOKEN_CONTRACT: '',
-  TOKEN_SYMBOL:   'CNIX',   // Update to final ticker when token launches on Bankr
+  TOKEN_SYMBOL:   'CNIX',   // Update to final ticker when token launches on pump.fun
   TOKEN_DECIMALS: 18,
   FIREBASE:       {
     apiKey:            "AIzaSyC1y4OmvMW3rCgPycB-sZx_0q0mj_s4_ck",
@@ -618,19 +633,20 @@ var JOB_TIERS=[
 var JOB_TIER_ROLES=[-1,0,0,1,2]; // maps agent spawn index to tier offset into JOB_TIERS
 
 // ── Memecoin trading ─────────────────────────────────────────────────────────
-var ethPriceUSD=0,lastTokenFetch=0;
-var cachedTokens={new:[],hot:[],established:[]};
+var solPriceUSD=0,lastTokenFetch=0;
+var cachedTokens={new:[],stretch:[],migrated:[]};
 var globalTradeLog=[];
 var globalRankings=[];
+var lastSimAgents={}; // raw /sim/agents map for spec UI render (lesson, closedTrades, etc.)
 var globalConversations=[];
 var simulationActive=true; // on/off master switch
 var lastWorldSave=0;
 var pendingSavedState=null; // agent data loaded from Firebase before spawn
 var TRADE_PROFILE={
-  alpha:  {col:'hot',         buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
-  beta:   {col:'established', buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
-  gamma:  {col:'new',         buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18, minObs:1},
-  delta:  {col:'hot',         buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14, minObs:3},
+  alpha:  {col:'stretch',  buyThresh:0.55, bias:+0.10, tp:0.35, sl:-0.20, maxHold:480,  riskPct:0.12, minObs:3},
+  beta:   {col:'migrated', buyThresh:0.65, bias:-0.05, tp:0.15, sl:-0.10, maxHold:1200, riskPct:0.07, minObs:5},
+  gamma:  {col:'new',      buyThresh:0.45, bias:+0.15, tp:0.80, sl:-0.35, maxHold:300,  riskPct:0.18, minObs:1},
+  delta:  {col:'stretch',  buyThresh:0.58, bias:+0.08, tp:0.40, sl:-0.22, maxHold:360,  riskPct:0.14, minObs:3},
   epsilon:{col:'new',         buyThresh:0.40, bias:0,     tp:0.60, sl:-0.30, maxHold:600,  riskPct:0.15, minObs:0},
 };
 
@@ -1081,15 +1097,15 @@ function spawnAgents(streetY){
       stepTimer:0,
       balance:10000,jobTier:JOB_TIER_ROLES[agents.length]||0,gamblingAddiction:0,lastPayday:0,
       crimeRecord:0,wanted:false,jailTimer:0,economicCooldown:0,balLabelEl:null,
-      ethBalance:0.025,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
+      solBalance:0.5,portfolio:{},tradeCooldown:Math.random()*60,sellTimer:Math.random()*15,tradeHistory:[],
       buyLockUntil:0,sellLockUntil:0,watchList:{},recentPnl:[],adaptiveBias:0,feePool:0,
       inFight:false,fightTarget:null,fightReason:'',fightRoundTimer:0,fightRounds:0};
     agents.push(ag);
-    // Restore persisted state (balance, ETH, emotions, portfolio, etc.)
+    // Restore persisted state (balance, SOL, emotions, portfolio, etc.)
     var saved=pendingSavedState&&pendingSavedState[def.id];
     if(saved){
       if(saved.balance!=null)ag.balance=saved.balance;
-      if(saved.ethBalance!=null)ag.ethBalance=saved.ethBalance;
+      if(saved.solBalance!=null)ag.solBalance=saved.solBalance;
       if(saved.jobTier!=null)ag.jobTier=saved.jobTier;
       if(saved.gamblingAddiction!=null)ag.gamblingAddiction=saved.gamblingAddiction;
       if(saved.recentPnl)ag.recentPnl=saved.recentPnl;
@@ -1132,33 +1148,33 @@ function pollTokens(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(d.new)cachedTokens.new=d.new;
-      if(d.hot)cachedTokens.hot=d.hot;
-      if(d.established)cachedTokens.established=d.established;
-      if(d.ethPrice&&d.ethPrice>0)ethPriceUSD=d.ethPrice;
-      console.log('[TRADE] new:'+cachedTokens.new.length+' hot:'+cachedTokens.hot.length+' established:'+cachedTokens.established.length+' ETH:$'+ethPriceUSD.toFixed(2));
+      if(d.stretch)cachedTokens.stretch=d.stretch;
+      if(d.migrated)cachedTokens.migrated=d.migrated;
+      if(d.solPrice&&d.solPrice>0)solPriceUSD=d.solPrice;
+      console.log('[TRADE] new:'+cachedTokens.new.length+' stretch:'+cachedTokens.stretch.length+' migrated:'+cachedTokens.migrated.length+' SOL:$'+solPriceUSD.toFixed(2));
     })
     .catch(function(){});
 }
 
 function getTokenCurrentPrice(addr){
-  var all=cachedTokens.new.concat(cachedTokens.hot,cachedTokens.established);
+  var all=cachedTokens.new.concat(cachedTokens.stretch,cachedTokens.migrated);
   for(var i=0;i<all.length;i++){if(all[i].address===addr)return all[i].priceUsd;}
   return null;
 }
 
-function checkEthTopup(ag){
-  if(ag.ethBalance>=0.005||ethPriceUSD<=0)return;
-  var buyAmt=0.025;
-  var cost=buyAmt*ethPriceUSD;
+function checkSolTopup(ag){
+  if(ag.solBalance>=0.1||solPriceUSD<=0)return;
+  var buyAmt=0.5;
+  var cost=buyAmt*solPriceUSD;
   if(ag.balance<cost){
-    // Can't afford 0.025 ETH — try 0.005 ETH minimum
-    buyAmt=0.005;cost=buyAmt*ethPriceUSD;
+    // Can't afford 0.5 SOL — try 0.1 SOL minimum
+    buyAmt=0.1;cost=buyAmt*solPriceUSD;
     if(ag.balance<cost)return;
   }
   ag.balance-=cost;
-  ag.ethBalance+=buyAmt;
-  showBubble(ag,'Bought '+buyAmt+' ETH @ $'+Math.round(ethPriceUSD),3);
-  ag.tradeHistory.unshift('BOUGHT '+buyAmt+' ETH @ $'+Math.round(ethPriceUSD));
+  ag.solBalance+=buyAmt;
+  showBubble(ag,'Bought '+buyAmt+' SOL @ $'+Math.round(solPriceUSD),3);
+  ag.tradeHistory.unshift('BOUGHT '+buyAmt+' SOL @ $'+Math.round(solPriceUSD));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
 }
 
@@ -1186,7 +1202,7 @@ function checkSell(ag,addr){
   if(!reason)return;
   var pnlPct=Math.round(pnl*100);
   var sign=pnl>=0?'+':'';
-  ag.ethBalance+=pos.ethSize*(1+pnl);
+  ag.solBalance+=pos.solSize*(1+pnl);
   delete ag.portfolio[addr];
   ag.sellLockUntil=Date.now()+10*60*1000;
   // Adaptive learning: adjust entry threshold based on rolling PnL
@@ -1202,7 +1218,7 @@ function checkSell(ag,addr){
   ag.tradeHistory.unshift((pnl>=0?'▲':'▼')+' $'+pos.symbol+' '+sign+pnlPct+'%');
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
   var glyph=pnl>=0?'▲':'▼';
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0,address:addr,symbol:pos.symbol,entryPrice:pos.entryPrice,exitPrice:curPrice,ethSize:pos.ethSize,pnl:pnlPct,reason:reason});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:glyph+' '+reason+' $'+pos.symbol+' '+sign+pnlPct+'%',pos:pnl>=0,address:addr,symbol:pos.symbol,entryPrice:pos.entryPrice,exitPrice:curPrice,solSize:pos.solSize,pnl:pnlPct,reason:reason});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
@@ -1218,7 +1234,7 @@ function checkBuy(ag){
     if(!t.address||!t.priceUsd)continue;
     if(ag.portfolio[t.address])continue;
     var volScore=Math.min(1,(t.vol5m||0)/5000);
-    var feeScore=Math.min(1,(t.feesEth||0)/0.5);
+    var feeScore=Math.min(1,(t.feesSol||0)/2);
     var noise=ag.def.id==='epsilon'?(Math.random()-0.5)*0.6:(Math.random()-0.5)*0.1;
     var score=volScore*0.6+feeScore*0.4+prof.bias+noise;
     if(score>bestScore){bestScore=score;bestTok=t;}
@@ -1242,24 +1258,24 @@ function checkBuy(ag){
   var threshold=(prof.buyThresh||0.5)+ag.adaptiveBias;
   if(avgScore<threshold)return;
   if(Object.keys(ag.portfolio).length>=2)return;
-  var ethSize=ag.ethBalance*prof.riskPct;
-  if(ethSize<0.0005||ag.ethBalance<ethSize)return;
+  var solSize=ag.solBalance*prof.riskPct;
+  if(solSize<0.01||ag.solBalance<solSize)return;
   var obsCount=ag.watchList[addr].seenCount;
   delete ag.watchList[addr];
-  ag.ethBalance-=ethSize;
-  ag.portfolio[addr]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,ethSize:ethSize,entryTime:Date.now(),simMult:1};
+  ag.solBalance-=solSize;
+  ag.portfolio[addr]={symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,lastKnownPrice:bestTok.priceUsd,solSize:solSize,entryTime:Date.now(),simMult:1};
   ag.buyLockUntil=Date.now()+10*60*1000;
   var obsStr=obsCount>1?' ('+obsCount+' checks)':'';
-  showBubble(ag,'Entered $'+bestTok.symbol+obsStr+' — '+ethSize.toFixed(4)+' ETH',3);
+  showBubble(ag,'Entered $'+bestTok.symbol+obsStr+' — '+solSize.toFixed(4)+' SOL',3);
   ag.tradeHistory.unshift('▶ $'+bestTok.symbol+' @ $'+bestTok.priceUsd.toFixed(8));
   if(ag.tradeHistory.length>5)ag.tradeHistory.length=5;
-  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+ethSize.toFixed(4)+' ETH',pos:true,address:addr,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,ethSize:ethSize,pnl:null,reason:'BUY'});
+  globalTradeLog.unshift({time:Date.now(),agent:ag.def.name,text:'▶ BUY $'+bestTok.symbol+' '+solSize.toFixed(4)+' SOL',pos:true,address:addr,symbol:bestTok.symbol,entryPrice:bestTok.priceUsd,exitPrice:null,solSize:solSize,pnl:null,reason:'BUY'});
   if(globalTradeLog.length>30)globalTradeLog.length=30;
 }
 
 function evaluateTrades(ag,dt){
   if(!agentsSpawned||!simulationActive)return;
-  checkEthTopup(ag);
+  checkSolTopup(ag);
   // Drop watchList entries for tokens gone stale (> 25 min without a sighting)
   var now=Date.now();
   Object.keys(ag.watchList).forEach(function(a){
@@ -1290,10 +1306,10 @@ function openTradeDetail(idx){
   document.getElementById('td-type').textContent=entry.reason||'?';
   document.getElementById('td-entry').textContent=entry.entryPrice?('$'+entry.entryPrice.toFixed(8)):'—';
   document.getElementById('td-exit').textContent=entry.reason==='BURN'?'BURNED':entry.exitPrice?('$'+entry.exitPrice.toFixed(8)):(entry.reason==='BUY'?'OPEN':'—');
-  document.getElementById('td-size').textContent=entry.ethSize?(entry.ethSize.toFixed(5)+(entry.reason==='BURN'?' ETH restocked':' ETH')):'—';
+  document.getElementById('td-size').textContent=entry.solSize?(entry.solSize.toFixed(5)+(entry.reason==='BURN'?' SOL restocked':' SOL')):'—';
   var pnlEl=document.getElementById('td-pnl');
   if(entry.reason==='BURN'){
-    pnlEl.textContent='+'+((entry.ethSize||0).toFixed(5))+' ETH';pnlEl.className='td-pnl-pos';
+    pnlEl.textContent='+'+((entry.solSize||0).toFixed(5))+' SOL';pnlEl.className='td-pnl-pos';
   }else if(entry.pnl!==null&&entry.pnl!==undefined){
     var sign=entry.pnl>=0?'+':'';
     pnlEl.textContent=sign+entry.pnl+'%';
@@ -1380,11 +1396,11 @@ function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 function updatePortfolioHUD(){
   var el=document.getElementById('spec-portfolio');if(!el)return;
   var ag=agents[spectateAgentIdx];if(!ag){el.innerHTML='';return;}
-  var ethUsd=ethPriceUSD>0?'~$'+(ag.ethBalance*ethPriceUSD).toFixed(0):'';
+  var solUsd=solPriceUSD>0?'~$'+(ag.solBalance*solPriceUSD).toFixed(0):'';
   var html='<div class="spec-ptitle">◈ TRADING</div>';
-  html+='<div class="spec-psol"><img src="eth.png" style="width:9px;height:9px;vertical-align:middle;margin-right:3px">'+ag.ethBalance.toFixed(4)+' ETH <span style="color:#555">'+ethUsd+'</span></div>';
+  html+='<div class="spec-psol"><img src="sol.svg" style="width:9px;height:9px;vertical-align:middle;margin-right:3px">'+ag.solBalance.toFixed(4)+' SOL <span style="color:#555">'+solUsd+'</span></div>';
   var fp=ag.feePool||0;
-  var burnReady=ag.ethBalance<0.003&&fp>=0.001;
+  var burnReady=ag.solBalance<0.06&&fp>=0.02;
   var fpCol=burnReady?'#ff8844':(fp>0.0001?'#555':'#333');
   html+='<div class="spec-prow" style="color:'+fpCol+';font-size:7px">'+(burnReady?'🔥':'◌')+' '+fp.toFixed(5)+' '+CFG.TOKEN_SYMBOL+' pool'+(burnReady?' — BURN READY':'')+'</div>';
   // Buy lock countdown
@@ -1939,9 +1955,9 @@ function updateLabels(){
     var b=ag.balance||0;
     var col=b>5000?'#44ff88':b>2000?'#ffcc00':b>500?'#ff8844':'#ff3333';
     ag.balLabelEl.style.color=col;
-    var ethStr=ag.ethBalance!=null?('<br><span style="color:#88ccff;font-size:8px"><img src="eth.png" style="width:8px;height:8px;vertical-align:middle;margin-right:2px"> '+(ag.ethBalance).toFixed(4)+'</span>'):'';
+    var solStr=ag.solBalance!=null?('<br><span style="color:#88ccff;font-size:8px"><img src="sol.svg" style="width:8px;height:8px;vertical-align:middle;margin-right:2px"> '+(ag.solBalance).toFixed(4)+'</span>'):'';
     ag.balLabelEl.style.textAlign='center';
-    ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+ethStr;
+    ag.balLabelEl.innerHTML='$'+Math.floor(b).toLocaleString()+solStr;
   });
 
   SHOPS.forEach(function(sh){
@@ -2124,7 +2140,7 @@ function fetchAgentLine(ag,playerAction,cb){
     personality:ag.def.personality,
     worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
       agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,ag.jobTier+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction,
-      ethBalance:ag.ethBalance||0,recentPnl:ag.recentPnl||[],
+      solBalance:ag.solBalance||0,recentPnl:ag.recentPnl||[],
       tradeHistory:ag.tradeHistory||[],
       agentTrade:Object.values(ag.portfolio||{}).map(function(p){return 'holding $'+p.symbol;}).join(', ')||null,
       rankings:globalRankings},
@@ -2187,30 +2203,11 @@ function showBubble(ag,text,duration){
   ag._bubbleTimer=setTimeout(function(){ag.bubbleEl.classList.remove('show');},duration*1000);
 }
 
-// Idle bubble timer per agent — calls Claude for a genuine in-character thought
-function scheduleIdleBubble(ag){
-  var delay=28000+Math.random()*22000; // 28-50s between thoughts
-  ag._idleBubbleTimer=setTimeout(function(){
-    if(ag.bubbleEl&&!ag.knockedOut&&CFG.WORKER_URL&&simulationActive){
-      var ag2=ag; // closure ref
-      var emo=agentEmotions[ag2.def.id]||EMOTION_BASELINE[ag2.def.id]||{};
-      var highEmo=Object.entries(emo).sort(function(a,b){return b[1]-a[1];})[0];
-      var tradeCtx='';
-      if(ag2.portfolio&&Object.keys(ag2.portfolio).length){
-        var sym=Object.values(ag2.portfolio)[0].symbol;
-        tradeCtx=' Currently holding $'+sym+' on the memecoin market.';
-      }
-      var thought='thinking aloud to themselves — what is genuinely on their mind right now, about the experiment, the other agents, the economy, or what they just observed.'+tradeCtx+' (feeling most: '+highEmo[0]+')';
-      fetchAgentLine(ag2,thought,function(text){
-        if(ag2.bubbleEl&&!ag2.knockedOut){
-          showBubble(ag2,text,7);
-          if(!gameRunning&&agents[spectateAgentIdx]===ag2)speakText(text,ag2.def);
-        }
-      });
-    }
-    scheduleIdleBubble(ag);
-  },delay);
-}
+// Per-browser idle bubble used to fire one Claude call per agent every 28-50s
+// — with N spectators that multiplied Anthropic spend by N. Disabled now that
+// the worker cron drives one agent-to-agent convo per tick (broadcast via
+// /sim/speech and rendered for everyone). Stub kept so existing callers no-op.
+function scheduleIdleBubble(ag){ /* disabled: worker-driven convos cover idle voice */ }
 
 // ── FEATURE 1: EMOTION BARS ─────────────────────────────
 function updateEmotionBars(emotions,colorCSS){
@@ -3074,13 +3071,13 @@ function initTLDrag(){
 // ─── WALLET ────────────────────────────────────────────
 async function connectWallet(){
   var btn=document.getElementById('wallet-btn');
-  if(!window.ethereum){btn.textContent='✕ NO WALLET';return;}
+  var provider=window.solana;
+  if(!provider||!provider.isPhantom){btn.textContent='✕ NO WALLET';return;}
   btn.textContent='CONNECTING...';
   try{
-    var accs=await window.ethereum.request({method:'eth_requestAccounts'});
-    walletAddr=accs[0];btn.textContent='● '+walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);btn.classList.add('ok');
-    var bal=1;
-    if(CFG.TOKEN_CONTRACT){try{var data='0x70a08231'+walletAddr.replace('0x','').padStart(64,'0');var res=await window.ethereum.request({method:'eth_call',params:[{to:CFG.TOKEN_CONTRACT,data},'latest']});bal=parseInt(res,16)/Math.pow(10,CFG.TOKEN_DECIMALS);}catch(e){bal=1;}}
+    var resp=await provider.connect();
+    walletAddr=resp.publicKey.toString();btn.textContent='● '+walletAddr.slice(0,4)+'...'+walletAddr.slice(-4);btn.classList.add('ok');
+    var bal=1; // SPL balance lookup can be wired here once CNIX launches on pump.fun
     var tier=TIERS.find(function(t){return bal>=t.min;})||TIERS[TIERS.length-1];
     playerTier=tier.name;
     var badge=document.getElementById('token-badge');badge.style.display='block';
@@ -3164,7 +3161,7 @@ function applySimState(data){
     if(data.world.totalInteractions!=null)totalInteractions=data.world.totalInteractions;
     if(data.world.simulationActive!==undefined){simulationActive=!!data.world.simulationActive;updateSimToggleUI();}
   }
-  if(data.ethPrice&&data.ethPrice>0)ethPriceUSD=data.ethPrice;
+  if(data.solPrice&&data.solPrice>0)solPriceUSD=data.solPrice;
   if(data.trades){
     var arr=Array.isArray(data.trades)?data.trades:Object.values(data.trades);
     if(arr.length>0){globalTradeLog=arr;updateTradeLog();}
@@ -3172,11 +3169,12 @@ function applySimState(data){
   if(data.emotions){
     Object.keys(data.emotions).forEach(function(id){agentEmotions[id]=data.emotions[id];});
   }
+  if(data.agents){ lastSimAgents=data.agents; updateLessonDisplay(); }
   if(data.agents&&agentsSpawned){
     agents.forEach(function(ag){
       var s=data.agents[ag.def.id];if(!s)return;
       if(s.balance!=null)ag.balance=s.balance;
-      if(s.ethBalance!=null)ag.ethBalance=s.ethBalance;
+      if(s.solBalance!=null)ag.solBalance=s.solBalance;
       if(s.feePool!=null)ag.feePool=s.feePool;
       if(s.jobTier!=null)ag.jobTier=s.jobTier;
       if(s.gamblingAddiction!=null)ag.gamblingAddiction=s.gamblingAddiction;
@@ -3239,11 +3237,15 @@ function startSpectate(){
   setSpecAgent(0);
   previewAnimate();
   updateSimToggleUI();
-  // Fetch initial thought once — no auto-cycle, user controls which agent to watch
-  setTimeout(fetchSpectateThought,3500);
+  // (Idle thought fetch removed — shared chat thread + worker-driven convos provide content.)
   // Subscribe to Firebase real-time sim state (written by Worker cron every minute)
   if(db){
     db.ref('sim').on('value',function(snap){applySimState(snap.val());});
+    // Universal voice: every agent utterance is broadcast and played with
+    // distance-attenuated TTS based on this spectator's camera position.
+    subscribeSpeech();
+    // Subscribe to whichever agent is currently spectated.
+    if(AGENT_DEFS[spectateAgentIdx])subscribeAgentChat(AGENT_DEFS[spectateAgentIdx].id);
   }
   // Browser-side tick: advance simulation every 60s while page is open (fallback for headless cron)
   clearInterval(window._simTickTimer);
@@ -3265,6 +3267,7 @@ function buildSpecDots(){
     d.style.color=def.colorCSS;
     d.style.background=i===spectateAgentIdx?def.colorCSS:'#1a1a1a';
     d.title=def.name;
+    d.setAttribute('data-agent',def.id);
     d.onclick=(function(idx){return function(){setSpecAgent(idx);};})(i);
     wrap.appendChild(d);
   });
@@ -3285,9 +3288,25 @@ function setSpecAgent(idx){
   }
   buildSpecDots();
   updateSpectateEmotionBars(def);
-  // Clear thought so it fetches fresh on next interval
-  var th=document.getElementById('spec-thought');if(th)th.textContent='';
-  fetchSpectateThought();
+  // Switch the shared chat subscription to this agent's room.
+  subscribeAgentChat(def.id);
+  updateLessonDisplay();
+}
+
+// Render the spectated agent's current self-derived lesson (worker updates this
+// every ~15 closed trades via reflectAgentTrades). Hidden when blank.
+function updateLessonDisplay(){
+  var el=document.getElementById('spec-lesson');if(!el)return;
+  var def=AGENT_DEFS[spectateAgentIdx];if(!def){el.style.display='none';return;}
+  var ag=(lastSimAgents||{})[def.id]||{};
+  var lesson=String(ag.lesson||'').trim();
+  var closed=ag.closedTrades||0;
+  var mutations=ag.adoptedMutations||0;
+  if(!lesson&&!closed){el.style.display='none';return;}
+  el.style.display='block';
+  var meta=closed?(' · '+closed+' closes'+(mutations?' · '+mutations+' mutations adopted':'')):'';
+  el.innerHTML='<span class="lesson-tag" style="color:'+def.colorCSS+'">◆ '+def.name+' LEARNED'+meta+'</span>'
+    +'<span class="lesson-body">'+(lesson?escHtml(lesson):'<span style="color:#444">[no lesson yet — needs 15+ closed trades]</span>')+'</span>';
 }
 
 function switchSpectateAgent(dir){
@@ -3331,51 +3350,178 @@ function updateSpectateEmotionBars(def){
   }).join('');
 }
 
-function fetchSpectateThought(){
-  if(!AGENT_DEFS[spectateAgentIdx]||gameRunning||!simulationActive)return;
-  var def=AGENT_DEFS[spectateAgentIdx];
-  var th=document.getElementById('spec-thought');
-  if(th)th.style.opacity='0.3';
-  fetchAgentLine({def:def},'thinking aloud — no one nearby',function(text,emotions){
-    if(gameRunning)return;
-    if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
-    speakText(text,def);
-    if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
-  });
-}
+// Legacy idle-thought fetch — replaced by the shared chat thread + worker-driven
+// agent-to-agent convos (broadcast via /sim/speech). Kept as a no-op so any
+// existing callers don't break.
+function fetchSpectateThought(){ /* no-op: chat thread + global speech replace this */ }
 
+// New: send a message into the agent's shared global chat. Worker writes the
+// user message + agent reply to /sim/chats/{id}/messages; our subscription
+// renders them and /sim/speech plays the response with spatial audio.
 function sendSpectatePrompt(){
   if(Date.now()-spectateLastPromptTime<SPECTATE_COOLDOWN&&spectateLastPromptTime!==0)return;
   var inp=document.getElementById('spec-prompt-input');
   var msg=inp.value.trim();if(!msg)return;
   inp.value='';inp.disabled=true;
   document.getElementById('spec-send-btn').disabled=true;
+  spectateLastPromptTime=Date.now();
+  chatPendingTs=Date.now(); // shows "…" typing indicator until the reply lands
   var def=AGENT_DEFS[spectateAgentIdx];
-  var respEl=document.getElementById('spec-response');
-  if(respEl){respEl.textContent='';respEl.style.opacity='0.4';}
-  fetchAgentLine({def:def},msg,function(text,emotions){
-    spectateLastPromptTime=Date.now();
-    if(respEl){respEl.textContent=def.name+': "'+text+'"';respEl.style.opacity='1';}
-    var th=document.getElementById('spec-thought');
-    if(th){th.textContent='"'+text+'"';th.style.opacity='1';}
-    speakText(text,def);
-    if(emotions){agentEmotions[def.id]=emotions;updateSpectateEmotionBars(def);}
+  var ag=agents[spectateAgentIdx]||{def:def};
+  fetch(CFG.WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    personality:def.personality,
+    playerName:playerName||'Observer',
+    playerAction:msg,
+    worldState:{day:currentDay,totalInteractions:totalInteractions,agentCount:AGENT_DEFS.length,
+      agentBalance:ag.balance,agentJob:(JOB_TIERS[Math.max(0,(ag.jobTier||0)+1)]||JOB_TIERS[0]).title,agentAddiction:ag.gamblingAddiction||0,
+      solBalance:ag.solBalance||0,recentPnl:ag.recentPnl||[],
+      tradeHistory:ag.tradeHistory||[],
+      agentTrade:Object.values(ag.portfolio||{}).map(function(p){return 'holding $'+p.symbol;}).join(', ')||null,
+      rankings:globalRankings}
+  })})
+  .then(function(r){
+    if(r.status===429){
+      var cd=document.getElementById('spec-cooldown');
+      if(cd){cd.textContent='SLOW DOWN (8s between messages)';cd.className='cooling';}
+      chatPendingTs=0;
+    } else if(r.status===502){
+      var cd=document.getElementById('spec-cooldown');
+      if(cd){cd.textContent='AGENT OFFLINE (LLM unavailable)';cd.className='cooling';}
+      chatPendingTs=0;
+    }
+    return r.json().catch(function(){return{};});
+  })
+  .catch(function(){})
+  .finally(function(){
+    // Re-enable input after the cooldown elapses (handled by updateSpectateHUD).
+    setTimeout(function(){
+      var inp=document.getElementById('spec-prompt-input'); if(inp)inp.disabled=false;
+      var btn=document.getElementById('spec-send-btn');     if(btn)btn.disabled=false;
+    },SPECTATE_COOLDOWN);
   });
+}
+
+// ── Shared chat thread subscription ──────────────────────────────────────────
+var currentChatRef=null;
+var chatPendingTs=0; // set when local user posts; cleared when an agent reply lands
+function subscribeAgentChat(agentId){
+  if(!db||!agentId)return;
+  if(currentChatRef){ try{ currentChatRef.off(); }catch(e){} currentChatRef=null; }
+  chatPendingTs=0; // switching agents clears any pending state
+  currentChatRef=db.ref('sim/chats/'+agentId+'/messages');
+  currentChatRef.on('value',function(snap){
+    var raw=snap.val()||{};
+    var msgs=Object.keys(raw).map(function(k){return Object.assign({ts:parseInt(k)||0},raw[k]||{});})
+      .filter(function(m){return m && m.text;})
+      .sort(function(a,b){return a.ts-b.ts;})
+      .slice(-30);
+    renderChatThread(msgs,agentId);
+  });
+}
+function renderChatThread(msgs,agentId){
+  var el=document.getElementById('spec-chat-thread');if(!el)return;
+  var def=AGENT_DEFS.find(function(d){return d.id===agentId;});
+  var agentColor=def?def.colorCSS:'#888';
+  // Clear pending indicator once the agent's reply has arrived.
+  var lastMsg=msgs[msgs.length-1];
+  if(lastMsg&&lastMsg.role==='agent'&&chatPendingTs>0&&lastMsg.ts>=chatPendingTs)chatPendingTs=0;
+  // Pending also times out after 15s if no reply lands (e.g. worker error).
+  if(chatPendingTs>0&&Date.now()-chatPendingTs>15000)chatPendingTs=0;
+  var html='';
+  if(!msgs.length){
+    html='<div style="color:#333;font-size:8px;letter-spacing:2px">[no chat yet — say something]</div>';
+  } else {
+    html=msgs.map(function(m){
+      var name=m.role==='agent'?(def?def.name:'AGENT'):(m.playerName||'Observer');
+      var style=m.role==='agent'?(' style="color:'+agentColor+'"'):'';
+      return '<div class="chat-msg '+(m.role==='agent'?'agent':'user')+'">'
+        +'<span class="chat-name"'+style+'>'+escHtml(name)+'</span>'
+        +'<span class="chat-text">'+escHtml(m.text)+'</span>'
+        +'</div>';
+    }).join('');
+  }
+  if(chatPendingTs>0){
+    html+='<div class="chat-msg agent typing" style="opacity:.55">'
+      +'<span class="chat-name" style="color:'+agentColor+'">'+(def?def.name:'')+'</span>'
+      +'<span class="chat-text">…</span></div>';
+  }
+  el.innerHTML=html;
+  el.scrollTop=el.scrollHeight;
+}
+
+// ── Spatial speech: subscribe once to /sim/speech, play with distance-attenuated TTS ──
+var lastSpeechId={};
+function subscribeSpeech(){
+  if(!db)return;
+  db.ref('sim/speech').on('value',function(snap){
+    var all=snap.val()||{};
+    Object.keys(all).forEach(function(agentId){
+      var u=all[agentId]; if(!u||!u.id||!u.text)return;
+      if(lastSpeechId[agentId]===u.id)return;
+      lastSpeechId[agentId]=u.id;
+      // Skip stale on first load (anything older than 30s shouldn't replay)
+      if(u.ts && Date.now()-u.ts>30000)return;
+      speakSpatial(agentId,u.text);
+    });
+  });
+}
+var SPATIAL_MAX_RANGE=45; // units; silent beyond
+function pulseAgentSpeaking(agentId){
+  var dot=document.querySelector('.spec-dot[data-agent="'+agentId+'"]');
+  if(dot){ dot.classList.remove('speaking'); void dot.offsetWidth; dot.classList.add('speaking'); }
+  if(AGENT_DEFS[spectateAgentIdx]&&AGENT_DEFS[spectateAgentIdx].id===agentId){
+    var n=document.getElementById('spec-agent-name');
+    if(n){ n.classList.remove('speaking'); void n.offsetWidth; n.classList.add('speaking'); }
+  }
+}
+function speakSpatial(agentId,text){
+  pulseAgentSpeaking(agentId);
+  if(!ttsEnabled||!window.speechSynthesis)return;
+  var ag=null;
+  for(var i=0;i<agents.length;i++){ if(agents[i].def.id===agentId){ag=agents[i];break;} }
+  var def=AGENT_DEFS.find(function(d){return d.id===agentId;});
+  if(!def)return;
+  // Volume by camera distance to the agent's mesh (1.0 close, 0 beyond range)
+  var vol=1;
+  if(ag && ag.charMesh && typeof camera !== 'undefined' && camera && camera.position){
+    var ax=ag.charMesh.position.x, ay=ag.charMesh.position.y, az=ag.charMesh.position.z;
+    var dx=camera.position.x-ax, dy=camera.position.y-ay, dz=camera.position.z-az;
+    var dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    vol=Math.max(0,Math.min(1,1-dist/SPATIAL_MAX_RANGE));
+    if(vol<=0.02)return; // inaudible — skip work
+  }
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+  lastSpokenText=text; lastSpokenDef=def;
+  var utter=new SpeechSynthesisUtterance(text);
+  utter.rate=def.ttsRate||1.0;
+  utter.pitch=def.ttsPitch||1.0;
+  utter.volume=vol;
+  if(ttsVoices.length){
+    var prefs=TTS_VOICE_PREFS[def.id]||[];
+    var pick=null;
+    for(var p=0;p<prefs.length&&!pick;p++){
+      for(var i2=0;i2<ttsVoices.length;i2++){ if(ttsVoices[i2].name===prefs[p]){pick=ttsVoices[i2];break;} }
+    }
+    if(!pick){ for(var i3=0;i3<ttsVoices.length;i3++){ if(ttsVoices[i3].lang.startsWith('en')){pick=ttsVoices[i3];break;} } }
+    if(pick)utter.voice=pick;
+  }
+  window.speechSynthesis.speak(utter);
 }
 
 async function spectateConnectWallet(){
   var btn=document.getElementById('spec-wallet-btn');
-  if(!window.ethereum){
+  var provider=window.solana;
+  if(!provider||!provider.isPhantom){
     btn.textContent='✕ NO WALLET DETECTED';
     document.getElementById('spec-nw').style.display='block';
     return;
   }
   btn.textContent='CONNECTING...';btn.disabled=true;
   try{
-    var accs=await window.ethereum.request({method:'eth_requestAccounts'});
-    walletAddr=accs[0];
-    walletAddress=accs[0];
-    btn.textContent='● '+walletAddr.slice(0,6)+'...'+walletAddr.slice(-4);
+    var resp=await provider.connect();
+    walletAddr=resp.publicKey.toString();
+    walletAddress=walletAddr;
+    btn.textContent='● '+walletAddr.slice(0,4)+'...'+walletAddr.slice(-4);
     btn.classList.add('ok');
     // Fast path: localStorage identity check (no round-trip needed)
     var lsKey='cnx_id_'+walletAddr.toLowerCase();
