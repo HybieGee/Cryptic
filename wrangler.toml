@@ -12,6 +12,9 @@ crons = ["*/1 * * * *"]
 #          wrangler secret put BITQUERY_API_KEY
 #          wrangler secret put ADMIN_PASSWORD
 #          wrangler secret put CRON_SECRET
+#          wrangler secret put AGENT_GH_TOKEN   # optional — enables each agent to commit
+#                                               # its learning to its own GitHub repo
+#                                               # (see AGENT_REPOS in worker.js). Dormant if unset.
 
 [[kv_namespaces]]
 binding = "AGENT_MEMORY"

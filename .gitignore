@@ -1,0 +1,9 @@
+# Build / deploy artifacts and local tooling — not source
+dist/
+_base_backup/
+.wrangler/
+.claude/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

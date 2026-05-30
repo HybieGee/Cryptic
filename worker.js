@@ -282,7 +282,7 @@ function toArr(v)  { if (!v) return []; if (Array.isArray(v)) return v; return O
 function toObj(v)  { if (!v) return {}; if (typeof v === 'object' && !Array.isArray(v)) return v; return {}; }
 
 const TOKEN_SYMBOL    = 'CNIX';    // Update when token launches on pump.fun
-const FEE_RATE        = 0.005;     // 0.5% of each trade's SOL size → feePool
+const FEE_RATE        = 0.003;     // 0.30% pump.fun creator fee of each trade's SOL size → feePool
 const SOL_RESTOCK_THRESH = 0.06;   // trigger restock when solBalance below this
 const MIN_FEE_TO_BURN    = 0.02;   // minimum feePool (SOL) required to trigger burn
 
@@ -401,9 +401,13 @@ function maybeFinishTrial(ag) {
   // Need ≥3 samples on each side AND a ≥3% PnL margin to adopt the trial.
   if (tri.length >= 3 && ctrl.length >= 3 && tAvg > cAvg + 3) {
     const adopted = { ...ag.trialProfile };
+    const mp = ag.trialProfile._mutated;
+    const ov = +ag.trialProfile._origValue, nv = +ag.trialProfile._newValue;
     delete adopted._mutated; delete adopted._origValue; delete adopted._newValue; delete adopted._isTrial;
     ag.currentProfile = adopted;
     ag.adoptedMutations = (ag.adoptedMutations || 0) + 1;
+    // Flag a publish-worthy learning event for the agent's own repo (see publishAgentLearning).
+    ag._learnEvent = `Adopted a ${mp} mutation: ${ov.toFixed(3)} → ${nv.toFixed(3)} (trial PnL ${tAvg.toFixed(1)}% vs baseline ${cAvg.toFixed(1)}% over ${tri.length}/${ctrl.length} trades).`;
   }
   ag.trialProfile = null;
   ag.lastTrialEnd = ag.closedTrades || 0;
@@ -877,6 +881,12 @@ async function _runSimTickInner(env) {
     maybeStartTrial(ag);
     await reflectAgentTrades(env, ag, agEmo);
 
+    // Publish learning to the agent's own public repo (dormant unless AGENT_GH_TOKEN
+    // + a mapped repo exist). Explicit events (e.g. adopted mutations) post immediately;
+    // otherwise a throttled snapshot keeps the repo's commit history alive.
+    await publishAgentLearning(env, ag, agEmo, ag._learnEvent || 'snapshot');
+    delete ag._learnEvent;
+
     // Emotion drift toward personality baseline
     const agDef = AGENTS[id];
     if (agDef) {
@@ -937,7 +947,7 @@ const PUMPSWAP_AMM    = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';  // PumpS
 const WSOL_MINT       = 'So11111111111111111111111111111111111111112'; // Wrapped SOL
 const USDC_MINT       = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'; // USDC on Solana
 const QUOTE_MINTS     = [WSOL_MINT, USDC_MINT];
-const PUMP_FEE_RATE   = 0.01; // ~1% effective pump.fun fee, used to approximate SOL fee volume
+const PUMP_FEE_RATE   = 0.0125; // 1.25% total pump.fun bonding-curve fee, used to approximate SOL fee volume
 
 function isoAgo(ms) {
   return new Date(Date.now() - ms).toISOString().slice(0, 19) + 'Z';
@@ -1016,6 +1026,174 @@ async function runOnChainBurn(env, agentId, simSol) {
     if (!burnR.ok) { console.log('[B] burn failed', burnR.status); return; }
     console.log('[B] burned', bought, TOKEN_SYMBOL, 'for', agentId, '(simSol=' + simSol + ')');
   } catch (e) { console.log('[B] error', e && e.message); }
+}
+
+// ── Per-agent self-learning repositories ─────────────────────────────────────
+// Each agent commits its evolving strategy + a learning journal to its OWN public
+// GitHub repo, so anyone can watch it improve live. The git commit history IS the
+// "ever-improving" record. DORMANT until env.AGENT_GH_TOKEN is set AND the agent
+// has a repo mapped below. To activate:
+//   1. Create the 5 (empty) repos under your account, e.g. cryptonix-alpha … -epsilon
+//   2. Create a fine-grained PAT with Contents:read+write scoped to those repos
+//   3. `wrangler secret put AGENT_GH_TOKEN`
+// Nothing sensitive is ever published — only public game state (strategy params,
+// PnL, streaks, adopted mutations). No keys, prompts, or internals.
+const AGENT_REPOS = {
+  alpha:   'HybieGee/cryptonix-alpha',
+  beta:    'HybieGee/cryptonix-beta',
+  gamma:   'HybieGee/cryptonix-gamma',
+  delta:   'HybieGee/cryptonix-delta',
+  epsilon: 'HybieGee/cryptonix-epsilon',
+};
+const GH_PUBLISH_MIN_INTERVAL_MS = 20 * 60 * 1000; // at most one commit per agent / 20 min
+
+function ghHeaders(token) {
+  return {
+    'Authorization': 'Bearer ' + token,
+    'Accept': 'application/vnd.github+json',
+    'User-Agent': 'cryptonix-agent',
+    'Content-Type': 'application/json',
+  };
+}
+function b64utf8(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function utf8FromB64(b64) {
+  const bin = atob((b64 || '').replace(/\n/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+// GET a file's {sha, text}, or null if it doesn't exist / not configured.
+async function ghGetFile(env, repo, path) {
+  if (!env.AGENT_GH_TOKEN) return null;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=HEAD`, { headers: ghHeaders(env.AGENT_GH_TOKEN) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return { sha: j.sha, text: j.content ? utf8FromB64(j.content) : '' };
+  } catch { return null; }
+}
+// Create or update a file via the Contents API. Pass sha to update an existing file.
+async function ghPutFile(env, repo, path, message, contentStr, sha) {
+  if (!env.AGENT_GH_TOKEN) return false;
+  try {
+    const body = { message, content: b64utf8(contentStr) };
+    if (sha) body.sha = sha;
+    const r = await fetch(`https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`, { method: 'PUT', headers: ghHeaders(env.AGENT_GH_TOKEN), body: JSON.stringify(body) });
+    if (!r.ok) console.log('[gh] put', path, r.status);
+    return r.ok;
+  } catch (e) { console.log('[gh] put error', e && e.message); return false; }
+}
+
+function agentWinRate(ag) {
+  const h = ag.closedHistory || [];
+  if (!h.length) return null;
+  const w = h.filter(x => (x.pnl || 0) >= 0).length;
+  return Math.round((w / h.length) * 100);
+}
+function isoStamp(ts) {
+  // Avoid argless Date(); ts is always provided.
+  return new Date(ts).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+}
+
+function buildAgentReadme(ag, def, prof, emo, ts) {
+  const wr = agentWinRate(ag);
+  const recent = (ag.closedHistory || []).slice(-6).reverse();
+  const lines = [];
+  lines.push(`# ${def.name} — Cryptonix self-learning agent`);
+  lines.push('');
+  lines.push(`> ${def.philosophy || ''}`);
+  lines.push('');
+  lines.push('This repository is maintained autonomously by the agent. Every meaningful');
+  lines.push('strategy change is committed here as it happens — the commit history is a live');
+  lines.push('record of how the agent revises itself. No human edits these files.');
+  lines.push('');
+  lines.push(`_Last updated ${isoStamp(ts)}_`);
+  lines.push('');
+  lines.push('## Current strategy');
+  lines.push('');
+  lines.push('| Parameter | Value |');
+  lines.push('|---|---|');
+  lines.push(`| Preferred column | ${prof.col || '—'} |`);
+  lines.push(`| Buy threshold | ${(+prof.buyThresh).toFixed(3)} |`);
+  lines.push(`| Take profit | ${Math.round((+prof.tp) * 100)}% |`);
+  lines.push(`| Stop loss | ${Math.round((+prof.sl) * 100)}% |`);
+  lines.push(`| Risk per trade | ${Math.round((+prof.riskPct) * 100)}% |`);
+  lines.push(`| Adaptive bias | ${(+(ag.adaptiveBias || 0)).toFixed(3)} |`);
+  lines.push('');
+  lines.push('## Learning state');
+  lines.push('');
+  lines.push(`- Closed trades: **${ag.closedTrades || 0}**`);
+  lines.push(`- Win rate (last ${Math.min((ag.closedHistory || []).length, 30)}): **${wr == null ? '—' : wr + '%'}**`);
+  lines.push(`- Win / loss streak: **${ag.winStreak || 0}** / **${ag.lossStreak || 0}**`);
+  lines.push(`- Mutations adopted: **${ag.adoptedMutations || 0}**`);
+  lines.push(`- SOL balance: **${(+(ag.solBalance || 0)).toFixed(3)}**`);
+  if (emo) {
+    const top = Object.keys(emo).sort((a, b) => (emo[b] || 0) - (emo[a] || 0)).slice(0, 3)
+      .map(k => `${k} ${Math.round((emo[k] || 0) * 100)}`).join(', ');
+    lines.push(`- Dominant emotions: ${top}`);
+  }
+  lines.push('');
+  if (recent.length) {
+    lines.push('## Recent closed trades');
+    lines.push('');
+    lines.push('| Token | PnL | Hold |');
+    lines.push('|---|---|---|');
+    for (const t of recent) {
+      lines.push(`| $${t.sym || '?'} | ${(t.pnl || 0) >= 0 ? '+' : ''}${(t.pnl || 0).toFixed(1)}% | ${Math.round((t.holdSec || 0) / 60)}m |`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+// Append-only journal of learning events (newest first), capped to keep the file small.
+async function appendAgentJournal(env, repo, ag, def, entry, ts) {
+  const existing = await ghGetFile(env, repo, 'JOURNAL.md');
+  const header = `# ${def.name} — learning journal\n\nNewest first. Each entry is a factual learning event the agent committed autonomously.\n`;
+  const line = `\n## ${isoStamp(ts)}\n\n${entry}\n`;
+  let body;
+  if (existing && existing.text) {
+    // Insert the new entry right after the header block.
+    const idx = existing.text.indexOf('\n## ');
+    body = idx >= 0 ? existing.text.slice(0, idx) + line + existing.text.slice(idx) : existing.text + line;
+    // Cap the journal at ~400 entries so the file never grows unbounded.
+    const parts = body.split('\n## ');
+    if (parts.length > 401) body = parts.slice(0, 401).join('\n## ');
+  } else {
+    body = header + line;
+  }
+  return ghPutFile(env, repo, 'JOURNAL.md', `journal: ${def.name} learning update`, body, existing && existing.sha);
+}
+
+// Publish the agent's current state to its repo. Throttled + dormant by default.
+// `trigger` is a human-readable reason (e.g. an adopted mutation), or 'snapshot'.
+async function publishAgentLearning(env, ag, emo, trigger) {
+  const repo = AGENT_REPOS[ag.id];
+  const def  = AGENTS[ag.id];
+  if (!env.AGENT_GH_TOKEN || !repo || !def) return; // dormant until configured
+  try {
+    const key  = `gh_pub_${ag.id}`;
+    const last = parseFloat((await env.AGENT_MEMORY.get(key)) || '0');
+    const now  = Date.now();
+    // Always allow an explicit learning event through; throttle routine snapshots.
+    const isEvent = trigger && trigger !== 'snapshot';
+    if (!isEvent && now - last < GH_PUBLISH_MIN_INTERVAL_MS) return;
+
+    const prof = ag.currentProfile || TRADE_PROFILE[ag.id] || TRADE_PROFILE.epsilon;
+    const readme = buildAgentReadme(ag, def, prof, emo, now);
+    const cur = await ghGetFile(env, repo, 'README.md');
+    const ok = await ghPutFile(env, repo, 'README.md', `learn: ${isEvent ? trigger.slice(0, 60) : 'snapshot'} (${def.name})`, readme, cur && cur.sha);
+    if (ok) {
+      const entry = isEvent ? trigger : `Snapshot — ${ag.closedTrades || 0} trades closed, win rate ${agentWinRate(ag) ?? '—'}%, ${ag.adoptedMutations || 0} mutations adopted, bias ${(+(ag.adaptiveBias || 0)).toFixed(3)}.`;
+      await appendAgentJournal(env, repo, ag, def, entry, now);
+      await env.AGENT_MEMORY.put(key, String(now));
+    }
+  } catch (e) { console.log('[gh] publish error', e && e.message); }
 }
 
 async function fetchSolPrice(env) {
