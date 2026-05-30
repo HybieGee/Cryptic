@@ -1031,20 +1031,32 @@ async function runOnChainBurn(env, agentId, simSol) {
 // ── Per-agent self-learning repositories ─────────────────────────────────────
 // Each agent commits its evolving strategy + a learning journal to its OWN public
 // GitHub repo, so anyone can watch it improve live. The git commit history IS the
-// "ever-improving" record. DORMANT until env.AGENT_GH_TOKEN is set AND the agent
-// has a repo mapped below. To activate:
-//   1. Create the 5 (empty) repos under your account, e.g. cryptonix-alpha … -epsilon
-//   2. Create a fine-grained PAT with Contents:read+write scoped to those repos
-//   3. `wrangler secret put AGENT_GH_TOKEN`
+// "ever-improving" record. The repos can live under a SEPARATE GitHub account from
+// the main project — the owner is read from env, not hardcoded.
+//
+// DORMANT until BOTH are set:
+//   • env.AGENT_REPO_OWNER — the GitHub account/org that owns the agent repos
+//   • env.AGENT_GH_TOKEN   — a PAT for THAT account with Contents:read+write on them
+// To activate:
+//   1. Under the agents' account, create 5 (empty) repos named per AGENT_REPO_SLUGS
+//   2. `wrangler secret put AGENT_GH_TOKEN`   (PAT from that account)
+//   3. set AGENT_REPO_OWNER (a [vars] entry in wrangler.toml, or a secret)
 // Nothing sensitive is ever published — only public game state (strategy params,
 // PnL, streaks, adopted mutations). No keys, prompts, or internals.
-const AGENT_REPOS = {
-  alpha:   'HybieGee/cryptonix-alpha',
-  beta:    'HybieGee/cryptonix-beta',
-  gamma:   'HybieGee/cryptonix-gamma',
-  delta:   'HybieGee/cryptonix-delta',
-  epsilon: 'HybieGee/cryptonix-epsilon',
+const AGENT_REPO_SLUGS = {
+  alpha:   'cryptonix-alpha',
+  beta:    'cryptonix-beta',
+  gamma:   'cryptonix-gamma',
+  delta:   'cryptonix-delta',
+  epsilon: 'cryptonix-epsilon',
 };
+// Resolve "owner/repo" for an agent, or null if not configured. Rename the slugs
+// above if the repos are named differently.
+function agentRepo(env, id) {
+  const owner = env.AGENT_REPO_OWNER;
+  const slug  = AGENT_REPO_SLUGS[id];
+  return (owner && slug) ? `${owner}/${slug}` : null;
+}
 const GH_PUBLISH_MIN_INTERVAL_MS = 20 * 60 * 1000; // at most one commit per agent / 20 min
 
 function ghHeaders(token) {
@@ -1173,7 +1185,7 @@ async function appendAgentJournal(env, repo, ag, def, entry, ts) {
 // Publish the agent's current state to its repo. Throttled + dormant by default.
 // `trigger` is a human-readable reason (e.g. an adopted mutation), or 'snapshot'.
 async function publishAgentLearning(env, ag, emo, trigger) {
-  const repo = AGENT_REPOS[ag.id];
+  const repo = agentRepo(env, ag.id);
   const def  = AGENTS[ag.id];
   if (!env.AGENT_GH_TOKEN || !repo || !def) return; // dormant until configured
   try {

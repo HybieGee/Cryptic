@@ -8,13 +8,18 @@ compatibility_date = "2024-01-01"
 crons = ["*/1 * * * *"]
 
 [vars]
+# AGENT_REPO_OWNER = "your-agents-github-account"  # GitHub account/org that owns the
+#                                                  # per-agent learning repos (can differ
+#                                                  # from the main project account)
+#
 # Secrets: wrangler secret put ANTHROPIC_API_KEY
 #          wrangler secret put BITQUERY_API_KEY
 #          wrangler secret put ADMIN_PASSWORD
 #          wrangler secret put CRON_SECRET
-#          wrangler secret put AGENT_GH_TOKEN   # optional — enables each agent to commit
-#                                               # its learning to its own GitHub repo
-#                                               # (see AGENT_REPOS in worker.js). Dormant if unset.
+#          wrangler secret put AGENT_GH_TOKEN   # optional — PAT (Contents:write) for the
+#                                               # account that owns the agent repos. Enables each
+#                                               # agent to commit its learning to its own repo.
+#                                               # Dormant unless this AND AGENT_REPO_OWNER are set.
 
 [[kv_namespaces]]
 binding = "AGENT_MEMORY"
