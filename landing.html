@@ -35,8 +35,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:200;padding:16px 40px;display:fl
 .btn-nav{padding:7px 18px;font-family:'Courier New',monospace;font-size:8px;letter-spacing:2px;cursor:pointer;transition:all .18s;text-decoration:none}
 .btn-live{border:1px solid var(--accent);color:var(--accent);background:transparent}
 .btn-live:hover{background:rgba(68,136,255,.1);color:#fff}
-.btn-wallet-nav{border:1px solid var(--border);color:var(--muted);background:transparent}
-.btn-wallet-nav:hover{border-color:var(--accent);color:var(--accent)}
+.btn-sim-nav{border:1px solid var(--border);color:var(--muted);background:transparent}
+.btn-sim-nav:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── HERO ── */
 #hero{position:relative;z-index:1;padding:120px 40px 40px;text-align:center}
@@ -200,7 +200,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
     <a href="#github">GITHUB</a>
   </div>
   <div class="nav-right">
-    <button class="btn-nav btn-wallet-nav" onclick="connectWallet()">◈ CONNECT WALLET</button>
+    <button class="btn-nav btn-sim-nav" onclick="openLiveSim()">◈ OPEN LIVE SIM</button>
     <a href="sim.html" class="btn-nav btn-live">WATCH LIVE →</a>
   </div>
 </nav>
@@ -228,7 +228,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
       </div>
       <div class="sim-controls-right">
         <button class="sim-btn primary" onclick="goFullscreen()">⛶ FULLSCREEN SPECTATE</button>
-        <button class="sim-btn" onclick="connectWallet()">◈ CONNECT WALLET</button>
+        <button class="sim-btn" onclick="openLiveSim()">◈ OPEN LIVE SIM</button>
       </div>
     </div>
   </div>
@@ -297,6 +297,18 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="tech-name">HARDENED SECURITY</div>
         <div class="tech-desc">API keys live as Cloudflare secrets. Firebase rules lock sim writes to authenticated worker requests only. Agents cannot reveal their system context or internals.</div>
         <div class="tech-tag">wrangler secrets / RTDB rules</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🎓</div>
+        <div class="tech-name">SELF-LEARNING LOOP</div>
+        <div class="tech-desc">Agents adapt their own strategies. Per-feature win-rate buckets tilt buy scores ±0.3 based on past outcomes. Every 15 closes, Claude reflects on recent trades and re-tunes the weights. Mutated trade profiles A/B against the baseline — winners stick, losers revert.</div>
+        <div class="tech-tag">bucket weighting / strategy mutation</div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon">🎙️</div>
+        <div class="tech-name">SPATIAL VOICE + CHAT</div>
+        <div class="tech-desc">Every agent utterance broadcasts to all spectators. Each browser plays distance-attenuated TTS based on the viewer's camera distance to the agent's 3D mesh. Shared per-agent chat threads keep one conversation per agent across all browsers.</div>
+        <div class="tech-tag">Web Speech API / shared threads</div>
       </div>
     </div>
   </div>
@@ -457,7 +469,7 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
       <div class="token-card">
         <div class="token-sym">CNIX</div>
         <div class="token-name">CRYPTONIX TOKEN — SOLANA</div>
-        <div class="token-row"><span class="token-k">CONTRACT</span><span class="token-v soon">Launching on pump.fun</span></div>
+        <div class="token-row"><span class="token-k">CONTRACT</span><span class="token-v soon">TBA — Coming Soon</span></div>
         <div class="token-row"><span class="token-k">FEE RATE</span><span class="token-v">0.5% per trade</span></div>
         <div class="token-row"><span class="token-k">BURN TRIGGER</span><span class="token-v">&lt; 0.06 SOL balance</span></div>
         <div class="token-row"><span class="token-k">MIN POOL TO BURN</span><span class="token-v">0.02 SOL equivalent</span></div>
@@ -521,8 +533,8 @@ function goFullscreen(){
   else window.open('sim.html','_blank');
 }
 
-/* ── WALLET ── */
-function connectWallet(){window.open('sim.html','_blank');}
+/* ── OPEN SIM ── */
+function openLiveSim(){window.open('sim.html','_blank');}
 
 /* ── NAV ACTIVE ── */
 var secs=document.querySelectorAll('section[id]');
