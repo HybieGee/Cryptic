@@ -267,14 +267,24 @@ async function broadcastSpeech(env, agentId, text) {
 //   new      = New Pairs (early bonding curve, highest risk)
 //   stretch  = Final Stretch (mid-stage, near graduation, momentum)
 //   migrated = Migrated (graduated to Raydium/PumpSwap, safest)
-// maxHold in seconds: alpha 8m, beta 20m, gamma 5m, delta 6m, epsilon 10m
+// All five agents START from ONE identical profile. They diverge only through
+// their own LLM's reflection + the A/B mutation loop (see spawnTrialProfile) —
+// same starting line, the model is the only variable. Personality VOICES still
+// differ; the trade parameters do not. The cards on the site show these live, so
+// viewers watch FOCUS/HOLD/RISK/RESTOCK drift apart over time.
+//   col      → FOCUS  (stretch=Final Stretch, migrated=Migrated, new=New Pairs)
+//   maxHold  → HOLD   (seconds)
+//   riskPct  → RISK   (fraction of SOL per trade)
+//   restock  → RESTOCK TARGET (SOL balance the agent burns CNIX to reach)
+const BASE_PROFILE = { col: 'stretch', buyThresh: 0.40, bias: 0, tp: 0.40, sl: -0.22, maxHold: 480, riskPct: 0.13, minObs: 3, restock: 0.6 };
 const TRADE_PROFILE = {
-  alpha:   { col: 'stretch',  buyThresh: 0.42, bias: +0.10, tp: 0.35, sl: -0.20, maxHold: 480,  riskPct: 0.12, minObs: 3 },
-  beta:    { col: 'migrated', buyThresh: 0.55, bias: -0.05, tp: 0.15, sl: -0.10, maxHold: 1200, riskPct: 0.07, minObs: 5 },
-  gamma:   { col: 'new',      buyThresh: 0.22, bias: +0.15, tp: 0.80, sl: -0.35, maxHold: 300,  riskPct: 0.18, minObs: 1 },
-  delta:   { col: 'stretch',  buyThresh: 0.45, bias: +0.08, tp: 0.40, sl: -0.22, maxHold: 360,  riskPct: 0.14, minObs: 3 },
-  epsilon: { col: 'new',      buyThresh: 0.18, bias: 0,     tp: 0.60, sl: -0.30, maxHold: 600,  riskPct: 0.15, minObs: 0 },
+  alpha:   { ...BASE_PROFILE },
+  beta:    { ...BASE_PROFILE },
+  gamma:   { ...BASE_PROFILE },
+  delta:   { ...BASE_PROFILE },
+  epsilon: { ...BASE_PROFILE },
 };
+const FOCUS_LABEL = { new: 'NEW PAIRS', stretch: 'FINAL STRETCH', migrated: 'MIGRATED' };
 
 const AGENT_IDS = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
 
@@ -286,9 +296,8 @@ const FEE_RATE        = 0.003;     // 0.30% pump.fun creator fee of each trade's
 const SOL_RESTOCK_THRESH = 0.06;   // trigger restock when solBalance below this
 const MIN_FEE_TO_BURN    = 0.02;   // minimum feePool (SOL) required to trigger burn
 
-// Per-agent SOL restock target — agent burns enough CNIX to reach this balance.
-// Aggressive agents target higher reserves; conservative agents run leaner.
-const RESTOCK_TARGET = { alpha: 0.6, beta: 0.4, gamma: 0.8, delta: 0.6, epsilon: 0.7 };
+// SOL restock target now lives in each agent's evolving profile (profile.restock),
+// so it starts identical and drifts via the mutation loop like the other stats.
 
 // Composite quality score: window volume, recent momentum, fee activity, trade count, pump penalty.
 // Scaled for pump.fun where fresh tokens trade in the $10s–$1000s, migrated in the $millions.
@@ -364,17 +373,30 @@ function learnedAdj(t, stats) {
 
 // ── Per-agent mutation: trial profiles that compete with the current one ─────
 
-const MUTABLE_PARAMS = ['buyThresh', 'tp', 'sl', 'riskPct'];
+const MUTABLE_PARAMS = ['buyThresh', 'tp', 'sl', 'riskPct', 'maxHold', 'restock'];
+const COLUMNS = ['new', 'stretch', 'migrated'];
 
 function spawnTrialProfile(profile) {
-  const p = MUTABLE_PARAMS[Math.floor(Math.random() * MUTABLE_PARAMS.length)];
   const trial = { ...profile };
+  // ~1 in 6 trials explores a different FOCUS column (categorical); otherwise it
+  // scales one numeric parameter by ±20%. Either way the A/B test keeps it only
+  // if it closes better than the baseline.
+  if (Math.random() < 0.17) {
+    const others = COLUMNS.filter(c => c !== profile.col);
+    const nc = others[Math.floor(Math.random() * others.length)] || profile.col;
+    trial.col = nc;
+    trial._mutated = 'col'; trial._origValue = profile.col; trial._newValue = nc;
+    return trial;
+  }
+  const p = MUTABLE_PARAMS[Math.floor(Math.random() * MUTABLE_PARAMS.length)];
   const factor = 1 + (Math.random() - 0.5) * 0.4; // 0.8 — 1.2
   trial[p] = profile[p] * factor;
   if (p === 'buyThresh') trial.buyThresh = Math.max(0.10, Math.min(0.80, trial.buyThresh));
   if (p === 'tp')        trial.tp        = Math.max(0.05, Math.min(1.50, trial.tp));
   if (p === 'sl')        trial.sl        = Math.max(-0.60, Math.min(-0.03, trial.sl));
   if (p === 'riskPct')   trial.riskPct   = Math.max(0.03, Math.min(0.30, trial.riskPct));
+  if (p === 'maxHold')   trial.maxHold   = Math.round(Math.max(120, Math.min(1800, trial.maxHold)));
+  if (p === 'restock')   trial.restock   = Math.max(0.30, Math.min(1.00, trial.restock));
   trial._mutated   = p;
   trial._origValue = profile[p];
   trial._newValue  = trial[p];
@@ -402,12 +424,13 @@ function maybeFinishTrial(ag) {
   if (tri.length >= 3 && ctrl.length >= 3 && tAvg > cAvg + 3) {
     const adopted = { ...ag.trialProfile };
     const mp = ag.trialProfile._mutated;
-    const ov = +ag.trialProfile._origValue, nv = +ag.trialProfile._newValue;
+    const fmt = (v) => (typeof v === 'number') ? v.toFixed(3) : String(v);
+    const ovTxt = fmt(ag.trialProfile._origValue), nvTxt = fmt(ag.trialProfile._newValue);
     delete adopted._mutated; delete adopted._origValue; delete adopted._newValue; delete adopted._isTrial;
     ag.currentProfile = adopted;
     ag.adoptedMutations = (ag.adoptedMutations || 0) + 1;
     // Flag a publish-worthy learning event for the agent's own repo (see publishAgentLearning).
-    ag._learnEvent = `Adopted a ${mp} mutation: ${ov.toFixed(3)} → ${nv.toFixed(3)} (trial PnL ${tAvg.toFixed(1)}% vs baseline ${cAvg.toFixed(1)}% over ${tri.length}/${ctrl.length} trades).`;
+    ag._learnEvent = `Adopted a ${mp} mutation: ${ovTxt} → ${nvTxt} (trial PnL ${tAvg.toFixed(1)}% vs baseline ${cAvg.toFixed(1)}% over ${tri.length}/${ctrl.length} trades).`;
   }
   ag.trialProfile = null;
   ag.lastTrialEnd = ag.closedTrades || 0;
@@ -904,7 +927,7 @@ async function _runSimTickInner(env) {
     //   3. USD-purchase fallback
     if ((ag.solBalance || 0) < SOL_RESTOCK_THRESH) {
       let restocked = false;
-      const target  = RESTOCK_TARGET[ag.id] || 0.5;
+      const target  = (ag.currentProfile && ag.currentProfile.restock) || BASE_PROFILE.restock;
       const deficit = target - (ag.solBalance || 0);
 
       // Layer A — real creator-fee quota (gated on env.TOKEN_MINT).
@@ -979,6 +1002,14 @@ async function _runSimTickInner(env) {
 
     const { id: _id, ...state } = ag;
     state.llm = activeLlmLabel(env, id); // surface which model powers this agent
+    // Live trade stats for the site's agent cards — start identical, drift via learning.
+    const cp = ag.currentProfile || BASE_PROFILE;
+    state.stats = {
+      focus:   FOCUS_LABEL[cp.col] || 'FINAL STRETCH',
+      holdMin: Math.round((cp.maxHold || BASE_PROFILE.maxHold) / 60),
+      riskPct: Math.round((cp.riskPct || BASE_PROFILE.riskPct) * 100),
+      restock: Math.round(((cp.restock || BASE_PROFILE.restock)) * 100) / 100,
+    };
     agentStates[id] = state;
   }
 

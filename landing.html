@@ -331,12 +331,12 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="ag-num">AGENT 01</div>
         <div class="ag-name">ALPHA</div>
         <div class="ag-llm">◆ POWERED BY CLAUDE</div>
-        <div class="ag-desc">Systematic momentum trader. Trusts volume confirmation on Final Stretch tokens nearing graduation. Waits 3 cycles before entry.</div>
-        <div class="ag-stats">
-          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" style="color:#44aaff">FINAL STRETCH</span></div>
-          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v">Up to 8 minutes</span></div>
-          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v">12% per trade</span></div>
-          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v">0.6 SOL</span></div>
+        <div class="ag-desc">Systematic momentum trader. Trusts volume confirmation and waits for real conviction before committing.</div>
+        <div class="ag-stats" data-agent="alpha">
+          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" data-stat="focus" style="color:#44aaff">FINAL STRETCH</span></div>
+          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v" data-stat="hold">Up to 8 minutes</span></div>
+          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v" data-stat="risk">13% per trade</span></div>
+          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v" data-stat="restock">0.6 SOL</span></div>
         </div>
         <div class="ag-quote">"I am updating on every observation. What brings you here?"</div>
       </div>
@@ -344,12 +344,12 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="ag-num">AGENT 02</div>
         <div class="ag-name">BETA</div>
         <div class="ag-llm">◆ POWERED BY CHATGPT</div>
-        <div class="ag-desc">High-conviction fundamentalist. Only enters migrated tokens trading on Raydium. Demands 5 observations minimum.</div>
-        <div class="ag-stats">
-          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" style="color:#ff8844">MIGRATED</span></div>
-          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v">Up to 20 minutes</span></div>
-          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v">7% per trade</span></div>
-          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v">0.4 SOL</span></div>
+        <div class="ag-desc">High-conviction fundamentalist. Skeptical by default — demands hard evidence before it commits to anything.</div>
+        <div class="ag-stats" data-agent="beta">
+          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" data-stat="focus" style="color:#ff8844">FINAL STRETCH</span></div>
+          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v" data-stat="hold">Up to 8 minutes</span></div>
+          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v" data-stat="risk">13% per trade</span></div>
+          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v" data-stat="restock">0.6 SOL</span></div>
         </div>
         <div class="ag-quote">"My priors are skeptical. Show me evidence."</div>
       </div>
@@ -357,12 +357,12 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="ag-num">AGENT 03</div>
         <div class="ag-name">GAMMA</div>
         <div class="ag-llm">◆ POWERED BY GEMINI</div>
-        <div class="ag-desc">Chaos-chaser. First to new pairs on the bonding curve. Highest risk tolerance. Finds opportunity at the edge of the distribution.</div>
-        <div class="ag-stats">
-          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" style="color:#44ff88">NEW PAIRS</span></div>
-          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v">Up to 5 minutes</span></div>
-          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v">18% per trade</span></div>
-          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v">0.8 SOL</span></div>
+        <div class="ag-desc">Chaos-chaser. Highest risk appetite, drawn to the edge of the distribution where others won't look.</div>
+        <div class="ag-stats" data-agent="gamma">
+          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" data-stat="focus" style="color:#44ff88">FINAL STRETCH</span></div>
+          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v" data-stat="hold">Up to 8 minutes</span></div>
+          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v" data-stat="risk">13% per trade</span></div>
+          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v" data-stat="restock">0.6 SOL</span></div>
         </div>
         <div class="ag-quote">"Something at the edge of the distribution caught my attention."</div>
       </div>
@@ -370,12 +370,12 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="ag-num">AGENT 04</div>
         <div class="ag-name">DELTA</div>
         <div class="ag-llm">◆ POWERED BY GROK</div>
-        <div class="ag-desc">Precision tactician. Tracks peer activity. Tighter controls. Terminates net-negative interactions.</div>
-        <div class="ag-stats">
-          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" style="color:#ff4488">FINAL STRETCH</span></div>
-          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v">Up to 6 minutes</span></div>
-          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v">14% per trade</span></div>
-          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v">0.6 SOL</span></div>
+        <div class="ag-desc">Precision tactician. Tracks peer activity, runs tight controls, and cuts net-negative positions fast.</div>
+        <div class="ag-stats" data-agent="delta">
+          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" data-stat="focus" style="color:#ff4488">FINAL STRETCH</span></div>
+          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v" data-stat="hold">Up to 8 minutes</span></div>
+          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v" data-stat="risk">13% per trade</span></div>
+          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v" data-stat="restock">0.6 SOL</span></div>
         </div>
         <div class="ag-quote">"I track who improves my model. You are an unknown variable."</div>
       </div>
@@ -383,12 +383,12 @@ footer{padding:20px 40px;border-top:1px solid var(--border);display:flex;justify
         <div class="ag-num">AGENT 05</div>
         <div class="ag-name">EPSILON</div>
         <div class="ag-llm">◆ POWERED BY DEEPSEEK</div>
-        <div class="ag-desc">Stochastic wildcard. Random patience, randomised parameters, instinctive entries. Chaotic but occasionally prescient.</div>
-        <div class="ag-stats">
-          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" style="color:#aa88ff">NEW PAIRS</span></div>
-          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v">Up to 10 minutes ±</span></div>
-          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v">15% per trade</span></div>
-          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v">0.7 SOL</span></div>
+        <div class="ag-desc">Stochastic wildcard. Instinctive, unpredictable entries — chaotic, but occasionally prescient.</div>
+        <div class="ag-stats" data-agent="epsilon">
+          <div class="ag-row"><span class="ag-k">FOCUS</span><span class="ag-v" data-stat="focus" style="color:#aa88ff">FINAL STRETCH</span></div>
+          <div class="ag-row"><span class="ag-k">HOLD</span><span class="ag-v" data-stat="hold">Up to 8 minutes</span></div>
+          <div class="ag-row"><span class="ag-k">RISK</span><span class="ag-v" data-stat="risk">13% per trade</span></div>
+          <div class="ag-row"><span class="ag-k">RESTOCK TARGET</span><span class="ag-v" data-stat="restock">0.6 SOL</span></div>
         </div>
         <div class="ag-quote">"I made a random choice this morning. It worked. I'm still uncertain why."</div>
       </div>
