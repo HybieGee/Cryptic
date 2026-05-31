@@ -267,7 +267,9 @@ canvas{display:block;position:fixed;inset:0}
 #chat-send:hover{color:#888}
 
 /* Ticker */
-#ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.82);border-top:1px solid #2a2a2a;padding:5px 18px;font-size:8px;letter-spacing:2px;color:#666;white-space:nowrap;overflow:hidden;pointer-events:none}
+#ticker{position:fixed;bottom:0;left:0;right:0;z-index:11;display:none;background:rgba(0,0,0,.82);border-top:1px solid #2a2a2a;padding:5px 0;font-size:8px;letter-spacing:2px;color:#fff;white-space:nowrap;overflow:hidden;pointer-events:none}
+.ticker-track{display:inline-block;white-space:nowrap;will-change:transform}
+.ticker-item{display:inline-block;color:#fff}
 /* Debug */
 #debug-hud{display:none;position:fixed;top:50px;left:16px;z-index:999;background:rgba(0,0,0,.88);border:1px solid #1a3a1a;padding:10px 14px;font-size:9px;letter-spacing:1px;color:#44ff88;white-space:pre;pointer-events:none;line-height:1.8}
 
@@ -2745,8 +2747,69 @@ function appendChatMsg(data){
 function escHTML(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ─── TICKER ────────────────────────────────────────────
-var tickerLines=[];
-function addTicker(txt){tickerLines.unshift(txt);if(tickerLines.length>3)tickerLines.pop();var el=document.getElementById('ticker');el.textContent=tickerLines.join('  ·  ');el.style.display='block';}
+// Seamless scrolling marquee. New events feed a rolling history; item spans
+// recycle off the left edge and pull the next line, so it loops forever with
+// fresh info and no visible seam.
+var tickerHistory=[];   // recent event strings (newest pushed)
+var tickerCursor=0;     // next history index to surface
+var tickerEl=null,tickerTrack=null,tickerX=0,tickerRAF=null;
+var TICK_SEP='  ◆  '; // em-spaces + ◆ separator
+function ensureTickerDom(){
+  if(tickerTrack)return;
+  tickerEl=document.getElementById('ticker');
+  if(!tickerEl)return;
+  tickerEl.textContent='';
+  tickerTrack=document.createElement('div');
+  tickerTrack.className='ticker-track';
+  tickerEl.appendChild(tickerTrack);
+}
+function nextTickerText(){
+  if(!tickerHistory.length)return null;
+  var t=tickerHistory[tickerCursor%tickerHistory.length];
+  tickerCursor++;
+  return t;
+}
+function appendTickerItem(){
+  var txt=nextTickerText();
+  if(txt==null)return false;
+  var s=document.createElement('span');
+  s.className='ticker-item';
+  s.textContent=txt+TICK_SEP;
+  tickerTrack.appendChild(s);
+  return true;
+}
+function tickerStep(ts){
+  if(!tickerTrack){tickerRAF=null;return;}
+  if(tickerStep._last==null)tickerStep._last=ts;
+  var dt=Math.min(64,ts-tickerStep._last);tickerStep._last=ts;
+  tickerX-=dt*0.05; // ~50 px / second
+  var first=tickerTrack.firstChild;
+  while(first){
+    var w=first.offsetWidth;
+    if(-tickerX>=w){tickerX+=w;tickerTrack.removeChild(first);appendTickerItem();first=tickerTrack.firstChild;}
+    else break;
+  }
+  var guard=0;
+  while(tickerTrack.scrollWidth+tickerX < (tickerEl.clientWidth+240) && guard<60){if(!appendTickerItem())break;guard++;}
+  tickerTrack.style.transform='translateX('+tickerX+'px)';
+  tickerRAF=requestAnimationFrame(tickerStep);
+}
+function startTicker(){
+  ensureTickerDom();
+  if(!tickerTrack||tickerRAF!=null)return;
+  var guard=0;
+  while(tickerTrack.scrollWidth < (tickerEl.clientWidth*2+240) && guard<80){if(!appendTickerItem())break;guard++;}
+  tickerStep._last=null;
+  tickerRAF=requestAnimationFrame(tickerStep);
+}
+function addTicker(txt){
+  ensureTickerDom();
+  if(!tickerEl)return;
+  tickerHistory.push(txt);
+  if(tickerHistory.length>40)tickerHistory.shift();
+  tickerEl.style.display='block';
+  startTicker();
+}
 function tickAgentActivity(){
   if(!agents.length)return;
   var ag=agents[Math.floor(Math.random()*agents.length)];
