@@ -102,18 +102,18 @@ section.info{position:relative;z-index:1;padding:80px 40px}
 
 /* ── AGENTS ── */
 .agents-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:1px;background:var(--border)}
-.agent-card{background:var(--surface);padding:24px 20px;position:relative;overflow:hidden;transition:background .18s}
+.agent-card{background:var(--surface);padding:24px 20px;position:relative;overflow:hidden;transition:background .18s;display:flex;flex-direction:column}
 .agent-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:currentColor}
 .agent-card:hover{background:rgba(6,10,28,.98)}
 .ag-num{font-size:6px;letter-spacing:3px;color:currentColor;opacity:.5;margin-bottom:6px}
 .ag-name{font-size:15px;letter-spacing:7px;color:#fff;margin-bottom:8px}
 .ag-llm{display:inline-block;font-size:7px;letter-spacing:2px;color:currentColor;border:1px solid currentColor;padding:3px 7px;margin-bottom:10px;opacity:.9}
-.ag-desc{font-size:7px;letter-spacing:.7px;color:var(--muted);line-height:1.8;margin-bottom:12px}
+.ag-desc{font-size:7px;letter-spacing:.7px;color:var(--muted);line-height:1.8;margin-bottom:12px;min-height:10.5em}
 .ag-stats{display:flex;flex-direction:column;gap:4px;padding-top:10px;border-top:1px solid var(--border)}
 .ag-row{display:flex;justify-content:space-between;font-size:6px;letter-spacing:1.2px}
 .ag-k{color:var(--muted)}
 .ag-v{color:#fff}
-.ag-quote{font-size:6.5px;letter-spacing:.4px;color:var(--muted);font-style:italic;line-height:1.75;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)}
+.ag-quote{font-size:6.5px;letter-spacing:.4px;color:var(--muted);font-style:italic;line-height:1.75;margin-top:auto;padding-top:8px;border-top:1px solid var(--border)}
 
 /* ── EMOTIONS ── */
 .emotions-layout{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
