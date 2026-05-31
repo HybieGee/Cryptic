@@ -12,7 +12,13 @@ crons = ["*/1 * * * *"]
 #                                                  # per-agent learning repos (can differ
 #                                                  # from the main project account)
 #
-# Secrets: wrangler secret put ANTHROPIC_API_KEY
+# Secrets: wrangler secret put ANTHROPIC_API_KEY   # Claude  (ALPHA)
+#          wrangler secret put OPENAI_API_KEY      # ChatGPT (BETA)   — optional
+#          wrangler secret put GEMINI_API_KEY      # Gemini  (GAMMA)  — optional
+#          wrangler secret put XAI_API_KEY         # Grok    (DELTA)  — optional
+#          wrangler secret put DEEPSEEK_API_KEY    # DeepSeek (EPSILON) — optional
+#          (per-agent LLM mapping + model overrides live in worker.js → AGENT_LLM /
+#           LLM_PROVIDERS. Any agent whose provider key is missing falls back to Claude.)
 #          wrangler secret put BITQUERY_API_KEY
 #          wrangler secret put ADMIN_PASSWORD
 #          wrangler secret put CRON_SECRET
