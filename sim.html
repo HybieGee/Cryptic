@@ -585,7 +585,15 @@ body.embedded #token-badge { display:none !important; }
 var audioCtx=null;
 function getAudioCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
 
+// Embedded preview starts muted; the parent page toggles via postMessage.
+// One flag gates all SFX + TTS so the sim is never noisy without opting in.
+var __SIM_MUTED=false;
+try{__SIM_MUTED=(new URLSearchParams(location.search).get('embed')==='1')||(window.top!==window.self);}catch(e){__SIM_MUTED=true;}
+function setSimMuted(m){__SIM_MUTED=!!m;if(__SIM_MUTED){try{if(window.speechSynthesis)window.speechSynthesis.cancel();}catch(e){}}}
+window.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='sim-mute')setSimMuted(e.data.value);});
+
 function playSound(type,dist){
+  if(__SIM_MUTED)return;
   try{
     var ctx=getAudioCtx();
     if(ctx.state==='suspended')ctx.resume();
@@ -2040,7 +2048,7 @@ var TTS_VOICE_PREFS={
   epsilon:['Microsoft Zira','Google US English','Microsoft Hazel','Karen']
 };
 function speakText(text,def){
-  if(!ttsEnabled||!window.speechSynthesis)return;
+  if(__SIM_MUTED||!ttsEnabled||!window.speechSynthesis)return;
   window.speechSynthesis.cancel();
   lastSpokenText=text;lastSpokenDef=def;
   var utter=new SpeechSynthesisUtterance(text);
@@ -3496,6 +3504,7 @@ function pulseAgentSpeaking(agentId){
   }
 }
 function speakSpatial(agentId,text){
+  if(__SIM_MUTED)return;
   pulseAgentSpeaking(agentId);
   if(!ttsEnabled||!window.speechSynthesis)return;
   var ag=null;
